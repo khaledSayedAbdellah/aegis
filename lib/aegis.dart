@@ -22,4 +22,5 @@ export 'src/reporters/markdown.dart' show renderMarkdown;
 export 'src/rules/registry.dart' show allRules, apkRules;
 export 'src/rules/rule.dart' show Rule, RuleCheck;
 export 'src/scoring.dart' show Score, Coverage, CategoryScore;
+export 'src/util.dart' show parseMenuChoice;
 export 'src/version.dart' show aegisVersion;

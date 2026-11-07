@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:aegis/aegis.dart';
@@ -350,8 +351,20 @@ Future<void> _init(ArgResults args) async {
       }
       while (profile == null) {
         stdout.write(ar ? 'اختار رقم [1-${_appTypes.length}]: ' : 'Choose [1-${_appTypes.length}]: ');
-        final n = int.tryParse(stdin.readLineSync()?.trim() ?? '');
-        if (n != null && n >= 1 && n <= _appTypes.length) profile = _appTypes[n - 1].$1;
+        // Arabic keyboards send ٣ instead of 3, and some terminals send bytes
+        // that are not valid UTF-8; neither should crash the prompt.
+        String? line;
+        try {
+          line = stdin.readLineSync(encoding: const Utf8Codec(allowMalformed: true));
+        } catch (_) {
+          line = null;
+        }
+        if (line == null) {
+          stderr.writeln('No answer: use aegis init --profile l1|l2|l2+r|l1+r');
+          exit(2);
+        }
+        final n = parseMenuChoice(line, _appTypes.length);
+        if (n != null) profile = _appTypes[n - 1].$1;
       }
     }
   }

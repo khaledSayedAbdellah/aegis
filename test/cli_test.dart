@@ -52,6 +52,17 @@ void main() {
     });
   });
 
+  test('menu answers in Arabic and Persian digits', () {
+    expect(parseMenuChoice('3', 4), 3);
+    expect(parseMenuChoice(' 2 \r', 4), 2);
+    expect(parseMenuChoice('٣', 4), 3);
+    expect(parseMenuChoice('۴', 4), 4);
+    expect(parseMenuChoice('5', 4), isNull);
+    expect(parseMenuChoice('', 4), isNull);
+    expect(parseMenuChoice('\uFFFD', 4), isNull);
+    expect(parseMenuChoice(null, 4), isNull);
+  });
+
   group('aegis init', () {
     test('writes aegis.yaml and refuses to overwrite it', () async {
       final dir = project();
