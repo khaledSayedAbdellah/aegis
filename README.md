@@ -55,7 +55,7 @@ aegis init                 # once: asks what kind of app it is, writes aegis.yam
 aegis run                  # code + the newest release APK/AAB in build/, if any
 ```
 
-`aegis run` prints the report and writes `build/aegis-report.html`; add `--open` to open it in the browser. Choose what to audit with `--mode`:
+`aegis run` prints the report, writes `build/aegis-report.html` and opens it in your browser (`--no-open` to skip; it never opens in CI). Choose what to audit with `--mode`:
 
 | Command | Audits |
 |---|---|
@@ -302,7 +302,7 @@ aegis run --mode apk       # الكود + آخر APK
 aegis run --mode aab       # الكود + آخر AAB
 ```
 
-التقرير بيظهر في الـ terminal وبيتكتب في `build/aegis-report.html`، وتقدر تضيف `--open` عشان يفتحه في المتصفح على طول.
+التقرير بيظهر في الـ terminal، وبيتكتب في `build/aegis-report.html` وبيتفتح في المتصفح على طول (`--no-open` لو مش عايزه يفتح، وفي الـ CI عمره ما بيفتح).
 
 مع `--apk` الأداة بتفحص الـ APK اللي اتبنى فعلاً: الأسرار اللي اتحطت بـ `--dart-define`، والصلاحيات والمكونات اللي المكتبات ضافتها، والشهادة اللي وقّعت التطبيق، وهل الـ obfuscation اتعمل بجد. وبتطبعلك الـ hash اللي تحطه في إعدادات freeRASP.
 
