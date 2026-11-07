@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - run: dart analyze
+      - run: dart test
+
+  # aegis audits its own intentionally vulnerable example app. The example's
+  # aegis.yaml fails on high findings, so exit code 1 is the expected result.
+  smoke:
+    name: Audit the example app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - name: Run aegis
+        shell: bash
+        run: |
+          set +e
+          dart run aegis example/vulnerable_app --offline -f console,json,sarif,html -o build/aegis-example
+          code=$?
+          set -e
+          echo "exit code: $code"
+          test "$code" -eq 1
+          test -s build/aegis-example.json
+          test -s build/aegis-example.sarif
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aegis-example-report
+          path: build/aegis-example.*
