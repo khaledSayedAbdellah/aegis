@@ -83,10 +83,18 @@ Score computeScore(List<RuleResult> results) {
 enum ControlStatus { checked, manualOnly, notCovered }
 
 class ControlCoverage {
-  ControlCoverage(this.control, this.status, this.ruleIds);
+  ControlCoverage(this.control, this.status, this.ruleIds, [this.failedRuleIds = const []]);
   final MasvsControl control;
+
+  /// Whether the control is checked automatically. Not whether it passed:
+  /// see [failedRuleIds].
   final ControlStatus status;
   final List<String> ruleIds;
+
+  /// Rules of this control that failed (known findings included).
+  final List<String> failedRuleIds;
+
+  bool get passed => status == ControlStatus.checked && failedRuleIds.isEmpty;
 }
 
 class Coverage {
@@ -116,7 +124,11 @@ Coverage computeCoverage(List<RuleResult> results, ProfileSet profile) {
     } else {
       status = ControlStatus.notCovered;
     }
-    out.add(ControlCoverage(c, status, ids));
+    final failed = results
+        .where((r) => r.status == RuleStatus.failed && r.meta.masvs.contains(c.id))
+        .map((r) => r.meta.id)
+        .toList();
+    out.add(ControlCoverage(c, status, ids, failed));
   }
   return Coverage(out);
 }
