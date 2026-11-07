@@ -103,6 +103,7 @@ class BinaryInfo {
     this.abis = const [],
     this.isFlutter = false,
     this.certificates = const [],
+    this.kind = 'APK',
   });
 
   factory BinaryInfo.from(ApkContext apk) => BinaryInfo(
@@ -115,6 +116,7 @@ class BinaryInfo {
         targetSdk: apk.targetSdk,
         abis: apk.abis,
         isFlutter: apk.isFlutter,
+        kind: apk.kind,
         certificates: [
           for (final c in apk.certificates)
             CertificateInfo(c.commonName, c.scheme, c.sha256Base64, c.sha256Hex)
@@ -132,8 +134,12 @@ class BinaryInfo {
   final bool isFlutter;
   final List<CertificateInfo> certificates;
 
+  /// `APK` or `AAB`. An AAB's certificate is the upload key.
+  final String kind;
+
   Map<String, Object?> toJson() => {
         'file': file,
+        'kind': kind,
         'sizeBytes': sizeBytes,
         'packageName': packageName,
         'versionName': versionName,

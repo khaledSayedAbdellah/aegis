@@ -61,9 +61,10 @@ class ConsoleReporter {
     final bin = r.binary;
     if (bin != null) {
       final ver = [bin.versionName, if (bin.versionCode != null) '(${bin.versionCode})'].whereType<String>().join(' ');
-      b.writeln('${t.binary}: ${_bold(bin.file)}  ${_dim([bin.packageName, ver, if (bin.abis.isNotEmpty) bin.abis.join('/')].whereType<String>().where((x) => x.isNotEmpty).join(' · '))}');
+      b.writeln('${t.binaryKind(bin.kind)}: ${_bold(bin.file)}  ${_dim([bin.packageName, ver, if (bin.abis.isNotEmpty) bin.abis.join('/')].whereType<String>().where((x) => x.isNotEmpty).join(' · '))}');
       for (final c in bin.certificates) {
         b.writeln('${t.signer}: ${c.commonName ?? '?'} ${_dim('(${c.scheme})')}');
+        if (bin.kind == 'AAB') b.writeln(_dim('  ↳ ${t.uploadKey}'));
         b.writeln('  ${t.certHash}: ${_cyan(c.sha256Base64)}');
       }
     }

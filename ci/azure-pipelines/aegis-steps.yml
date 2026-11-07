@@ -21,7 +21,7 @@
 #       type: github
 #       endpoint: <your GitHub service connection>
 #       name: khaledSayedAbdellah/aegis
-#       ref: refs/tags/v0.3.0
+#       ref: refs/tags/v0.4.0
 #
 #   steps:
 #   - template: ci/azure-pipelines/aegis-steps.yml@aegis
@@ -29,7 +29,7 @@
 #       projectDir: $(Build.SourcesDirectory)
 #       aegisSource: git
 #       aegisGitUrl: https://github.com/khaledSayedAbdellah/aegis.git
-#       aegisGitRef: v0.3.0
+#       aegisGitRef: v0.4.0
 #
 # Or copy this file into your repository and use `- template: <path>`.
 #
@@ -77,7 +77,7 @@ parameters:
   type: string
   default: hosted
   values: [ hosted, git, path ]
-# hosted: version constraint, e.g. ^0.3.0. Empty: latest.
+# hosted: version constraint, e.g. ^0.4.0. Empty: latest.
 - name: aegisVersion
   type: string
   default: ''

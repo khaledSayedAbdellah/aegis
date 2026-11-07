@@ -58,7 +58,7 @@ aegis --profile banking --lang ar      # banking app, Arabic report
 aegis -f console,html,sarif -o build/aegis
 ```
 
-## Scan the release APK
+## Scan the release APK or App Bundle
 
 The source is only half the story. Values injected with `--dart-define`, permissions and components merged from plugins, the certificate that actually signed the build, and whether `--obfuscate` really happened are only visible in the compiled app:
 
@@ -66,7 +66,17 @@ The source is only half the story. Values injected with `--dart-define`, permiss
 flutter build apk --release
 aegis --apk build/app/outputs/flutter-apk/app-release.apk        # source + APK
 aegis /some/empty/folder --apk app-release.apk                   # APK only
+
+flutter build appbundle --release
+aegis --apk build/app/outputs/bundle/release/app-release.aab     # source + AAB
 ```
+
+`--apk` takes an App Bundle too. aegis reads its protobuf manifest and resources, the code of the base and feature modules and the bundle signature. Two differences from an APK:
+
+* **The certificate is your upload key.** Google Play re-signs what it installs with the app signing key, which is not in the bundle. `AEG-B10` therefore fails when freeRASP's `signingCertHashes` contains **only** the upload key (every install from Play would trigger `onAppIntegrity`), passes when it also has another key, and is not applicable when the upload key is absent; check the app signing key in Play Console (`AEG-M04`).
+* `BUNDLE-METADATA/` (R8 mapping, native debug symbols) goes to Play only and is not scanned.
+
+Findings use APK-style paths (`app-release.aab!/AndroidManifest.xml`), so a baseline made from an APK also matches the AAB.
 
 With both, aegis compares them and does not count a problem twice: if `android:debuggable` is already reported from your source manifest, the APK rule stays quiet; if it only appears in the APK, the finding says a library or build variant added it.
 
@@ -79,14 +89,14 @@ The report also prints the **signing certificate SHA-256 in Base64**, the exact 
 | AEG-B03 | Final manifest / network config weakens backup or TLS | NETWORK-1 |
 | AEG-B04 | Library adds an exported component without permission | PLATFORM-1 |
 | AEG-B05 | Sensitive permissions added by libraries | PRIVACY-1 |
-| AEG-B06 | Secrets in libapp.so, classes.dex, resources.arsc or assets (catches `--dart-define`) | STORAGE-1 |
+| AEG-B06 | Secrets in libapp.so, dex, the resource table or assets (catches `--dart-define`) | STORAGE-1 |
 | AEG-B07 | Dart code not really obfuscated | RESILIENCE-3 |
 | AEG-B08 | Secret files inside flutter_assets | STORAGE-1 |
 | AEG-B09 | Signed with the Android debug certificate | RESILIENCE-2 |
 | AEG-B10 | freeRASP `signingCertHashes` / `packageName` don't match the APK | RESILIENCE-2 |
 | AEG-B11 | Old targetSdk / minSdk in the final manifest | CODE-1 |
 
-aegis reads the APK itself (zip, binary XML, v1/v2/v3 signatures) with no external tools. App bundles (`.aab`) and IPAs are not supported yet; for an `.aab`, build a universal APK with `bundletool build-apks --mode=universal`.
+aegis reads APKs and AABs itself (zip, binary XML, protobuf XML, v1/v2/v3 signatures) in pure Dart, with no external tools. IPAs are not supported yet.
 
 ## MAS profiles
 
@@ -172,14 +182,14 @@ resources:
     type: github
     endpoint: <your GitHub service connection>
     name: khaledSayedAbdellah/aegis
-    ref: refs/tags/v0.3.0
+    ref: refs/tags/v0.4.0
 
 steps:
 - template: ci/azure-pipelines/aegis-steps.yml@aegis
   parameters:
     aegisSource: git
     aegisGitUrl: https://github.com/khaledSayedAbdellah/aegis.git
-    aegisGitRef: v0.3.0
+    aegisGitRef: v0.4.0
     failOn: high
 ```
 
@@ -254,7 +264,7 @@ Without `--apk` it reads source and configuration only, so build-time values, me
 
 ## Roadmap
 
-* `--ipa` and `.aab` support.
+* `--ipa` support.
 * `--fix` for configuration findings.
 * Optional AI-assisted triage (opt-in, local model support, secrets redacted before sending).
 

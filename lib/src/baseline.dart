@@ -166,9 +166,11 @@ class Baseline {
   }
 
   /// `app-prod-release.apk!/AndroidManifest.xml` -> `apk!/AndroidManifest.xml`,
-  /// so renaming the APK does not turn known findings into new ones.
+  /// so renaming the APK does not turn known findings into new ones. App
+  /// bundles use the same APK-style entry names, so an AAB finding matches
+  /// the same APK finding.
   static String? normalizeFile(String? file) =>
-      file?.replaceFirst(RegExp(r'^[^/]*\.apk!/'), 'apk!/');
+      file?.replaceFirst(RegExp(r'^[^/]*\.(apk|aab)!/', caseSensitive: false), 'apk!/');
 
   /// Rule + file + message, ignoring line numbers, numbers in the message
   /// (counts, versions) and whitespace.

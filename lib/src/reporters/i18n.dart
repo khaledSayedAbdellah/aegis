@@ -31,6 +31,10 @@ class Strings {
       'السكور له سقف لأن فيه مشكلة $reason مفتوحة');
   String get packages => _t('Packages scanned', 'المكتبات اللي اتفحصت');
   String get binary => _t('APK', 'الـ APK');
+  String binaryKind(String kind) =>
+      kind == 'AAB' ? _t('App bundle (AAB)', 'الـ App Bundle (AAB)') : binary;
+  String get uploadKey => _t('upload key: Google Play re-signs the app with the app signing key',
+      'upload key: Google Play بيعيد توقيع التطبيق بالـ app signing key');
   String get signer => _t('Signed by', 'متوقع بواسطة');
   String get certHash => _t('Certificate SHA-256 (Base64, for freeRASP signingCertHashes)',
       'الـ SHA-256 بتاع الشهادة (Base64، لـ signingCertHashes في freeRASP)');

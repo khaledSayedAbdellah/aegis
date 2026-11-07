@@ -432,9 +432,10 @@ class BinarySecretsRule extends Rule {
     if (libapp != null) scan(libapp, apk.libappStrings, 'dart');
     for (final e in apk.zip.entries.values) {
       final n = e.name;
-      if (RegExp(r'^classes\d*\.dex$').hasMatch(n) || n == 'resources.arsc') {
+      final resources = n == 'resources.arsc' || n == 'resources.pb';
+      if (RegExp(r'(^|/)classes\d*\.dex$').hasMatch(n) || resources) {
         final bytes = apk.zip.readEntry(e);
-        scan(n, printableStrings(bytes, min: 8), n == 'resources.arsc' ? 'resources' : 'dex');
+        scan(n, printableStrings(bytes, min: 8), resources ? 'resources' : 'dex');
       } else if (n.startsWith('assets/') && e.size < 2 * 1024 * 1024) {
         final base = n.split('/').last.toLowerCase();
         final ext = base.contains('.') ? base.split('.').last : '';
@@ -465,8 +466,8 @@ class BinarySecretsRule extends Rule {
         where = 'in $entry (Java/Kotlin code, BuildConfig or a native SDK)';
         whereAr = 'في $entry (كود Java/Kotlin أو BuildConfig أو SDK native)';
       case 'resources':
-        where = 'in resources.arsc (string resources or resValue)';
-        whereAr = 'في resources.arsc (string resources أو resValue)';
+        where = 'in $entry (string resources or resValue)';
+        whereAr = 'في $entry (string resources أو resValue)';
       default:
         where = 'in the bundled file $entry';
         whereAr = 'في الملف المتضاف $entry';
@@ -693,7 +694,22 @@ class RaspSigningHashRule extends Rule {
     }
     final out = <Finding>[];
     final apkHashes = apk.certificates.map((c) => c.sha256Base64).toList();
-    if (!apkHashes.any(configured.contains)) {
+    final signerConfigured = apkHashes.any(configured.contains);
+    if (apk.isBundle) {
+      // Google Play re-signs bundles with the app signing key, which is not
+      // in the file. The certificate here is the upload key.
+      final c = apk.certificates.first;
+      final others = configured.where((h) => !apkHashes.contains(h));
+      if (signerConfigured && others.isEmpty) {
+        out.add(inFile(loc, line,
+            'signingCertHashes only has the upload key that signed ${apk.fileName} ("${c.commonName ?? 'unknown'}", ${c.sha256Base64}). '
+                'Google Play re-signs the app with the app signing key, so every install from Play will trigger onAppIntegrity. '
+                'Add the app signing key SHA-256 from Play Console (Test and release > App integrity > App signing), converted to Base64.',
+            messageAr: 'الـ signingCertHashes فيها بس الـ upload key اللي وقّع ${apk.fileName} ("${c.commonName ?? 'unknown'}"، ${c.sha256Base64}). '
+                'Google Play بيعيد توقيع التطبيق بالـ app signing key، فكل تثبيت من Play هيشغّل onAppIntegrity. '
+                'ضيف الـ SHA-256 بتاع الـ app signing key من Play Console (Test and release > App integrity > App signing) بعد تحويله لـ Base64.'));
+      }
+    } else if (!signerConfigured) {
       final c = apk.certificates.first;
       out.add(inFile(loc, line,
           '${apk.fileName} is signed by "${c.commonName ?? 'unknown'}" with SHA-256 ${c.sha256Base64}, which is not in signingCertHashes.',
@@ -703,6 +719,10 @@ class RaspSigningHashRule extends Rule {
       out.add(inFile(loc, line,
           'freeRASP packageName "$packageName" differs from the APK package "${apk.packageName}".',
           messageAr: 'الـ packageName في freeRASP "$packageName" مختلف عن package الـ APK "${apk.packageName}".'));
+    }
+    if (out.isEmpty && apk.isBundle && !signerConfigured) {
+      return RuleCheck.notApplicable(
+          'App bundle: Google Play signs the installed app, so compare signingCertHashes with the app signing key in Play Console (AEG-M04)');
     }
     return RuleCheck(out);
   }
