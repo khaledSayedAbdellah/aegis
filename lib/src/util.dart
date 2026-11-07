@@ -182,3 +182,16 @@ int? lineOfFirst(String text, Pattern pattern) {
 
 /// Normalizes a path to `/` separators.
 String slash(String p) => p.replaceAll('\\', '/');
+
+/// Parses a menu answer such as `3`, ` 3 `, `٣` (Arabic-Indic) or `۳`
+/// (Persian). Returns null unless it is a number from 1 to [max].
+int? parseMenuChoice(String? input, int max) {
+  if (input == null) return null;
+  final ascii = String.fromCharCodes(input.trim().runes.map((c) {
+    if (c >= 0x0660 && c <= 0x0669) return c - 0x0660 + 0x30; // ٠-٩
+    if (c >= 0x06F0 && c <= 0x06F9) return c - 0x06F0 + 0x30; // ۰-۹
+    return c;
+  }));
+  final n = int.tryParse(ascii);
+  return n != null && n >= 1 && n <= max ? n : null;
+}
