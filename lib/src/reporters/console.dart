@@ -73,7 +73,7 @@ class ConsoleReporter {
     final bar = _scoreBar(r.score.value);
     b.writeln('${t.score}: ${_gradeColor(r.score, '${r.score.value}/100 (${r.score.grade})')}  $bar');
     if (r.score.capReason != null) {
-      b.writeln(_dim('  ↳ ${t.capped(t.severity(r.score.capReason == 'critical' ? Severity.critical : Severity.high))}'));
+      b.writeln(_dim('  ↳ ${t.capped(r.score)}'));
     }
     b.writeln('${t.coverage}: ${t.coverageLine(r.coverage.checked, r.coverage.inScope, r.coverage.percent)}');
     b.writeln();
@@ -85,7 +85,16 @@ class ConsoleReporter {
       for (final c in cats) {
         final name = (masvsCategories[c.category]?.of(lang) ?? c.category).padRight(22);
         final s = '${c.score}'.padLeft(3);
-        b.writeln('  $name ${_gradeColor(Score(c.score, const {}), s)}  ${_dim('${c.checked - c.failed}/${c.checked}')}');
+        // Coloured by the worst open problem, not by the number: a category
+        // at 80 with a high finding is not healthy.
+        final colored = switch (c.worst) {
+          null => _green(s),
+          Severity.critical || Severity.high => _red(s),
+          Severity.medium => _yellow(s),
+          _ => _cyan(s),
+        };
+        final open = c.failedRuleIds.isEmpty ? '' : '  ${c.failedRuleIds.join(', ')}';
+        b.writeln('  $name $colored  ${_dim('${c.checked - c.failed}/${c.checked}$open')}');
       }
       b.writeln();
     }

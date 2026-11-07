@@ -20,21 +20,44 @@ const criticalCap = 49;
 const highCap = 74;
 
 class CategoryScore {
-  CategoryScore(this.category, this.score, this.checked, this.failed);
+  CategoryScore(this.category, this.score, this.checked, this.failed,
+      {this.worst, this.failedRuleIds = const []});
   final String category;
+
+  /// 100 minus the points of the failing rules in this category.
   final int score;
   final int checked;
   final int failed;
+
+  /// Most severe failing rule in this category, null when all passed. A
+  /// category with a high finding is not healthy even when its score is 80.
+  final Severity? worst;
+  final List<String> failedRuleIds;
 }
 
 class Score {
-  Score(this.value, this.categories, {this.capReason});
+  Score(this.value, this.categories, {this.capReason, int? uncapped, this.capRules = const []})
+      : uncapped = uncapped ?? value;
 
   final int value;
   final Map<String, CategoryScore> categories;
 
-  /// Set when the score was capped by a critical/high finding.
+  /// `critical` or `high` when an open finding of that severity limits the
+  /// score.
   final String? capReason;
+
+  /// Average of the categories, before the critical/high limit.
+  final int uncapped;
+
+  /// The rules that limit the score.
+  final List<String> capRules;
+
+  /// The highest score possible while the [capReason] finding is open.
+  int? get ceiling => capReason == 'critical'
+      ? criticalCap
+      : capReason == 'high'
+          ? highCap
+          : null;
 
   String get grade => gradeOf(value);
 
@@ -47,6 +70,14 @@ class Score {
   }
 }
 
+/// Each category starts at 100 and loses [severityWeight] points per
+/// failing rule; the score is their average.
+///
+/// While a critical (high) finding is open the score is scaled into
+/// 0..[criticalCap] (0..[highCap]) instead of being cut at that value, so it
+/// stays below the limit but still drops with every other problem: two apps
+/// with the same high finding and different numbers of other problems get
+/// different scores.
 Score computeScore(List<RuleResult> results) {
   final byCat = <String, List<RuleResult>>{};
   for (final r in results.where((r) => r.counts)) {
@@ -55,29 +86,33 @@ Score computeScore(List<RuleResult> results) {
   final cats = <String, CategoryScore>{};
   for (final e in byCat.entries) {
     var s = 100;
-    var failed = 0;
+    Severity? worst;
+    final failedIds = <String>[];
     for (final r in e.value) {
       if (r.status != RuleStatus.failed) continue;
-      failed++;
+      failedIds.add(r.meta.id);
       s -= severityWeight[r.severity]!;
+      if (worst == null || r.severity > worst) worst = r.severity;
     }
-    cats[e.key] =
-        CategoryScore(e.key, s.clamp(0, 100).toInt(), e.value.length, failed);
+    cats[e.key] = CategoryScore(e.key, s.clamp(0, 100).toInt(), e.value.length, failedIds.length,
+        worst: worst, failedRuleIds: failedIds);
   }
   if (cats.isEmpty) return Score(100, cats);
-  var overall =
+  final average =
       (cats.values.map((c) => c.score).reduce((a, b) => a + b) / cats.length)
           .round();
-  String? cap;
-  final failed = results.where((r) => r.status == RuleStatus.failed);
-  if (failed.any((r) => r.severity == Severity.critical) && overall > criticalCap) {
-    overall = criticalCap;
-    cap = 'critical';
-  } else if (failed.any((r) => r.severity == Severity.high) && overall > highCap) {
-    overall = highCap;
-    cap = 'high';
+  final failed = results.where((r) => r.status == RuleStatus.failed).toList();
+  final critical = [for (final r in failed) if (r.severity == Severity.critical) r.meta.id];
+  final high = [for (final r in failed) if (r.severity == Severity.high) r.meta.id];
+  if (critical.isNotEmpty) {
+    return Score((average * criticalCap / 100).round(), cats,
+        capReason: 'critical', uncapped: average, capRules: critical);
   }
-  return Score(overall, cats, capReason: cap);
+  if (high.isNotEmpty) {
+    return Score((average * highCap / 100).round(), cats,
+        capReason: 'high', uncapped: average, capRules: high);
+  }
+  return Score(average, cats);
 }
 
 enum ControlStatus { checked, manualOnly, notCovered }

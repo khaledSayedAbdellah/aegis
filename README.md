@@ -133,7 +133,8 @@ The profile decides which rules run and how severe some findings are. For exampl
 
 * Each MASVS category starts at 100 and loses 40 / 20 / 8 / 3 points per failing critical / high / medium / low rule.
 * The overall score is the average of the categories that were checked.
-* While a **critical** finding is open the score is capped at 49; while a **high** one is open, at 74. One open hole can't hide behind clean categories.
+* While a **critical** finding is open the score is scaled down to at most 49 (average × 0.49); while a **high** one is open, to at most 74 (average × 0.74). One open hole can't hide behind clean categories, and every other problem still lowers the score. The report names the finding that limits it and shows the score without it.
+* Categories are coloured by their worst open problem, not by their number: a category at 80 with a high finding is red.
 * Every report shows **MASVS coverage** and a list of **manual checks** (backend authorization, server-side attestation verification, …) so a clean score is never mistaken for a secure app.
 
 ## Configuration — `aegis.yaml`

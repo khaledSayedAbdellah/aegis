@@ -70,9 +70,16 @@ String renderHtml(AuditReport r, {String lang = 'en'}) {
 
   final cats = StringBuffer();
   for (final c in r.score.categories.values) {
-    final color = c.score >= 80 ? 'var(--ok)' : c.score >= 60 ? 'var(--warn)' : 'var(--bad)';
-    cats.writeln('<div class="cat"><span>${_e(masvsCategories[c.category]?.of(lang) ?? c.category)}</span>'
-        '<div class="bar"><i style="width:${c.score}%;background:$color"></i></div><b>${c.score}</b></div>');
+    // Coloured by the worst open problem: a category at 80 with a high
+    // finding is red, not green.
+    final color = switch (c.worst) {
+      null || Severity.low || Severity.info => 'var(--ok)',
+      Severity.medium => 'var(--warn)',
+      _ => 'var(--bad)',
+    };
+    final open = c.failedRuleIds.isEmpty ? '' : '<small class="muted">${_e(c.failedRuleIds.join(' · '))}</small>';
+    cats.writeln('<div class="cat"><span>${_e(masvsCategories[c.category]?.of(lang) ?? c.category)}$open</span>'
+        '<div class="bar"><i style="width:${c.score}%;background:$color"></i></div><b style="color:$color">${c.score}</b></div>');
   }
 
   final resolved = r.baselineResolved.isEmpty
@@ -104,7 +111,7 @@ h1{font-size:22px;margin:0 0 4px}h2{font-size:17px;margin:32px 0 12px}
 .muted{color:var(--muted)}.hero{display:flex;gap:24px;align-items:center;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:20px;margin-top:16px}
 .ring{width:120px;height:120px;border-radius:50%;display:grid;place-items:center;background:conic-gradient($scoreColor ${r.score.value * 3.6}deg,var(--line) 0)}
 .ring div{width:96px;height:96px;border-radius:50%;background:var(--card);display:grid;place-items:center;text-align:center}
-.ring b{font-size:30px;line-height:1}.cat{display:grid;grid-template-columns:150px 1fr 36px;gap:10px;align-items:center;margin:6px 0}
+.ring b{font-size:30px;line-height:1}.cat{display:grid;grid-template-columns:170px 1fr 36px;gap:10px;align-items:center;margin:6px 0}.cat small{display:block;font-size:11.5px}
 .bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden}.bar i{display:block;height:100%}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:10px 0}
 summary{cursor:pointer}pre{white-space:pre-wrap;background:var(--bg);padding:6px 8px;border-radius:6px;margin:4px 0;font-size:13px}
@@ -120,7 +127,7 @@ ul{padding-inline-start:20px}.known{opacity:.7}.tag{font-size:11px;border:1px so
 <section class="hero">
 <div class="ring"><div><span><b>${r.score.value}</b><br><span class="muted">${r.score.grade}</span></span></div></div>
 <div style="flex:1;min-width:240px">
-<div><b>${_e(t.score)}</b>${r.score.capReason == null ? '' : ' <span class="muted">(${_e(t.capped(t.severity(r.score.capReason == 'critical' ? Severity.critical : Severity.high)))})</span>'}</div>
+<div><b>${_e(t.score)}</b>${r.score.capReason == null ? '' : '<div class="muted">${_e(t.capped(r.score))}</div>'}</div>
 <div class="muted">${_e(t.coverage)}: ${_e(t.coverageLine(r.coverage.checked, r.coverage.inScope, r.coverage.percent))}</div>
 ${_binaryHtml(r, t)}
 $baselineLine

@@ -3,6 +3,8 @@
 * `aegis init`: asks what kind of app it is (or takes `--profile`/`--lang`) and writes aegis.yaml.
 * `aegis run [--mode all|code|apk|aab]`: friendly defaults for people, not CI. It finds the newest release APK/AAB under `build/app/outputs/` by itself, prints the report, writes `build/aegis-report.html` in the project and opens it in the browser when run in a terminal (`--no-open` to skip), and follows the system language when aegis.yaml has no `lang:`.
 * Plain `aegis` with options is unchanged, for scripts and CI.
+* **Score change:** an open high (critical) finding now scales the score to at most 74 (49) instead of cutting it at that value, so apps with the same high finding but different numbers of other problems no longer get the same score. Expect lower scores while a high finding is open; check `min_score`. Reports name the limiting rules and show the score without the limit (JSON `uncapped`, `ceiling`, `capRules`).
+* Categories are coloured by their worst open problem (console, HTML, Markdown 🔴🟠🟡✅) and list their failing rules; JSON categories get `failedRuleIds` and `worstSeverity`.
 * MASVS coverage table (Markdown, Azure summary tab): a control is ✅ only when all its rules passed and ❌ when one failed (known findings included), with the failing rules in bold. It used to show ✅ for every control that was merely checked. JSON controls get `failedRules`.
 
 ## 0.4.0
