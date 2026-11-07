@@ -1,0 +1,11 @@
+{
+  "vulnerable": {
+    "sha256Base64": "RsnnP0qs32PBgrGBxs8teGi9jhmZH9O/8i38YQb3NZM=",
+    "commonName": "Android Debug",
+    "serviceJwt": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFiY2RlZmdoIiwicm9sZSI6InNlcnZpY2Vfcm9sZSJ9.c2lnbmF0dXJlLW5vdC1yZWFs"
+  },
+  "secure": {
+    "sha256Base64": "eFY3jR6qTRtZxt1P7dwY+XiAoo5x901BJZMHI7r8T6Q=",
+    "commonName": "Acme Release"
+  }
+}

@@ -1,0 +1,10 @@
+# Example aegis configuration.
+profile: banking        # l1, l2, l1+r, l2+r or a preset
+lang: en                # en | ar
+fail_on: high           # exit 1 on high or critical findings
+min_score: 70
+exclude:
+  - lib/generated/**
+rules:
+  AEG-C02: low          # change a severity
+  # AEG-D07: false      # disable a rule

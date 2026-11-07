@@ -1,0 +1,26 @@
+# An intentionally insecure app used to demo aegis. Every rule fires on it.
+# Run from the aegis folder:  dart run aegis example/vulnerable_app --profile banking
+name: vulnerable_app
+publish_to: none
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+dependencies:
+  flutter:
+    sdk: flutter
+  dio: ^5.4.0
+  firebase_core: ^3.0.0
+  firebase_app_check: ^0.3.0
+  freerasp: ^7.0.0
+  local_auth: ^2.2.0
+  shared_preferences: ^2.2.0
+  encrypt: ^5.0.3
+  crypto: ^3.0.3
+  my_fork:
+    git:
+      url: https://github.com/example/my_fork.git
+dependency_overrides:
+  http: ^1.2.0
+flutter:
+  assets:
+    - .env
+    - assets/
