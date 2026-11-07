@@ -3,6 +3,7 @@ library;
 
 import 'dart:convert';
 
+import '../baseline.dart';
 import '../engine.dart';
 import '../model.dart';
 
@@ -43,6 +44,14 @@ Map<String, Object?> reportToJson(AuditReport r) => {
         'notApplicable': r.notApplicable.length,
         'suppressed': r.suppressed,
       },
+      if (r.usesBaseline)
+        'baseline': {
+          'file': r.baselinePath,
+          'known': r.knownFindingCount,
+          'new': r.newFindingCount,
+          'fixed': r.resolvedCount,
+          'fixedFindings': [for (final e in r.baselineResolved) e.toJson()],
+        },
       'rules': [
         for (final res in r.results)
           {
@@ -56,7 +65,10 @@ Map<String, Object?> reportToJson(AuditReport r) => {
             'maswe': res.meta.maswe,
             if (res.meta.cwe != null) 'cwe': res.meta.cwe,
             if (res.note != null) 'note': res.note,
-            'findings': [for (final f in res.findings) f.toJson()],
+            'findings': [
+              for (final f in res.findings)
+                {...f.toJson(), 'fingerprint': Baseline.fingerprint(f)}
+            ],
           }
       ],
       'manualChecks': [
@@ -117,6 +129,8 @@ String renderSarif(AuditReport r) {
                 'ruleId': res.meta.id,
                 'level': _sarifLevel(res.severity),
                 'message': {'text': f.message},
+                'partialFingerprints': {'aegis/v1': Baseline.fingerprint(f)},
+                if (r.usesBaseline) 'baselineState': f.baselined ? 'unchanged' : 'new',
                 'locations': [
                   {
                     'physicalLocation': {

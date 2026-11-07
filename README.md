@@ -119,6 +119,7 @@ rules:
   AEG-D07: false       # disable a rule
   AEG-C02: medium      # change a severity
 scan_packages: true    # also scan git/path dependencies (default)
+baseline: aegis-baseline.json   # default; see "Baselines"
 ```
 
 **Your own packages are scanned too.** Many apps keep auth, networking and storage in internal packages pulled in as git or path dependencies. aegis reads `.dart_tool/package_config.json` (run `flutter pub get` first) and scans the Dart code of every git and path dependency, listing them under "Packages scanned"; findings point to `package:<name>/...`. pub.dev packages are not scanned. Turn this off with `scan_packages: false`.
@@ -130,6 +131,21 @@ const devUrl = 'http://10.0.0.5/api'; // aegis:ignore AEG-D02
 ```
 
 Use `// aegis:ignore-file AEG-D02` to suppress a rule for a whole Dart file. Suppressed findings are counted in every report.
+
+## Baselines
+
+An existing app usually starts with a list of findings that can't all be fixed this sprint. A baseline records them as *known* so CI only fails on **new** problems:
+
+```bash
+aegis --update-baseline        # accept everything found today, writes aegis-baseline.json
+git add aegis-baseline.json    # commit it
+aegis --fail-on high           # now fails only on findings that are not in the baseline
+```
+
+* Findings are matched by rule, file and message, **not by line number**, so editing code above a finding does not make it new. Renaming the APK doesn't either.
+* Reports show three groups: **new issues** (fail the build), **known issues** (still listed, still count in the score) and **fixed since the baseline**. Run `--update-baseline` again to drop the fixed ones; the file is sorted so the diff shows exactly what changed.
+* The score is never hidden: known issues still lower it, and `--min-score` uses the real score. Only `--fail-on` ignores known issues.
+* `--baseline <file>` uses another file, `--ignore-baseline` reports everything as new. SARIF output sets `baselineState` (`new` / `unchanged`) so GitHub code scanning shows the same split.
 
 ## CI
 
@@ -213,7 +229,6 @@ Without `--apk` it reads source and configuration only, so build-time values, me
 ## Roadmap
 
 * `--ipa` and `.aab` support.
-* Baselines for legacy projects.
 * `--fix` for configuration findings.
 * Optional AI-assisted triage (opt-in, local model support, secrets redacted before sending).
 
@@ -234,6 +249,7 @@ aegis --apk build/app/outputs/flutter-apk/app-release.apk --lang ar
 * السكور بيتغير حسب نوع التطبيق (L1 لأي تطبيق، L2 للبيانات الحساسة، R للحماية من التعديل والهندسة العكسية).
 * لو فيه مشكلة خطيرة جداً، السكور مش هيعدي 49 مهما كانت باقي الأقسام نضيفة.
 * التقرير بيقولك نسبة التغطية، وبيديك قائمة بالحاجات اللي لازم تتأكد منها بنفسك، عشان السكور العالي ميديكش إحساس كاذب بالأمان.
+* لو المشروع قديم وفيه مشاكل كتير: `aegis --update-baseline` بيسجل المشاكل الحالية في `aegis-baseline.json` كـ"معروفة"، وبعد كده الـ CI بيقع بس لو ظهرت مشكلة **جديدة**. المشاكل المعروفة بتفضل ظاهرة في التقرير وبتأثر على السكور، والتقرير بيقولك كمان إيه اللي اتصلح.
 
 ## License
 

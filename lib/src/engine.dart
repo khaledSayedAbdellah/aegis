@@ -5,6 +5,7 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+import 'baseline.dart';
 import 'binary/apk.dart';
 import 'config.dart';
 import 'masvs.dart';
@@ -27,6 +28,8 @@ class AuditReport {
     required this.generatedAt,
     this.binary,
     this.scannedPackages = const [],
+    this.baselinePath,
+    this.baselineResolved = const [],
   });
 
   final String projectName;
@@ -44,6 +47,16 @@ class AuditReport {
 
   /// Git and path dependencies whose Dart code was scanned with the app.
   final List<String> scannedPackages;
+
+  /// The baseline used, if any. Findings it lists are marked
+  /// [Finding.baselined] and do not trigger --fail-on.
+  final String? baselinePath;
+
+  /// Baseline entries that no longer match a finding: fixed since the
+  /// baseline was written.
+  final List<BaselineEntry> baselineResolved;
+
+  bool get usesBaseline => baselinePath != null;
 
   Iterable<RuleResult> get failed =>
       results.where((r) => r.status == RuleStatus.failed);
@@ -63,7 +76,18 @@ class AuditReport {
     return w;
   }
 
-  int countAtLeast(Severity s) => failed.where((r) => r.severity >= s).length;
+  /// Failed rules with at least one finding outside the baseline.
+  Iterable<RuleResult> get newFailed => failed.where((r) => r.hasNew);
+
+  int get newFindingCount => failed.fold(0, (s, r) => s + r.newFindings.length);
+  int get knownFindingCount =>
+      failed.fold(0, (s, r) => s + r.knownFindings.length);
+  int get resolvedCount => baselineResolved.fold(0, (s, e) => s + e.count);
+
+  /// Failed rules at or above [s] with new findings. Rules whose findings are
+  /// all in the baseline are not counted, so --fail-on only reacts to new
+  /// problems.
+  int countAtLeast(Severity s) => newFailed.where((r) => r.severity >= s).length;
 }
 
 /// Facts read from the APK, shown at the top of reports.
@@ -159,6 +183,7 @@ Future<AuditReport> runAudit(
   bool offline = false,
   List<Rule>? rules,
   String? apkPath,
+  Baseline? baseline,
 }) async {
   final apk = apkPath == null ? null : ApkContext.load(apkPath);
   final hasPubspec = File(p.join(path, 'pubspec.yaml')).existsSync();
@@ -242,6 +267,8 @@ Future<AuditReport> runAudit(
     ));
   }
 
+  final resolved = baseline?.apply(results) ?? const <BaselineEntry>[];
+
   // Most severe first, then by id.
   results.sort((a, b) {
     final s = b.severity.index.compareTo(a.severity.index);
@@ -263,5 +290,7 @@ Future<AuditReport> runAudit(
     generatedAt: DateTime.now(),
     binary: apk == null ? null : BinaryInfo.from(apk),
     scannedPackages: project.scannedPackages,
+    baselinePath: baseline == null ? null : (baseline.path ?? defaultBaselineFile),
+    baselineResolved: resolved,
   );
 }

@@ -40,17 +40,27 @@ String renderHtml(AuditReport r, {String lang = 'en'}) {
 
   String sevClass(Severity s) => 'sev sev-${s.name}';
 
+  String findingLi(Finding f) =>
+      '<li${f.baselined ? ' class="known"' : ''}>${f.location.isEmpty ? '' : '<code>${_e(f.location)}</code> '}${_e(f.messageOf(lang))}'
+      '${f.baselined ? ' <span class="tag">${_e(t.isKnown)}</span>' : ''}'
+      '${f.snippet == null ? '' : '<pre>${_e(f.snippet!)}</pre>'}</li>';
+
+  final newFailed = r.newFailed.toList();
+  final knownOnly = r.failed.where((x) => !x.hasNew).toList();
   final failed = StringBuffer();
-  for (final res in r.failed) {
+  for (final res in [...newFailed, ...knownOnly]) {
     final m = res.meta;
-    failed.writeln('<details class="card" open>');
+    if (knownOnly.isNotEmpty && identical(res, knownOnly.first)) {
+      failed.writeln('<h2>≈ ${_e(t.known)} (${knownOnly.length})</h2><p class="muted">${_e(t.knownHint)}</p>');
+    }
+    failed.writeln('<details class="card${res.hasNew ? '' : ' known'}"${res.hasNew ? ' open' : ''}>');
     failed.writeln('<summary><span class="${sevClass(res.severity)}">${_e(t.severity(res.severity))}</span> '
         '<strong>${_e(m.title.of(lang))}</strong> <code>${m.id}</code></summary>');
     failed.writeln('<p class="muted">${_e([...m.masvs, ...m.maswe, if (m.cwe != null) m.cwe!].join(' · '))}</p>');
     failed.writeln('<ul>');
-    for (final f in res.findings) {
-      failed.writeln('<li>${f.location.isEmpty ? '' : '<code>${_e(f.location)}</code> '}${_e(f.messageOf(lang))}'
-          '${f.snippet == null ? '' : '<pre>${_e(f.snippet!)}</pre>'}</li>');
+    // New findings first.
+    for (final f in [...res.newFindings, ...res.knownFindings]) {
+      failed.writeln(findingLi(f));
     }
     failed.writeln('</ul>');
     failed.writeln('<p><b>${_e(t.why)}:</b> ${_e(m.description.of(lang))}</p>');
@@ -64,6 +74,17 @@ String renderHtml(AuditReport r, {String lang = 'en'}) {
     cats.writeln('<div class="cat"><span>${_e(masvsCategories[c.category]?.of(lang) ?? c.category)}</span>'
         '<div class="bar"><i style="width:${c.score}%;background:$color"></i></div><b>${c.score}</b></div>');
   }
+
+  final resolved = r.baselineResolved.isEmpty
+      ? ''
+      : '<h2>↓ ${_e(t.resolved)} (${r.resolvedCount})</h2><ul>'
+          '${r.baselineResolved.map((e) => '<li>✓ <code>${_e(e.ruleId)}</code> ${e.file == null ? '' : '<code>${_e(e.file!)}</code> '}${_e(e.message)}</li>').join()}'
+          '</ul><p class="muted">${_e(t.updateHint)}</p>';
+  final baselineLine = r.usesBaseline
+      ? '<div class="muted">${_e(t.baseline)}: <b>${_e(t.baselineLine(r.knownFindingCount, r.newFindingCount, r.resolvedCount))}</b></div>'
+      : '';
+  final failedTitle = r.usesBaseline ? t.newIssues : t.failed;
+  final emptyText = r.usesBaseline ? t.noNewIssues : t.noIssues;
 
   final passed = r.passed.map((x) => '<li>✓ ${_e(x.meta.passTitle.of(lang))} <code>${x.meta.id}</code></li>').join();
   final manual = r.manual.map((m) => '<li>${_e(m.text.of(lang))} <code>${m.masvs}</code></li>').join();
@@ -90,7 +111,7 @@ summary{cursor:pointer}pre{white-space:pre-wrap;background:var(--bg);padding:6px
 code{font-size:12.5px;color:var(--muted)}.fix{border-inline-start:3px solid var(--ok);padding-inline-start:10px}
 .sev{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:20px;color:#fff}
 .sev-critical{background:#b42318}.sev-high{background:var(--bad)}.sev-medium{background:var(--warn)}.sev-low{background:var(--accent)}.sev-info{background:var(--muted)}
-ul{padding-inline-start:20px}.note{font-size:13px;color:var(--muted);margin-top:32px}
+ul{padding-inline-start:20px}.known{opacity:.7}.tag{font-size:11px;border:1px solid var(--line);border-radius:10px;padding:0 6px;color:var(--muted)}.note{font-size:13px;color:var(--muted);margin-top:32px}
 </style>
 </head>
 <body><main>
@@ -102,11 +123,13 @@ ul{padding-inline-start:20px}.note{font-size:13px;color:var(--muted);margin-top:
 <div><b>${_e(t.score)}</b>${r.score.capReason == null ? '' : ' <span class="muted">(${_e(t.capped(t.severity(r.score.capReason == 'critical' ? Severity.critical : Severity.high)))})</span>'}</div>
 <div class="muted">${_e(t.coverage)}: ${_e(t.coverageLine(r.coverage.checked, r.coverage.inScope, r.coverage.percent))}</div>
 ${_binaryHtml(r, t)}
+$baselineLine
 ${cats.toString()}
 </div>
 </section>
-<h2>✗ ${_e(t.failed)} (${r.failed.length})</h2>
-${r.failed.isEmpty ? '<p>${_e(t.noIssues)}</p>' : failed.toString()}
+<h2>✗ ${_e(failedTitle)} (${newFailed.length})</h2>
+${newFailed.isEmpty ? '<p>${_e(emptyText)}</p>' : ''}${failed.toString()}
+$resolved
 <h2>✓ ${_e(t.passed)} (${r.passed.length})</h2>
 <ul>$passed</ul>
 <h2>? ${_e(t.manual)}</h2>

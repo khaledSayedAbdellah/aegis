@@ -19,6 +19,7 @@ class AegisConfig {
     this.exclude = const [],
     this.severityOverrides = const {},
     this.scanPackages = true,
+    this.baseline,
   });
 
   final ProfileSet profile;
@@ -35,6 +36,10 @@ class AegisConfig {
 
   /// Also scan the Dart code of git and path dependencies.
   final bool scanPackages;
+
+  /// Baseline file, relative to the project root. Defaults to
+  /// `aegis-baseline.json` when that file exists.
+  final String? baseline;
 
   late final List<RegExp> _excludeRes = exclude.map(globToRegExp).toList();
 
@@ -95,6 +100,7 @@ class AegisConfig {
       exclude: exclude,
       severityOverrides: overrides,
       scanPackages: doc['scan_packages'] != false,
+      baseline: doc['baseline']?.toString(),
     );
   }
 
@@ -121,5 +127,6 @@ class AegisConfig {
         exclude: exclude,
         severityOverrides: severityOverrides,
         scanPackages: scanPackages,
+        baseline: baseline,
       );
 }

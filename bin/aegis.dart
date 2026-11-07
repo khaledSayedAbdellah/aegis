@@ -26,6 +26,12 @@ ArgParser _parser() => ArgParser()
       allowed: ['critical', 'high', 'medium', 'low'],
       help: 'Exit with code 1 when a finding at or above this severity exists.')
   ..addOption('min-score', help: 'Exit with code 1 when the score is below this value.')
+  ..addOption('baseline',
+      help: 'Baseline file of accepted findings (default: aegis-baseline.json in the project, '
+          'or "baseline:" in aegis.yaml). Known findings are reported separately and do not trigger --fail-on.')
+  ..addFlag('update-baseline',
+      negatable: false, help: 'Accept all current findings: write them to the baseline file and exit.')
+  ..addFlag('ignore-baseline', negatable: false, help: 'Report every finding as new, ignoring the baseline.')
   ..addFlag('offline', negatable: false, help: 'Skip the OSV vulnerability lookup (no network).')
   ..addFlag('verbose', abbr: 'v', negatable: false, help: 'Show every finding and not-applicable rules.')
   ..addFlag('color', defaultsTo: true, help: 'Colored console output.')
@@ -97,10 +103,32 @@ Future<void> main(List<String> arguments) async {
     exit(2);
   }
 
+  final baselineArg = args['baseline'] as String?;
+  final baselineFile = baselineArg ??
+      p.join(path, config.baseline ?? defaultBaselineFile);
+  final updateBaseline = args['update-baseline'] as bool;
+  Baseline? baseline;
+  if (!updateBaseline && !(args['ignore-baseline'] as bool)) {
+    if (File(baselineFile).existsSync()) {
+      try {
+        baseline = Baseline.load(baselineFile);
+      } on FormatException catch (e) {
+        stderr.writeln(e.message);
+        exit(2);
+      }
+    } else if (baselineArg != null) {
+      stderr.writeln('Baseline not found: $baselineArg (create it with --update-baseline)');
+      exit(2);
+    }
+  }
+
   final AuditReport report;
   try {
     report = await runAudit(path,
-        config: config, offline: args['offline'] as bool, apkPath: apkPath);
+        config: config,
+        offline: args['offline'] as bool,
+        apkPath: apkPath,
+        baseline: baseline);
   } on FileSystemException catch (e) {
     stderr.writeln('${e.message}: ${e.path}');
     if (apkPath == null) stderr.writeln('Tip: use --apk <file> to audit a compiled APK without the source.');
@@ -108,6 +136,16 @@ Future<void> main(List<String> arguments) async {
   } on FormatException catch (e) {
     stderr.writeln('Could not read the APK: ${e.message}');
     exit(2);
+  }
+
+  if (updateBaseline) {
+    final b = Baseline.fromResults(report.results);
+    final file = File(baselineFile);
+    file.parent.createSync(recursive: true);
+    file.writeAsStringSync(b.toJsonString());
+    stdout.writeln('Baseline: ${b.total} findings (${b.entries.length} entries) written to ${file.path}');
+    stdout.writeln('Commit this file. From now on, only new findings trigger --fail-on.');
+    exit(0);
   }
 
   final formats = (args['format'] as List<String>).toSet();
@@ -137,7 +175,9 @@ Future<void> main(List<String> arguments) async {
 
   var code = 0;
   if (config.failOn != null && report.countAtLeast(config.failOn!) > 0) {
-    stderr.writeln('aegis: findings at or above "${config.failOn!.name}" found.');
+    stderr.writeln(report.usesBaseline
+        ? 'aegis: new findings (not in the baseline) at or above "${config.failOn!.name}" found.'
+        : 'aegis: findings at or above "${config.failOn!.name}" found.');
     code = 1;
   }
   if (config.minScore != null && report.score.value < config.minScore!) {

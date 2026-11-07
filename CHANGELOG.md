@@ -1,3 +1,9 @@
+## 0.3.0
+
+* Baselines: `--update-baseline` records today's findings in `aegis-baseline.json`; later runs report **new**, **known** and **fixed** findings separately and `--fail-on` only reacts to new ones. Matching ignores line numbers and the APK file name. Known findings still count in the score.
+* `--baseline <file>`, `--ignore-baseline` and `baseline:` in `aegis.yaml`.
+* JSON findings carry a stable `fingerprint`; SARIF results carry `partialFingerprints` and `baselineState`.
+
 ## 0.2.0
 
 * `--apk`: audit the release APK, alone or together with the source. aegis reads the zip, binary XML manifests and v1/v2/v3 signing certificates itself, with no external tools.
