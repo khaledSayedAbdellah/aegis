@@ -1,0 +1,16 @@
+# Dart / Flutter
+.dart_tool/
+.packages
+build/
+pubspec.lock
+
+# aegis output
+aegis-report.*
+
+# Leftover from copying files onto this machine
+.aegis-transfer.tgz
+
+# macOS / IDE
+.DS_Store
+.idea/
+*.iml
