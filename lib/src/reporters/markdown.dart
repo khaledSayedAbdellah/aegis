@@ -29,6 +29,9 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
   }
   b.writeln('| ${t.score} | **${r.score.value}/100 (${r.score.grade})** |');
   b.writeln('| ${t.coverage} | ${t.coverageLine(r.coverage.checked, r.coverage.inScope, r.coverage.percent)} |');
+  if (r.usesBaseline) {
+    b.writeln('| ${t.baseline} | ${t.baselineLine(r.knownFindingCount, r.newFindingCount, r.resolvedCount)} |');
+  }
   b.writeln();
 
   if (r.score.categories.isNotEmpty) {
@@ -42,24 +45,50 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
     b.writeln();
   }
 
-  final failed = r.failed.toList();
-  b.writeln('## ❌ ${t.failed} (${failed.length})');
+  final failed = r.newFailed.toList();
+  b.writeln('## ❌ ${r.usesBaseline ? t.newIssues : t.failed} (${failed.length})');
   b.writeln();
-  if (failed.isEmpty) b.writeln(t.noIssues);
+  if (failed.isEmpty) b.writeln(r.usesBaseline ? t.noNewIssues : t.noIssues);
   for (final res in failed) {
     final m = res.meta;
     b.writeln('### `${m.id}` ${m.title.of(lang)} — ${t.severity(res.severity)}');
     b.writeln();
     b.writeln('${m.masvs.join(', ')}${m.maswe.isEmpty ? '' : ' · ${m.maswe.join(', ')}'}${m.cwe == null ? '' : ' · ${m.cwe}'}');
     b.writeln();
-    for (final f in res.findings) {
+    for (final f in res.newFindings) {
       final loc = f.location.isEmpty ? '' : '`${f.location}` — ';
       b.writeln('- $loc${f.messageOf(lang)}');
     }
+    final knownCount = res.findings.length - res.newFindings.length;
+    if (knownCount > 0) b.writeln('- _+ ${t.knownCount(knownCount)}_');
     b.writeln();
     b.writeln('**${t.why}:** ${m.description.of(lang)}');
     b.writeln();
     b.writeln('**${t.fix}:** ${m.fix.of(lang)}');
+    b.writeln();
+  }
+
+  final known = r.failed.where((x) => !x.hasNew).toList();
+  if (known.isNotEmpty) {
+    b.writeln('<details><summary>${t.known} (${known.length})</summary>');
+    b.writeln();
+    for (final res in known) {
+      b.writeln('- `${res.meta.id}` ${res.meta.title.of(lang)} — ${t.severity(res.severity)} · ${t.knownCount(res.findings.length)}');
+    }
+    b.writeln();
+    b.writeln('_${t.knownHint}_');
+    b.writeln();
+    b.writeln('</details>');
+    b.writeln();
+  }
+  if (r.baselineResolved.isNotEmpty) {
+    b.writeln('## ✅ ${t.resolved} (${r.resolvedCount})');
+    b.writeln();
+    for (final e in r.baselineResolved) {
+      b.writeln('- `${e.ruleId}` ${e.file == null ? '' : '`${e.file}` — '}${e.message}');
+    }
+    b.writeln();
+    b.writeln('_${t.updateHint}_');
     b.writeln();
   }
 

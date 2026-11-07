@@ -34,7 +34,23 @@ class Strings {
   String get signer => _t('Signed by', 'متوقع بواسطة');
   String get certHash => _t('Certificate SHA-256 (Base64, for freeRASP signingCertHashes)',
       'الـ SHA-256 بتاع الشهادة (Base64، لـ signingCertHashes في freeRASP)');
+  String get baseline => _t('Baseline', 'الـ Baseline');
+  String baselineLine(int known, int fresh, int fixed) => _t(
+      '$known known · $fresh new · $fixed fixed since the baseline',
+      '$known معروفة · $fresh جديدة · $fixed اتصلحت من وقت الـ baseline');
+  String get newIssues => _t('New issues (not in the baseline)', 'مشاكل جديدة (مش في الـ baseline)');
+  String get noNewIssues => _t('No new issues since the baseline.', 'مفيش مشاكل جديدة من وقت الـ baseline.');
+  String get known => _t('Known issues (accepted in the baseline)', 'مشاكل معروفة (متسجلة في الـ baseline)');
+  String knownCount(int n) => _t('$n known', '$n معروفة');
+  String get knownHint => _t(
+      'Known issues still count in the score. They do not fail the build (--fail-on) until they change.',
+      'المشاكل المعروفة لسه بتأثر على السكور، بس مش بتوقّع الـ build (‎--fail-on) إلا لو اتغيرت.');
+  String get resolved => _t('Fixed since the baseline', 'اتصلحت من وقت الـ baseline');
+  String get updateHint => _t(
+      'Run aegis --update-baseline to remove fixed issues from the baseline.',
+      'شغّل aegis --update-baseline علشان تشيل اللي اتصلح من الـ baseline.');
   String get noIssues => _t('No issues found.', 'مفيش مشاكل.');
+  String get isKnown => _t('known', 'معروفة');
   String get disclaimer => _t(
       'This score measures how well known protections are implemented in the code and config. It does not prove the app cannot be attacked: backend security and runtime behavior must be tested separately.',
       'السكور ده بيقيس قد إيه الحمايات المعروفة متطبقة في الكود والإعدادات. هو مش إثبات إن التطبيق مستحيل يتخترق: أمان الـ backend وسلوك التطبيق وقت التشغيل لازم يتفحصوا لوحدهم.');

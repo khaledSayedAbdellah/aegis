@@ -193,6 +193,9 @@ class Finding {
   /// Short, already-redacted excerpt.
   final String? snippet;
 
+  /// True when this finding is listed in the baseline (a known issue).
+  bool baselined = false;
+
   String messageOf(String lang) =>
       lang == 'ar' ? (messageAr ?? message) : message;
 
@@ -208,6 +211,7 @@ class Finding {
         if (file != null) 'file': file,
         if (line != null) 'line': line,
         if (snippet != null) 'snippet': snippet,
+        if (baselined) 'baselined': true,
       };
 }
 
@@ -254,4 +258,16 @@ class RuleResult {
 
   bool get counts =>
       status == RuleStatus.passed || status == RuleStatus.failed;
+
+  /// Findings that are not in the baseline.
+  List<Finding> get newFindings =>
+      findings.where((f) => !f.baselined).toList();
+
+  /// Findings accepted by the baseline.
+  List<Finding> get knownFindings =>
+      findings.where((f) => f.baselined).toList();
+
+  /// Failed with at least one finding that is not in the baseline.
+  bool get hasNew =>
+      status == RuleStatus.failed && findings.any((f) => !f.baselined);
 }

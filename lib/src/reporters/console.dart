@@ -89,31 +89,70 @@ class ConsoleReporter {
       b.writeln();
     }
 
-    final failed = r.failed.toList();
-    b.writeln(_bold('${_red('✗')} ${t.failed} (${failed.length})'));
+    if (r.usesBaseline) {
+      b.writeln('${t.baseline}: ${t.baselineLine(r.knownFindingCount, r.newFindingCount, r.resolvedCount)}  ${_dim(r.baselinePath!)}');
+      b.writeln();
+    }
+
+    final failed = r.newFailed.toList();
+    final heading = r.usesBaseline ? t.newIssues : t.failed;
+    b.writeln(_bold('${_red('✗')} $heading (${failed.length})'));
     b.writeln(line);
-    if (failed.isEmpty) b.writeln(_green('  ${t.noIssues}'));
+    if (failed.isEmpty) b.writeln(_green('  ${r.usesBaseline ? t.noNewIssues : t.noIssues}'));
     var n = 0;
     for (final res in failed) {
       n++;
       final m = res.meta;
+      final fresh = res.newFindings;
+      final knownCount = res.findings.length - fresh.length;
       b.writeln('${_bold('[$n]')} ${_sev(res.severity, t.severity(res.severity))} '
           '${_bold(m.title.of(lang))} ${_dim('${m.id} · ${m.masvs.join(', ')}')}');
-      for (final f in res.findings.take(verbose ? 1000 : 5)) {
+      for (final f in fresh.take(verbose ? 1000 : 5)) {
         final loc = f.location.isEmpty ? '' : _cyan(f.location);
         b.writeln('    • ${loc.isEmpty ? '' : '$loc  '}${f.messageOf(lang)}');
         if (f.snippet != null && f.snippet!.isNotEmpty) {
           b.writeln(_dim('      ${f.snippet}'));
         }
       }
-      if (!verbose && res.findings.length > 5) {
-        b.writeln(_dim('    … +${res.findings.length - 5} (--verbose)'));
+      if (!verbose && fresh.length > 5) {
+        b.writeln(_dim('    … +${fresh.length - 5} (--verbose)'));
       }
+      if (knownCount > 0) b.writeln(_dim('    + ${t.knownCount(knownCount)}'));
       b.writeln('    ${_yellow('${t.why}:')} ${m.description.of(lang)}');
       b.writeln('    ${_green('${t.fix}:')} ${m.fix.of(lang)}');
       if (res.suppressed > 0) {
         b.writeln(_dim('    (${res.suppressed} ${t.suppressed})'));
       }
+      b.writeln();
+    }
+
+    final known = r.failed.where((x) => !x.hasNew).toList();
+    if (known.isNotEmpty) {
+      b.writeln(_bold('${_dim('≈')} ${t.known} (${known.length})'));
+      b.writeln(line);
+      for (final res in known) {
+        b.writeln('  ${_sev(res.severity, t.severity(res.severity))} ${res.meta.title.of(lang)} '
+            '${_dim('${res.meta.id} · ${t.knownCount(res.findings.length)}')}');
+        if (verbose) {
+          for (final f in res.findings) {
+            b.writeln(_dim('      • ${f.location.isEmpty ? '' : '${f.location}  '}${f.messageOf(lang)}'));
+          }
+        }
+      }
+      b.writeln(_dim('  ${t.knownHint}'));
+      b.writeln();
+    }
+
+    if (r.baselineResolved.isNotEmpty) {
+      b.writeln(_bold('${_green('↓')} ${t.resolved} (${r.resolvedCount})'));
+      b.writeln(line);
+      for (final e in r.baselineResolved.take(verbose ? 1000 : 10)) {
+        b.writeln('  ${_green('✓')} ${_dim(e.ruleId)} ${e.file == null ? '' : '${_cyan(e.file!)}  '}${e.message}');
+      }
+      if (!verbose && r.baselineResolved.length > 10) {
+        b.writeln(_dim('  … +${r.baselineResolved.length - 10} (--verbose)'));
+      }
+      b.writeln(_dim('  ${t.updateHint}'));
       b.writeln();
     }
 
