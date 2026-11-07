@@ -32,11 +32,12 @@ String _binaryHtml(AuditReport r, Strings t) {
 String renderHtml(AuditReport r, {String lang = 'en'}) {
   final t = Strings(lang);
   final dir = t.ar ? 'rtl' : 'ltr';
-  final scoreColor = r.score.value >= 80
-      ? 'var(--ok)'
-      : r.score.value >= 60
-          ? 'var(--warn)'
-          : 'var(--bad)';
+  // Coloured like the band, as the categories are.
+  final scoreColor = switch (r.score.worst) {
+    null || Severity.low || Severity.info => 'var(--ok)',
+    Severity.medium => 'var(--warn)',
+    _ => 'var(--bad)',
+  };
 
   String sevClass(Severity s) => 'sev sev-${s.name}';
 
@@ -127,7 +128,7 @@ ul{padding-inline-start:20px}.known{opacity:.7}.tag{font-size:11px;border:1px so
 <section class="hero">
 <div class="ring"><div><span><b>${r.score.value}</b><br><span class="muted">${r.score.grade}</span></span></div></div>
 <div style="flex:1;min-width:240px">
-<div><b>${_e(t.score)}</b>${r.score.capReason == null ? '' : '<div class="muted">${_e(t.capped(r.score))}</div>'}</div>
+<div><b>${_e(t.score)}</b>${[t.band(r.score), t.bestFixes(r.score)].whereType<String>().map((x) => '<div class="muted">${_e(x)}</div>').join()}</div>
 <div class="muted">${_e(t.coverage)}: ${_e(t.coverageLine(r.coverage.checked, r.coverage.inScope, r.coverage.percent))}</div>
 ${_binaryHtml(r, t)}
 $baselineLine

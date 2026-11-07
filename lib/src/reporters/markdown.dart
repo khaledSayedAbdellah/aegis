@@ -28,7 +28,8 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
       b.writeln('| ${t.certHash} | `${c.sha256Base64}` |');
     }
   }
-  b.writeln('| ${t.score} | **${r.score.value}/100 (${r.score.grade})**${r.score.capReason == null ? '' : ' · ${t.capped(r.score)}'} |');
+  b.writeln('| ${t.score} | **${r.score.value}/100 (${r.score.grade})**'
+      '${[t.band(r.score), t.bestFixes(r.score)].whereType<String>().map((x) => '<br>$x').join()} |');
   b.writeln('| ${t.coverage} | ${t.coverageLine(r.coverage.checked, r.coverage.inScope, r.coverage.percent)} |');
   if (r.usesBaseline) {
     b.writeln('| ${t.baseline} | ${t.baselineLine(r.knownFindingCount, r.newFindingCount, r.resolvedCount)} |');

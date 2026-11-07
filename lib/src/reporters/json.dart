@@ -19,9 +19,14 @@ Map<String, Object?> reportToJson(AuditReport r) => {
         'value': r.score.value,
         'grade': r.score.grade,
         if (r.score.capReason != null) 'cappedBy': r.score.capReason,
-        if (r.score.capReason != null) 'ceiling': r.score.ceiling,
-        if (r.score.capReason != null) 'capRules': r.score.capRules,
-        'uncapped': r.score.uncapped,
+        if (r.score.worst != null) ...{
+          'worstSeverity': r.score.worst!.name,
+          'band': [r.score.band!.$1, r.score.band!.$2 - 1],
+          'blockingRules': r.score.blockingRules,
+          'afterBlockingFixed': r.score.afterBlockingFixed,
+          'penalty': double.parse(r.score.penalty.toStringAsFixed(2)),
+          'gains': r.score.gains,
+        },
         'categories': {
           for (final c in r.score.categories.values)
             c.category: {
