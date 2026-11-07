@@ -180,6 +180,17 @@ const awsKey = 'AKIAZ7QW3RT5YU8IO2PL';
       expect(r.resolvedCount, 1);
     });
 
+    test('entries for rules that did not run are not reported as fixed', () {
+      final b = Baseline.fromResults([
+        failed('AEG-B05', [finding('AEG-B05', 'Added by libraries: RECORD_AUDIO.', file: 'app.apk!/AndroidManifest.xml')]),
+        failed('AEG-D02', [finding('AEG-D02', 'Cleartext URL: http://a.b', file: 'lib/a.dart')]),
+      ]);
+      // A source-only run: no APK rules, and the URL was removed.
+      final d02 = [...allRules].firstWhere((r) => r.meta.id == 'AEG-D02').meta;
+      final resolved = b.apply([RuleResult(meta: d02, status: RuleStatus.passed, severity: d02.severity)]);
+      expect(resolved.map((e) => e.ruleId), ['AEG-D02']);
+    });
+
     test('without a baseline every finding is new', () async {
       final project = TempProject()..write('lib/a.dart', secrets);
       final r = await project.audit();
@@ -228,6 +239,32 @@ const awsKey = 'AKIAZ7QW3RT5YU8IO2PL';
     test('HTML and Markdown show the known section', () {
       expect(renderHtml(r), allOf(contains('Known issues'), contains('class="tag"')));
       expect(renderMarkdown(r), allOf(contains('New issues'), contains('Known issues')));
+    });
+  });
+
+  group('Azure Pipelines annotations', () {
+    test('one annotation per new finding, linked to the file', () async {
+      final project = TempProject()
+        ..write('lib/a.dart', "const a = 1;\nconst url = 'http://api.example-shop.com/a%20b';\n");
+      final r = await project.audit();
+      final out = renderAzure(r);
+      final lines = out.trim().split('\n');
+      final url = lines.firstWhere((l) => l.contains('AEG-D02'));
+      expect(url, startsWith('##vso[task.logissue type=error;code=AEG-D02;sourcepath=lib/a.dart;linenumber=2;]'),
+          reason: 'D02 is high under L2');
+      expect(url, contains('a%AZP2520b'), reason: '% is escaped');
+      expect(lines.last, startsWith('##vso[task.complete result=SucceededWithIssues;]'));
+
+      final strict = renderAzure(r, failOn: Severity.critical, failing: true);
+      expect(strict, contains('type=warning;code=AEG-D02'));
+      expect(strict, isNot(contains('task.complete')), reason: 'the exit code fails the step');
+    });
+
+    test('nothing is annotated when every finding is known', () async {
+      final project = TempProject()..write('lib/a.dart', secrets);
+      final baseline = await project.acceptAll();
+      final r = await project.audit(baseline: baseline);
+      expect(renderAzure(r), isEmpty);
     });
   });
 

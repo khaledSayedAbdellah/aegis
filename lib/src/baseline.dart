@@ -132,7 +132,14 @@ class Baseline {
 
   /// Marks the findings of [results] that are in this baseline and returns
   /// the entries that no longer match anything (fixed since the baseline).
+  ///
+  /// Only rules that ran count: an APK finding is not "fixed" because this
+  /// run had no `--apk`.
   List<BaselineEntry> apply(List<RuleResult> results) {
+    final ran = {
+      for (final r in results)
+        if (r.status == RuleStatus.passed || r.status == RuleStatus.failed) r.meta.id
+    };
     final remaining = {for (final e in entries.values) e.fingerprint: e.count};
     for (final r in results) {
       if (r.status != RuleStatus.failed) continue;
@@ -147,7 +154,7 @@ class Baseline {
     }
     return [
       for (final e in entries.values)
-        if ((remaining[e.fingerprint] ?? 0) > 0)
+        if ((remaining[e.fingerprint] ?? 0) > 0 && ran.contains(e.ruleId))
           BaselineEntry(
             fingerprint: e.fingerprint,
             ruleId: e.ruleId,

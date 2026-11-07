@@ -161,6 +161,29 @@ aegis --fail-on high           # now fails only on findings that are not in the 
 
 Exit codes: `0` ok, `1` `--fail-on` / `--min-score` threshold reached, `2` usage error.
 
+### Azure Pipelines
+
+`ci/azure-pipelines/aegis-steps.yml` is a ready-made steps template: it installs aegis, annotates the build with every new finding, adds an **aegis security audit** tab to the build summary, keeps the HTML/JSON/SARIF reports as an artifact and can feed the SARIF Scans tab or GitHub Advanced Security for Azure DevOps.
+
+```yaml
+resources:
+  repositories:
+  - repository: aegis
+    type: git
+    name: <project>/aegis
+    ref: refs/tags/v0.3.0
+
+steps:
+- template: ci/azure-pipelines/aegis-steps.yml@aegis
+  parameters:
+    aegisSource: git
+    aegisGitUrl: https://dev.azure.com/<org>/<project>/_git/aegis
+    aegisGitRef: v0.3.0
+    failOn: high
+```
+
+See [ci/azure-pipelines/README.md](ci/azure-pipelines/README.md) for all parameters and a full example. `-f azure` prints the same annotations from any script.
+
 ## Rules
 
 Run `aegis --list-rules` for the full list.
@@ -249,6 +272,7 @@ aegis --apk build/app/outputs/flutter-apk/app-release.apk --lang ar
 * السكور بيتغير حسب نوع التطبيق (L1 لأي تطبيق، L2 للبيانات الحساسة، R للحماية من التعديل والهندسة العكسية).
 * لو فيه مشكلة خطيرة جداً، السكور مش هيعدي 49 مهما كانت باقي الأقسام نضيفة.
 * التقرير بيقولك نسبة التغطية، وبيديك قائمة بالحاجات اللي لازم تتأكد منها بنفسك، عشان السكور العالي ميديكش إحساس كاذب بالأمان.
+* فيه template جاهز لـ Azure Pipelines في `ci/azure-pipelines/`: بيعلّم كل مشكلة جديدة في الـ build، وبيضيف تاب للتقرير في صفحة الـ build، وبيحفظ التقرير HTML كـ artifact.
 * لو المشروع قديم وفيه مشاكل كتير: `aegis --update-baseline` بيسجل المشاكل الحالية في `aegis-baseline.json` كـ"معروفة"، وبعد كده الـ CI بيقع بس لو ظهرت مشكلة **جديدة**. المشاكل المعروفة بتفضل ظاهرة في التقرير وبتأثر على السكور، والتقرير بيقولك كمان إيه اللي اتصلح.
 
 ## License

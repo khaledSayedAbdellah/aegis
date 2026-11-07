@@ -4,7 +4,7 @@ import 'package:aegis/aegis.dart';
 import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
 
-const _formats = ['console', 'json', 'md', 'html', 'sarif'];
+const _formats = ['console', 'json', 'md', 'html', 'sarif', 'azure'];
 
 ArgParser _parser() => ArgParser()
   ..addOption('profile',
@@ -19,7 +19,7 @@ ArgParser _parser() => ArgParser()
       abbr: 'f',
       allowed: _formats,
       defaultsTo: ['console'],
-      help: 'Output formats (comma separated).')
+      help: 'Output formats (comma separated). "azure" prints Azure Pipelines annotations for new findings.')
   ..addOption('output',
       abbr: 'o', defaultsTo: 'aegis-report', help: 'Report path without extension for file formats.')
   ..addOption('fail-on',
@@ -148,6 +148,9 @@ Future<void> main(List<String> arguments) async {
     exit(0);
   }
 
+  final failing = (config.failOn != null && report.countAtLeast(config.failOn!) > 0) ||
+      (config.minScore != null && report.score.value < config.minScore!);
+
   final formats = (args['format'] as List<String>).toSet();
   final output = args['output'] as String;
   final lang = config.lang;
@@ -169,6 +172,9 @@ Future<void> main(List<String> arguments) async {
     stdout.write(ConsoleReporter(lang: lang, color: color, verbose: args['verbose'] as bool)
         .render(report));
   }
+  if (formats.contains('azure')) {
+    stdout.write(renderAzure(report, failOn: config.failOn, failing: failing));
+  }
   for (final w in written) {
     stdout.writeln('Report: $w');
   }
@@ -184,6 +190,7 @@ Future<void> main(List<String> arguments) async {
     stderr.writeln('aegis: score ${report.score.value} is below the minimum ${config.minScore}.');
     code = 1;
   }
+
   exit(code);
 }
 

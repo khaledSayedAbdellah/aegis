@@ -3,6 +3,9 @@
 * Baselines: `--update-baseline` records today's findings in `aegis-baseline.json`; later runs report **new**, **known** and **fixed** findings separately and `--fail-on` only reacts to new ones. Matching ignores line numbers and the APK file name. Known findings still count in the score.
 * `--baseline <file>`, `--ignore-baseline` and `baseline:` in `aegis.yaml`.
 * JSON findings carry a stable `fingerprint`; SARIF results carry `partialFingerprints` and `baselineState`.
+* Azure Pipelines: `ci/azure-pipelines/aegis-steps.yml` steps template (install from pub.dev/git/path, build annotations, summary tab, report artifact, optional Scans tab and Advanced Security) and a full example pipeline.
+* `-f azure` prints Azure Pipelines annotations for new findings and marks the step "succeeded with issues" when they are below `--fail-on`.
+* A run without `--apk` no longer lists the baseline's APK findings as fixed.
 
 ## 0.2.0
 

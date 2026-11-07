@@ -1,0 +1,226 @@
+# aegis security audit — Azure Pipelines steps template.
+#
+# What it does
+#   1. Installs aegis (pub.dev, a git repository or a checked-out folder).
+#   2. Audits the Flutter project (and the APK, when given), using the
+#      project's aegis.yaml and aegis-baseline.json.
+#   3. Annotates the build with every NEW finding (errors at or above failOn,
+#      warnings below), adds an "aegis" tab to the build summary, and keeps the
+#      HTML / Markdown / JSON / SARIF reports as a pipeline artifact.
+#   4. Fails the step when a new finding reaches failOn or the score is below
+#      minScore. New findings below failOn mark the step "succeeded with issues".
+#
+# Requirements: `dart` on PATH (Flutter's bin folder is enough). For the audit
+# of git/path dependencies, run `flutter pub get` first.
+#
+# Use it from another repository:
+#
+#   resources:
+#     repositories:
+#     - repository: aegis
+#       type: git                 # Azure Repos; use `github` + endpoint for GitHub
+#       name: <project>/aegis
+#       ref: refs/tags/v0.3.0
+#
+#   steps:
+#   - template: ci/azure-pipelines/aegis-steps.yml@aegis
+#     parameters:
+#       projectDir: $(Build.SourcesDirectory)
+#       aegisSource: git
+#       aegisGitUrl: https://dev.azure.com/<org>/<project>/_git/aegis
+#       aegisGitRef: v0.3.0
+#
+# See ci/azure-pipelines/README.md for more examples.
+
+parameters:
+# Folder with pubspec.yaml (and aegis.yaml / aegis-baseline.json).
+- name: projectDir
+  type: string
+  default: $(Build.SourcesDirectory)
+# Release APK to audit as well, e.g.
+# $(Build.SourcesDirectory)/build/app/outputs/flutter-apk/app-release.apk
+- name: apk
+  type: string
+  default: ''
+# l1, l2, l1+r, l2+r or a preset (banking…). Empty: aegis.yaml, else L1.
+- name: profile
+  type: string
+  default: ''
+- name: lang
+  type: string
+  default: en
+  values: [ en, ar ]
+# Fail on NEW findings at or above this severity. `config` uses fail_on from
+# aegis.yaml. For a report that never fails the build, set continueOnError.
+- name: failOn
+  type: string
+  default: high
+  values: [ critical, high, medium, low, config ]
+# Fail when the score (known findings included) is below this. Empty: off.
+- name: minScore
+  type: string
+  default: ''
+# Baseline file. Empty: aegis-baseline.json in projectDir, if present.
+- name: baseline
+  type: string
+  default: ''
+# Skip the OSV vulnerability lookup.
+- name: offline
+  type: boolean
+  default: false
+
+# Where aegis comes from: hosted (pub.dev), git or path.
+- name: aegisSource
+  type: string
+  default: hosted
+  values: [ hosted, git, path ]
+# hosted: version constraint, e.g. ^0.3.0. Empty: latest.
+- name: aegisVersion
+  type: string
+  default: ''
+# git: repository URL and tag/branch/commit. A private Azure Repos URL needs
+# the repository in the job's `uses: repositories` (or a git extraheader).
+- name: aegisGitUrl
+  type: string
+  default: ''
+- name: aegisGitRef
+  type: string
+  default: ''
+# path: a checked-out copy of aegis (`- checkout: aegis`).
+- name: aegisPath
+  type: string
+  default: ''
+
+# Absolute folder for the reports.
+- name: outputDir
+  type: string
+  default: $(Build.ArtifactStagingDirectory)/aegis
+# Pipeline artifact with the reports. Must be unique in the run.
+- name: artifactName
+  type: string
+  default: aegis-report
+# Publish the SARIF file as the `CodeAnalysisLogs` artifact, which the
+# "SARIF SAST Scans Tab" extension shows as a Scans tab. Only one job per run
+# can publish that artifact.
+- name: scansTab
+  type: boolean
+  default: false
+# Send results to GitHub Advanced Security for Azure DevOps (must be enabled
+# on the repository).
+- name: advancedSecurity
+  type: boolean
+  default: false
+# true: report only, never fail the job.
+- name: continueOnError
+  type: boolean
+  default: false
+
+steps:
+- bash: |
+    set -euo pipefail
+    case "$AEGIS_SOURCE" in
+      hosted)
+        if [ -n "$AEGIS_VERSION" ]; then
+          dart pub global activate aegis "$AEGIS_VERSION"
+        else
+          dart pub global activate aegis
+        fi
+        ;;
+      git)
+        if [ -z "$AEGIS_GIT_URL" ]; then
+          echo "##vso[task.logissue type=error]aegisSource is git but aegisGitUrl is empty."
+          exit 1
+        fi
+        if [ -n "$AEGIS_GIT_REF" ]; then
+          dart pub global activate --source git "$AEGIS_GIT_URL" --git-ref "$AEGIS_GIT_REF"
+        else
+          dart pub global activate --source git "$AEGIS_GIT_URL"
+        fi
+        ;;
+      path)
+        if [ -z "$AEGIS_PATH" ]; then
+          echo "##vso[task.logissue type=error]aegisSource is path but aegisPath is empty."
+          exit 1
+        fi
+        dart pub global activate --source path "$AEGIS_PATH"
+        ;;
+    esac
+    dart pub global run aegis --version
+  displayName: Install aegis
+  env:
+    AEGIS_SOURCE: ${{ parameters.aegisSource }}
+    AEGIS_VERSION: ${{ parameters.aegisVersion }}
+    AEGIS_GIT_URL: ${{ parameters.aegisGitUrl }}
+    AEGIS_GIT_REF: ${{ parameters.aegisGitRef }}
+    AEGIS_PATH: ${{ parameters.aegisPath }}
+
+- bash: |
+    set -uo pipefail
+    out="$AEGIS_OUT"
+    mkdir -p "$out"
+
+    args=("$AEGIS_PROJECT" --format console,azure,html,md,json,sarif --output "$out/aegis-report" --lang "$AEGIS_LANG" --no-color)
+    if [ -n "$AEGIS_APK" ]; then args+=(--apk "$AEGIS_APK"); fi
+    if [ -n "$AEGIS_PROFILE" ]; then args+=(--profile "$AEGIS_PROFILE"); fi
+    if [ "$AEGIS_FAIL_ON" != config ]; then args+=(--fail-on "$AEGIS_FAIL_ON"); fi
+    if [ -n "$AEGIS_MIN_SCORE" ]; then args+=(--min-score "$AEGIS_MIN_SCORE"); fi
+    if [ -n "$AEGIS_BASELINE" ]; then args+=(--baseline "$AEGIS_BASELINE"); fi
+    case "$AEGIS_OFFLINE" in [Tt]rue) args+=(--offline) ;; esac
+
+    dart pub global run aegis "${args[@]}"
+    code=$?
+
+    if [ -f "$out/aegis-report.md" ]; then
+      echo "##vso[task.addattachment type=Distributedtask.Core.Summary;name=aegis security audit;]$out/aegis-report.md"
+    fi
+    if [ -f "$out/aegis-report.sarif" ]; then
+      mkdir -p "$out/sarif"
+      cp "$out/aegis-report.sarif" "$out/sarif/aegis.sarif"
+    fi
+
+    # A re-run job cannot publish an artifact name twice.
+    name="$AEGIS_ARTIFACT"
+    if [ "${SYSTEM_JOBATTEMPT:-1}" -gt 1 ]; then name="$name-attempt$SYSTEM_JOBATTEMPT"; fi
+    echo "##vso[task.setvariable variable=AEGIS_ARTIFACT_NAME]$name"
+
+    if [ "$code" -eq 2 ]; then
+      echo "##vso[task.logissue type=error]aegis could not run (exit code 2). See the log above."
+    fi
+    exit $code
+  displayName: aegis security audit
+  continueOnError: ${{ parameters.continueOnError }}
+  env:
+    AEGIS_PROJECT: ${{ parameters.projectDir }}
+    AEGIS_APK: ${{ parameters.apk }}
+    AEGIS_PROFILE: ${{ parameters.profile }}
+    AEGIS_LANG: ${{ parameters.lang }}
+    AEGIS_FAIL_ON: ${{ parameters.failOn }}
+    AEGIS_MIN_SCORE: ${{ parameters.minScore }}
+    AEGIS_BASELINE: ${{ parameters.baseline }}
+    AEGIS_OFFLINE: ${{ parameters.offline }}
+    AEGIS_OUT: ${{ parameters.outputDir }}
+    AEGIS_ARTIFACT: ${{ parameters.artifactName }}
+
+# The reports, also when the audit failed the step.
+- task: PublishPipelineArtifact@1
+  displayName: Keep aegis reports
+  condition: and(succeededOrFailed(), ne(variables['AEGIS_ARTIFACT_NAME'], ''))
+  inputs:
+    targetPath: ${{ parameters.outputDir }}
+    artifact: $(AEGIS_ARTIFACT_NAME)
+
+- ${{ if eq(parameters.scansTab, true) }}:
+  - task: PublishPipelineArtifact@1
+    displayName: Publish SARIF for the Scans tab
+    condition: and(succeededOrFailed(), ne(variables['AEGIS_ARTIFACT_NAME'], ''))
+    inputs:
+      targetPath: ${{ parameters.outputDir }}/sarif
+      artifact: CodeAnalysisLogs
+
+- ${{ if eq(parameters.advancedSecurity, true) }}:
+  - task: AdvancedSecurity-Publish@1
+    displayName: Publish aegis results to Advanced Security
+    condition: and(succeededOrFailed(), ne(variables['AEGIS_ARTIFACT_NAME'], ''))
+    inputs:
+      SarifsInputDirectory: ${{ parameters.outputDir }}/sarif
+      Category: aegis
