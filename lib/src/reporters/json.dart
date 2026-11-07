@@ -104,7 +104,7 @@ String renderSarif(AuditReport r) {
           'driver': {
             'name': 'aegis',
             'version': r.version,
-            'informationUri': 'https://pub.dev/packages/aegis',
+            'informationUri': 'https://github.com/khaledSayedAbdellah/aegis',
             'rules': [
               for (final res in rules)
                 {

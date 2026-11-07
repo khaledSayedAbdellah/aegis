@@ -4,8 +4,8 @@ description: >-
   work, not just whether they exist. OWASP MASVS-mapped rules, MAS profile
   scoring (L1/L2/R), and reports in English and Arabic.
 version: 0.3.0
-repository: https://github.com/your-org/aegis
-issue_tracker: https://github.com/your-org/aegis/issues
+repository: https://github.com/khaledSayedAbdellah/aegis
+issue_tracker: https://github.com/khaledSayedAbdellah/aegis/issues
 
 topics:
   - security

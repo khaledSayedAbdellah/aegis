@@ -13,13 +13,14 @@
 # Requirements: `dart` on PATH (Flutter's bin folder is enough). For the audit
 # of git/path dependencies, run `flutter pub get` first.
 #
-# Use it from another repository:
+# Use it from the aegis repository (needs a GitHub service connection):
 #
 #   resources:
 #     repositories:
 #     - repository: aegis
-#       type: git                 # Azure Repos; use `github` + endpoint for GitHub
-#       name: <project>/aegis
+#       type: github
+#       endpoint: <your GitHub service connection>
+#       name: khaledSayedAbdellah/aegis
 #       ref: refs/tags/v0.3.0
 #
 #   steps:
@@ -27,8 +28,10 @@
 #     parameters:
 #       projectDir: $(Build.SourcesDirectory)
 #       aegisSource: git
-#       aegisGitUrl: https://dev.azure.com/<org>/<project>/_git/aegis
+#       aegisGitUrl: https://github.com/khaledSayedAbdellah/aegis.git
 #       aegisGitRef: v0.3.0
+#
+# Or copy this file into your repository and use `- template: <path>`.
 #
 # See ci/azure-pipelines/README.md for more examples.
 
