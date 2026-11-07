@@ -2,6 +2,7 @@
 library;
 
 import '../model.dart';
+import '../scoring.dart';
 
 class Strings {
   const Strings(this.lang);
@@ -32,9 +33,18 @@ class Strings {
   String get why => _t('Why', 'ليه مهم');
   String get categories => _t('By category', 'حسب القسم');
   String get suppressed => _t('suppressed by aegis:ignore', 'متخفي بـ aegis:ignore');
-  String capped(String reason) => _t(
-      'capped because a $reason finding is open',
-      'السكور له سقف لأن فيه مشكلة $reason مفتوحة');
+  /// Why the score is limited, e.g. "at most 74 while a HIGH finding is
+  /// open (AEG-D01); 96 without it".
+  String capped(Score s) {
+    final sev = severity(s.capReason == 'critical' ? Severity.critical : Severity.high);
+    final rules = s.capRules.join(', ');
+    return _t(
+        'at most ${s.ceiling} while a $sev finding is open ($rules); ${s.uncapped} without it',
+        'مش هيعدي ${s.ceiling} طول ما فيه مشكلة $sev مفتوحة ($rules) · من غيرها كان ${s.uncapped}');
+  }
+
+  String get rulesCol => _t('Rules passed', 'القواعد السليمة');
+  String get problemsCol => _t('Open problems', 'المشاكل المفتوحة');
   String get packages => _t('Packages scanned', 'المكتبات اللي اتفحصت');
   String get binary => _t('APK', 'الـ APK');
   String binaryKind(String kind) =>

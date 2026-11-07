@@ -3,6 +3,7 @@ library;
 
 import '../engine.dart';
 import '../masvs.dart';
+import '../model.dart';
 import '../scoring.dart';
 import 'i18n.dart';
 
@@ -27,7 +28,7 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
       b.writeln('| ${t.certHash} | `${c.sha256Base64}` |');
     }
   }
-  b.writeln('| ${t.score} | **${r.score.value}/100 (${r.score.grade})** |');
+  b.writeln('| ${t.score} | **${r.score.value}/100 (${r.score.grade})**${r.score.capReason == null ? '' : ' · ${t.capped(r.score)}'} |');
   b.writeln('| ${t.coverage} | ${t.coverageLine(r.coverage.checked, r.coverage.inScope, r.coverage.percent)} |');
   if (r.usesBaseline) {
     b.writeln('| ${t.baseline} | ${t.baselineLine(r.knownFindingCount, r.newFindingCount, r.resolvedCount)} |');
@@ -37,10 +38,17 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
   if (r.score.categories.isNotEmpty) {
     b.writeln('## ${t.categories}');
     b.writeln();
-    b.writeln('| | Score | Rules |');
-    b.writeln('|---|---:|---:|');
+    b.writeln('| | ${t.score} | ${t.rulesCol} | ${t.problemsCol} |');
+    b.writeln('|---|---:|---:|---|');
     for (final c in r.score.categories.values) {
-      b.writeln('| ${masvsCategories[c.category]?.of(lang) ?? c.category} | ${c.score} | ${c.checked - c.failed}/${c.checked} |');
+      final mark = switch (c.worst) {
+        null => '✅',
+        Severity.critical || Severity.high => '🔴',
+        Severity.medium => '🟠',
+        _ => '🟡',
+      };
+      b.writeln('| ${masvsCategories[c.category]?.of(lang) ?? c.category} | $mark ${c.score} | '
+          '${c.checked - c.failed}/${c.checked} | ${c.failedRuleIds.join(', ')} |');
     }
     b.writeln();
   }
