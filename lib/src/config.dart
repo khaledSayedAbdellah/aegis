@@ -20,6 +20,8 @@ class AegisConfig {
     this.severityOverrides = const {},
     this.scanPackages = true,
     this.baseline,
+    this.langSet = false,
+    this.file,
   });
 
   final ProfileSet profile;
@@ -41,6 +43,13 @@ class AegisConfig {
   /// `aegis-baseline.json` when that file exists.
   final String? baseline;
 
+  /// Whether `lang:` was given in aegis.yaml (otherwise `aegis run` follows
+  /// the system language).
+  final bool langSet;
+
+  /// The aegis.yaml this was read from, if any.
+  final String? file;
+
   late final List<RegExp> _excludeRes = exclude.map(globToRegExp).toList();
 
   bool isExcluded(String relativePath) =>
@@ -52,12 +61,12 @@ class AegisConfig {
   static AegisConfig load(String projectRoot) {
     final f = File(p.join(projectRoot, fileName));
     if (!f.existsSync()) return AegisConfig();
-    return parse(f.readAsStringSync());
+    return parse(f.readAsStringSync(), file: f.path);
   }
 
-  static AegisConfig parse(String text) {
+  static AegisConfig parse(String text, {String? file}) {
     final doc = _loadYaml(text);
-    if (doc == null) return AegisConfig();
+    if (doc == null) return AegisConfig(file: file);
     if (doc is! Map) throw const FormatException('$fileName must be a map.');
 
     ProfileSet profile = ProfileSet.standard;
@@ -101,6 +110,8 @@ class AegisConfig {
       severityOverrides: overrides,
       scanPackages: doc['scan_packages'] != false,
       baseline: doc['baseline']?.toString(),
+      langSet: doc['lang'] != null,
+      file: file,
     );
   }
 
@@ -128,5 +139,7 @@ class AegisConfig {
         severityOverrides: severityOverrides,
         scanPackages: scanPackages,
         baseline: baseline,
+        langSet: lang != null || langSet,
+        file: file,
       );
 }
