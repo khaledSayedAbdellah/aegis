@@ -15,6 +15,12 @@ class Strings {
   String get profile => _t('MAS profile', 'مستوى الحماية (MAS)');
   String get score => _t('Security score', 'السكور الأمني');
   String get coverage => _t('MASVS coverage', 'تغطية MASVS');
+  String get control => _t('Control', 'البند');
+  String get result => _t('Result', 'النتيجة');
+  String get rules => _t('Rules', 'القواعد');
+  String get coverageLegend => _t(
+      '✅ checked and passed · ❌ checked, has problems (in bold) · ❔ check it yourself · — not covered by aegis',
+      '✅ اتفحص وسليم · ❌ اتفحص وفيه مشاكل (القواعد اللي بالـ bold) · ❔ لازم تتأكد منه بنفسك · — aegis مش بيغطيه');
   String coverageLine(int checked, int total, int pct) => _t(
       '$checked of $total controls checked automatically ($pct%)',
       'اتفحص $checked من $total بند أوتوماتيك ($pct%)');

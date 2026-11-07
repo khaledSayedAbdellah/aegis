@@ -236,6 +236,21 @@ const awsKey = 'AKIAZ7QW3RT5YU8IO2PL';
       expect(results.first['partialFingerprints']['aegis/v1'], isA<String>());
     });
 
+    test('MASVS coverage marks controls with known problems as failing', () {
+      final md = renderMarkdown(r);
+      // AEG-D01 (new) and AEG-D02 (known) both fail; neither control is ✅.
+      expect(md, contains('| MASVS-NETWORK-1 | ❌ |'));
+      expect(md, contains('**AEG-D02**'));
+      expect(md, contains('| MASVS-STORAGE-1 | ❌ |'));
+      expect(md, contains('**AEG-D01**'));
+      final net = r.coverage.controls.firstWhere((c) => c.control.id == 'MASVS-NETWORK-1');
+      expect(net.failedRuleIds, contains('AEG-D02'));
+      expect(net.passed, isFalse);
+      final json = jsonDecode(renderJson(r)) as Map<String, dynamic>;
+      final control = (json['coverage']['controls'] as List).firstWhere((c) => c['id'] == 'MASVS-STORAGE-1');
+      expect(control['failedRules'], contains('AEG-D01'));
+    });
+
     test('HTML and Markdown show the known section', () {
       expect(renderHtml(r), allOf(contains('Known issues'), contains('class="tag"')));
       expect(renderMarkdown(r), allOf(contains('New issues'), contains('Known issues')));

@@ -34,7 +34,12 @@ Map<String, Object?> reportToJson(AuditReport r) => {
         'inScope': r.coverage.inScope,
         'controls': [
           for (final c in r.coverage.controls)
-            {'id': c.control.id, 'status': c.status.name, 'rules': c.ruleIds}
+            {
+              'id': c.control.id,
+              'status': c.status.name,
+              'rules': c.ruleIds,
+              'failedRules': c.failedRuleIds,
+            }
         ],
       },
       'summary': {

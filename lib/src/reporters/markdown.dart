@@ -109,16 +109,21 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
 
   b.writeln('<details><summary>${t.coverage}</summary>');
   b.writeln();
-  b.writeln('| Control | Status | Rules |');
+  b.writeln('| ${t.control} | ${t.result} | ${t.rules} |');
   b.writeln('|---|---|---|');
   for (final c in r.coverage.controls) {
+    // ✅ only when every rule of the control passed; "checked" alone does
+    // not mean healthy.
     final s = switch (c.status) {
-      ControlStatus.checked => '✅',
+      ControlStatus.checked => c.failedRuleIds.isEmpty ? '✅' : '❌',
       ControlStatus.manualOnly => '❔',
       ControlStatus.notCovered => '—',
     };
-    b.writeln('| ${c.control.id} | $s | ${c.ruleIds.join(', ')} |');
+    final ids = c.ruleIds.map((id) => c.failedRuleIds.contains(id) ? '**$id**' : id).join(', ');
+    b.writeln('| ${c.control.id} | $s | $ids |');
   }
+  b.writeln();
+  b.writeln(t.coverageLegend);
   b.writeln();
   b.writeln('</details>');
   b.writeln();
