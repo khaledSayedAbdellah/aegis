@@ -3,6 +3,7 @@
 * Android App Bundles: `--apk` also takes an `.aab`. aegis decodes the protobuf manifest and res/xml files (aapt2 format) in pure Dart, scans the base and feature modules' code, resource table and assets, and skips `BUNDLE-METADATA/`. All APK rules apply.
 * AEG-B10 knows that Google Play re-signs bundles: it fails when freeRASP's `signingCertHashes` only has the upload key, and is not applicable when the upload key is not listed.
 * Reports label the binary as "App bundle (AAB)" and mark its certificate as the upload key; JSON `binary.kind` is `APK` or `AAB`.
+* Binary rule titles, descriptions and findings say "AAB" instead of "APK" when a bundle is audited.
 * Baselines: `x.aab!/...` and `x.apk!/...` findings match each other.
 
 ## 0.3.0

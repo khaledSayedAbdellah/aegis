@@ -173,10 +173,11 @@ class Baseline {
       file?.replaceFirst(RegExp(r'^[^/]*\.(apk|aab)!/', caseSensitive: false), 'apk!/');
 
   /// Rule + file + message, ignoring line numbers, numbers in the message
-  /// (counts, versions) and whitespace.
+  /// (counts, versions), whitespace, and whether it says APK or AAB.
   static String fingerprint(Finding f) {
     final message = f.message
         .toLowerCase()
+        .replaceAll(RegExp(r'\baab\b'), 'apk')
         .replaceAll(RegExp(r'\d+'), '#')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();

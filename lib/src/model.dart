@@ -121,6 +121,7 @@ class RuleMeta {
     this.maswe = const [],
     this.cwe,
     this.l2Severity,
+    this.passTitleText,
   });
 
   /// Stable id such as `AEG-A01`.
@@ -130,7 +131,29 @@ class RuleMeta {
   final Bilingual title;
 
   /// Describes the healthy state, shown when the rule passes.
-  Bilingual get passTitle => passTitles[id] ?? title;
+  Bilingual get passTitle => passTitleText ?? passTitles[id] ?? title;
+
+  /// Overrides the shared pass title (see [mapText]).
+  final Bilingual? passTitleText;
+
+  /// A copy with every text (both languages) passed through [f], e.g. to
+  /// say "AAB" instead of "APK".
+  RuleMeta mapText(String Function(String) f) {
+    Bilingual m(Bilingual b) => Bilingual(f(b.en), f(b.ar));
+    return RuleMeta(
+      id: id,
+      title: m(title),
+      description: m(description),
+      fix: m(fix),
+      severity: severity,
+      masvs: masvs,
+      profiles: profiles,
+      maswe: maswe,
+      cwe: cwe,
+      l2Severity: l2Severity,
+      passTitleText: m(passTitle),
+    );
+  }
 
   /// Why this matters.
   final Bilingual description;

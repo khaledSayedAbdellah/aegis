@@ -235,8 +235,23 @@ Future<AuditReport> runAudit(
         if (project.hasSource) ...allRules,
         if (project.apk != null) ...apkRules,
       ];
+  // Binary rules are written for APKs; for a bundle they say "AAB".
+  final bundle = project.apk?.isBundle ?? false;
+  String bundleText(String s) => s.replaceAll('APK', 'AAB');
+  RuleMeta metaOf(Rule rule) =>
+      bundle && rule.meta.id.startsWith('AEG-B') ? rule.meta.mapText(bundleText) : rule.meta;
+  Finding findingOf(Finding f) => !bundle || !f.ruleId.startsWith('AEG-B')
+      ? f
+      : Finding(
+          ruleId: f.ruleId,
+          message: bundleText(f.message),
+          messageAr: f.messageAr == null ? null : bundleText(f.messageAr!),
+          file: f.file,
+          line: f.line,
+          snippet: f.snippet);
+
   for (final rule in ruleSet) {
-    final meta = rule.meta;
+    final meta = metaOf(rule);
     final severity = cfg.severityOverrides[meta.id] ?? meta.severityFor(profile);
     if (cfg.disabledRules.contains(meta.id)) {
       results.add(RuleResult(meta: meta, status: RuleStatus.disabled, severity: severity));
@@ -261,7 +276,7 @@ Future<AuditReport> runAudit(
       if (suppressed(f)) {
         hidden++;
       } else {
-        kept.add(f);
+        kept.add(findingOf(f));
       }
     }
     results.add(RuleResult(

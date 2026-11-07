@@ -137,6 +137,11 @@ void main() {
         'vulnerable.aab!/feature_pay/classes.dex',
       });
       expect(secrets, hasLength(3), reason: 'the key in proguard.map is not scanned');
+
+      // Binary rules say AAB, not APK.
+      expect(result(r, 'AEG-B08').meta.title.en, 'Secret file shipped inside the AAB');
+      expect(result(r, 'AEG-B08').findings.single.message, '.env is inside the AAB.');
+      expect(result(r, 'AEG-B08').findings.single.messageOf('ar'), '.env موجود جوه الـ AAB.');
     });
 
     test('hardened bundle passes', () async {
@@ -149,6 +154,16 @@ void main() {
         }
       }
       expect(r.score.value, 100);
+      final b09 = result(r, 'AEG-B09').meta;
+      expect(b09.passTitle.en, 'The AAB is signed with a release certificate');
+      expect(b09.passTitle.ar, 'الـ AAB متوقع بشهادة release');
+      expect(b09.description.en, isNot(contains('APK')));
+      expect(result(r, 'AEG-B10').meta.title.ar, contains('الـ AAB'));
+    });
+
+    test('APK reports keep saying APK', () async {
+      final r = await runAudit(fixtures, apkPath: 'test/fixtures/apk/secure.apk', config: l2r, offline: true);
+      expect(result(r, 'AEG-B09').meta.passTitle.en, 'The APK is signed with a release certificate');
     });
 
     group('freeRASP hashes and Play re-signing', () {
@@ -203,9 +218,9 @@ final config = TalsecConfig(
     });
 
     test('an AAB finding matches the same APK finding in a baseline', () {
-      Finding f(String file) => Finding(ruleId: 'AEG-B03', message: 'allowBackup is on.', file: file);
-      expect(Baseline.fingerprint(f('app-release.aab!/AndroidManifest.xml')),
-          Baseline.fingerprint(f('app-prod-release.apk!/AndroidManifest.xml')));
+      Finding f(String file, String message) => Finding(ruleId: 'AEG-B08', message: message, file: file);
+      expect(Baseline.fingerprint(f('app-release.aab!/assets/flutter_assets/.env', '.env is inside the AAB.')),
+          Baseline.fingerprint(f('app-prod-release.apk!/assets/flutter_assets/.env', '.env is inside the APK.')));
     });
   });
 }
