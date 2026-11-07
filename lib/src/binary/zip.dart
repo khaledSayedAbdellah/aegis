@@ -27,6 +27,20 @@ class ZipReader {
 
   factory ZipReader.file(String path) => ZipReader(File(path).readAsBytesSync());
 
+  ZipReader._view(this.bytes, int centralDirectoryOffset, Map<String, ZipEntry> entries) {
+    this.centralDirectoryOffset = centralDirectoryOffset;
+    this.entries.addAll(entries);
+  }
+
+  /// The same archive with entries renamed by [names] (old name -> new
+  /// name). Entries not in [names] are left out.
+  ZipReader renamed(Map<String, String> names) => ZipReader._view(bytes, centralDirectoryOffset, {
+        for (final e in names.entries)
+          if (entries[e.key] case final entry?)
+            e.value: ZipEntry(e.value, entry.method, entry.compressedSize, entry.size,
+                entry.localHeaderOffset)
+      });
+
   final Uint8List bytes;
   late final ByteData _data = ByteData.sublistView(bytes);
 

@@ -12,7 +12,8 @@ ArgParser _parser() => ArgParser()
       help: 'MAS profile: l1, l2, l1+r, l2+r, or a preset '
           '(standard, sensitive, game, banking, fintech, payments, government).')
   ..addOption('apk',
-      help: 'Also audit a release APK (e.g. build/app/outputs/flutter-apk/app-release.apk). '
+      help: 'Also audit a release APK or app bundle (.aab), e.g. build/app/outputs/flutter-apk/app-release.apk '
+          'or build/app/outputs/bundle/release/app-release.aab. '
           'Without a pubspec.yaml in the project path, only the APK is audited.')
   ..addOption('lang', abbr: 'l', allowed: ['en', 'ar'], help: 'Report language.')
   ..addMultiOption('format',
@@ -99,7 +100,7 @@ Future<void> main(List<String> arguments) async {
 
   final apkPath = args['apk'] as String?;
   if (apkPath != null && !File(apkPath).existsSync()) {
-    stderr.writeln('APK not found: $apkPath');
+    stderr.writeln('File not found: $apkPath');
     exit(2);
   }
 
@@ -134,7 +135,7 @@ Future<void> main(List<String> arguments) async {
     if (apkPath == null) stderr.writeln('Tip: use --apk <file> to audit a compiled APK without the source.');
     exit(2);
   } on FormatException catch (e) {
-    stderr.writeln('Could not read the APK: ${e.message}');
+    stderr.writeln('Could not read ${apkPath ?? 'the file'}: ${e.message}');
     exit(2);
   }
 

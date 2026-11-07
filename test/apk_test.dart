@@ -60,7 +60,6 @@ void main() {
 
     test('rejects non-APK files', () {
       expect(() => ApkContext.load('pubspec.yaml'), throwsFormatException);
-      expect(() => ApkContext.load('app.aab'), throwsFormatException);
     });
   });
 

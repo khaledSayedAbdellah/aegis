@@ -21,9 +21,9 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
   }
   final bin = r.binary;
   if (bin != null) {
-    b.writeln('| ${t.binary} | `${bin.file}` ${bin.packageName ?? ''} ${bin.versionName ?? ''} |');
+    b.writeln('| ${t.binaryKind(bin.kind)} | `${bin.file}` ${bin.packageName ?? ''} ${bin.versionName ?? ''} |');
     for (final c in bin.certificates) {
-      b.writeln('| ${t.signer} | ${c.commonName ?? '?'} (${c.scheme}) |');
+      b.writeln('| ${t.signer} | ${c.commonName ?? '?'} (${c.scheme})${bin.kind == 'AAB' ? ' · ${t.uploadKey}' : ''} |');
       b.writeln('| ${t.certHash} | `${c.sha256Base64}` |');
     }
   }

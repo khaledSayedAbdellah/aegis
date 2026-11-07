@@ -22,9 +22,9 @@ String _binaryHtml(AuditReport r, Strings t) {
       : '<div class="muted">${_e(t.packages)}: ${_e(r.scannedPackages.join(', '))}</div>';
   final bin = r.binary;
   if (bin == null) return pkgs;
-  final b = StringBuffer('$pkgs<div class="muted">${_e(t.binary)}: <code>${_e(bin.file)}</code> ${_e(bin.packageName ?? '')} ${_e(bin.versionName ?? '')}</div>');
+  final b = StringBuffer('$pkgs<div class="muted">${_e(t.binaryKind(bin.kind))}: <code>${_e(bin.file)}</code> ${_e(bin.packageName ?? '')} ${_e(bin.versionName ?? '')}</div>');
   for (final c in bin.certificates) {
-    b.write('<div class="muted">${_e(t.signer)}: ${_e(c.commonName ?? '?')} (${c.scheme})<br>${_e(t.certHash)}: <code>${_e(c.sha256Base64)}</code></div>');
+    b.write('<div class="muted">${_e(t.signer)}: ${_e(c.commonName ?? '?')} (${c.scheme})${bin.kind == 'AAB' ? ' · ${_e(t.uploadKey)}' : ''}<br>${_e(t.certHash)}: <code>${_e(c.sha256Base64)}</code></div>');
   }
   return b.toString();
 }

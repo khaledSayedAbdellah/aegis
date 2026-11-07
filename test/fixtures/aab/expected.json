@@ -1,0 +1,11 @@
+{
+  "vulnerable": {
+    "sha256Base64": "HHTnWouweZcqqUJLDU6rqXQoGXefSY54fow9GV2/nHI=",
+    "commonName": "Android Debug",
+    "manifestElements": 10
+  },
+  "secure": {
+    "sha256Base64": "MRTmEAoBRVycp5Dlrn3cUXT01I6xNNYXN7a5cDOQb+4=",
+    "commonName": "Acme Upload"
+  }
+}
