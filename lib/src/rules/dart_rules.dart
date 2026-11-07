@@ -217,6 +217,8 @@ class CleartextUrlRule extends Rule {
       for (final i in f.stringIndexes()) {
         final v = f.tokens[i].value ?? '';
         if (!v.startsWith('http://')) continue;
+        // A bare scheme ('http://') is a prefix check, not a URL.
+        if (v.length == 'http://'.length) continue;
         if (_safeHttpHosts.hasMatch(v)) continue;
         out.add(at(f, i, 'Cleartext URL: ${shorten(v, 80)}',
             messageAr: 'لينك غير مشفر: ${shorten(v, 80)}'));
@@ -445,7 +447,7 @@ class WeakCryptoRule extends Rule {
         }
         if (t.isString) {
           final v = (t.value ?? '').toUpperCase();
-          if (RegExp(r'^(AES/ECB|DES/|DESEDE/|RC4|AES/CBC/NOPADDING)').hasMatch(v)) {
+          if (RegExp(r'^(AES/ECB|DES/|DESEDE/|RC4(/|$)|AES/CBC/NOPADDING)').hasMatch(v)) {
             out.add(at(f, i, 'Weak cipher transformation "${t.value}".',
                 messageAr: 'تشفير ضعيف "${t.value}".'));
           }
