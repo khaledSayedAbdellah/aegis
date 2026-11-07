@@ -33,14 +33,28 @@ class Strings {
   String get why => _t('Why', 'ليه مهم');
   String get categories => _t('By category', 'حسب القسم');
   String get suppressed => _t('suppressed by aegis:ignore', 'متخفي بـ aegis:ignore');
-  /// Why the score is limited, e.g. "at most 74 while a HIGH finding is
-  /// open (AEG-D01); 96 without it".
-  String capped(Score s) {
-    final sev = severity(s.capReason == 'critical' ? Severity.critical : Severity.high);
-    final rules = s.capRules.join(', ');
+  /// Why the score is in its band and what lifts it out, e.g. "40-69 while
+  /// a HIGH problem is open (AEG-D01, AEG-P01); fixing them gives 80".
+  /// Null when nothing above low is open.
+  String? band(Score s) {
+    final w = s.worst;
+    final b = s.band;
+    if (w == null || b == null || !(w >= Severity.medium)) return null;
+    final sev = severity(w);
+    final rules = s.blockingRules.join(', ');
+    final range = '${b.$1}-${b.$2 - 1}';
+    final after = s.afterBlockingFixed;
     return _t(
-        'at most ${s.ceiling} while a $sev finding is open ($rules); ${s.uncapped} without it',
-        'مش هيعدي ${s.ceiling} طول ما فيه مشكلة $sev مفتوحة ($rules) · من غيرها كان ${s.uncapped}');
+        '$range while a $sev problem is open ($rules); fixing ${s.blockingRules.length == 1 ? 'it' : 'them'} gives $after',
+        'بين $range طول ما فيه مشكلة $sev مفتوحة ($rules)، ولو اتصلحت يبقى $after');
+  }
+
+  /// The single fixes worth most points, e.g. "AEG-D01 +4 · AEG-P05 +2".
+  String? bestFixes(Score s) {
+    final top = s.gains.entries.where((e) => e.value > 0).take(3).toList();
+    if (top.isEmpty) return null;
+    final list = top.map((e) => '${e.key} +${e.value}').join(' · ');
+    return _t('Biggest single gains: $list', 'أكبر تحسن من إصلاح واحد: $list');
   }
 
   String get rulesCol => _t('Rules passed', 'القواعد السليمة');

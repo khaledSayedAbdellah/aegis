@@ -131,11 +131,31 @@ The profile decides which rules run and how severe some findings are. For exampl
 
 ## Score
 
-* Each MASVS category starts at 100 and loses 40 / 20 / 8 / 3 points per failing critical / high / medium / low rule.
-* The overall score is the average of the categories that were checked.
-* While a **critical** finding is open the score is scaled down to at most 49 (average × 0.49); while a **high** one is open, to at most 74 (average × 0.74). One open hole can't hide behind clean categories, and every other problem still lowers the score. The report names the finding that limits it and shows the score without it.
-* Categories are coloured by their worst open problem, not by their number: a category at 80 with a high finding is red.
-* Every report shows **MASVS coverage** and a list of **manual checks** (backend authorization, server-side attestation verification, …) so a clean score is never mistaken for a secure app.
+Two rules, applied to every failing rule (known baseline findings included):
+
+**1. The worst open problem decides the band and the grade.**
+
+| Worst open problem | Score | Grade |
+|---|---|---|
+| none | 100 | A |
+| low | 90–99 | A |
+| medium | 70–89 | B (80+) / C |
+| high | 40–69 | D |
+| critical | 0–39 | F |
+
+No number of healthy checks can lift a high problem out of D, and fixing the last problem of a severity always moves the score up a band. This is how SonarQube rates security (worst issue decides) and how SSL Labs caps grades.
+
+**2. Inside the band, every open problem costs points.** Each failing rule adds a penalty (critical 10, high 6, medium 3, low 1; ×1.4 for 3 findings of the same rule, up to ×2), and
+
+```
+score = band start + band width × e^(−penalty / 20)
+```
+
+So two apps with the same high problem but a different number of other problems get different scores, more problems always mean a lower score, and fixing anything never lowers it.
+
+Example (a real app, source only): under L2+R it has two high problems, four medium and two low → **47 (D)**; under L1 only one high and one low are in scope → **58 (D)**. Fixing the two high problems gives **80 (B)** under L2+R; fixing the high one under L1 gives **99 (A)**.
+
+Every report also says which rules keep the score in its band, what it becomes once they are fixed, and the single fixes worth most points. Each MASVS category is scored with the same formula, so a category's number and colour agree (a category with a high problem is red). Every report shows **MASVS coverage** and a list of **manual checks** (backend authorization, server-side attestation verification, …) so a clean score is never mistaken for a secure app.
 
 ## Configuration — `aegis.yaml`
 

@@ -39,11 +39,13 @@ class ConsoleReporter {
     }
   }
 
-  String _gradeColor(Score s, String text) {
-    if (s.value >= 80) return _c('1;32', text);
-    if (s.value >= 60) return _c('1;33', text);
-    return _c('1;31', text);
-  }
+  /// Coloured like the band: green up to low problems, yellow for medium,
+  /// red for high and critical.
+  String _gradeColor(Score s, String text) => switch (s.worst) {
+        null || Severity.low || Severity.info => _c('1;32', text),
+        Severity.medium => _c('1;33', text),
+        _ => _c('1;31', text),
+      };
 
   String render(AuditReport r) {
     final t = Strings(lang);
@@ -70,11 +72,12 @@ class ConsoleReporter {
     }
     b.writeln();
 
-    final bar = _scoreBar(r.score.value);
+    final bar = _scoreBar(r.score);
     b.writeln('${t.score}: ${_gradeColor(r.score, '${r.score.value}/100 (${r.score.grade})')}  $bar');
-    if (r.score.capReason != null) {
-      b.writeln(_dim('  ↳ ${t.capped(r.score)}'));
-    }
+    final band = t.band(r.score);
+    if (band != null) b.writeln(_dim('  ↳ $band'));
+    final fixes = t.bestFixes(r.score);
+    if (fixes != null) b.writeln(_dim('  ↳ $fixes'));
     b.writeln('${t.coverage}: ${t.coverageLine(r.coverage.checked, r.coverage.inScope, r.coverage.percent)}');
     b.writeln();
 
@@ -198,11 +201,8 @@ class ConsoleReporter {
     return b.toString();
   }
 
-  String _scoreBar(int v) {
-    final filled = (v / 5).round();
-    final bar = '█' * filled + '░' * (20 - filled);
-    if (v >= 80) return _green(bar);
-    if (v >= 60) return _yellow(bar);
-    return _red(bar);
+  String _scoreBar(Score s) {
+    final filled = (s.value / 5).round();
+    return _gradeColor(s, '█' * filled + '░' * (20 - filled));
   }
 }
