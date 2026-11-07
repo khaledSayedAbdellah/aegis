@@ -1,0 +1,98 @@
+# Example: aegis on every pull request, plus an APK audit on main.
+#
+# Copy into your app repository and replace <org>, <project> and the Flutter
+# version. aegis is taken from its own Azure Repos repository; with aegis on
+# pub.dev use `aegisSource: hosted` and drop the git settings.
+trigger:
+  branches:
+    include: [ main ]
+pr:
+  branches:
+    include: [ main ]
+
+resources:
+  repositories:
+  - repository: aegis              # the steps template comes from here
+    type: git
+    name: <project>/aegis
+    ref: refs/tags/v0.3.0
+
+variables:
+  FLUTTER_VERSION: '3.35.0'
+  AEGIS_GIT_URL: https://dev.azure.com/<org>/<project>/_git/aegis
+
+stages:
+# Source audit: fast, runs on every PR. Fails only on findings that are not in
+# aegis-baseline.json.
+- stage: security
+  displayName: Security audit
+  jobs:
+  - job: aegis
+    displayName: aegis (source)
+    pool:
+      vmImage: ubuntu-latest
+    uses:
+      repositories: [ aegis ]      # lets System.AccessToken read the aegis repo
+    steps:
+    - checkout: self
+    - bash: |
+        set -euo pipefail
+        git config --global http.https://dev.azure.com/<org>/.extraheader "AUTHORIZATION: bearer ${SYSTEM_ACCESSTOKEN}"
+      displayName: Authorise git for dev.azure.com/<org>
+      env:
+        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+    - bash: |
+        set -euo pipefail
+        git clone --depth 1 --branch "$(FLUTTER_VERSION)" https://github.com/flutter/flutter.git "$(Agent.TempDirectory)/flutter"
+        echo "##vso[task.prependpath]$(Agent.TempDirectory)/flutter/bin"
+      displayName: Install Flutter
+    - bash: flutter pub get
+      displayName: flutter pub get
+    - template: ci/azure-pipelines/aegis-steps.yml@aegis
+      parameters:
+        aegisSource: git
+        aegisGitUrl: $(AEGIS_GIT_URL)
+        aegisGitRef: v0.3.0
+        failOn: high
+        lang: en
+
+# APK audit after the release build (main only). Build-time secrets, merged
+# manifest, signing certificate and real obfuscation are only visible here.
+# Report only: by now the build exists, so the job is not failed.
+- stage: apk
+  displayName: APK audit
+  dependsOn: []
+  condition: and(succeeded(), eq(variables['Build.SourceBranch'], 'refs/heads/main'))
+  jobs:
+  - job: aegis_apk
+    displayName: aegis (APK)
+    pool:
+      vmImage: ubuntu-latest
+    uses:
+      repositories: [ aegis ]
+    steps:
+    - checkout: self
+    - bash: |
+        set -euo pipefail
+        git config --global http.https://dev.azure.com/<org>/.extraheader "AUTHORIZATION: bearer ${SYSTEM_ACCESSTOKEN}"
+      displayName: Authorise git for dev.azure.com/<org>
+      env:
+        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+    - bash: |
+        set -euo pipefail
+        git clone --depth 1 --branch "$(FLUTTER_VERSION)" https://github.com/flutter/flutter.git "$(Agent.TempDirectory)/flutter"
+        echo "##vso[task.prependpath]$(Agent.TempDirectory)/flutter/bin"
+      displayName: Install Flutter
+    - bash: |
+        set -euo pipefail
+        flutter pub get
+        flutter build apk --release --obfuscate --split-debug-info=build/debug-info
+      displayName: Build release APK
+    - template: ci/azure-pipelines/aegis-steps.yml@aegis
+      parameters:
+        aegisSource: git
+        aegisGitUrl: $(AEGIS_GIT_URL)
+        aegisGitRef: v0.3.0
+        apk: $(Build.SourcesDirectory)/build/app/outputs/flutter-apk/app-release.apk
+        artifactName: aegis-apk-report
+        continueOnError: true
