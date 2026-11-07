@@ -422,6 +422,19 @@ const apiKey = 'q8Zr2LwX9vT4mN7pK1sB';
   });
 
   group('False positives seen in real code', () {
+    test('a password hash is not a secret, the password is', () async {
+      final r = await audit({
+        'lib/a.dart': '''
+const passwordHash = '2b15417c77cc02f9fe4e1e5cb3f0cc77028dd0651d8a474218c43411e85c5a6c';
+const tokenSha256 = '7e489fefc0e06d46e4cb86e5d288cf4fd45884169795873d6047c393d80d512b';
+const demoPassword = 'manager_demo_2026';
+''',
+      });
+      final secrets = result(r, 'AEG-D01').findings;
+      expect(secrets, hasLength(1));
+      expect(secrets.single.line, 3);
+    });
+
     test('a bare http:// prefix and class names in strings', () async {
       final r = await audit({
         'lib/a.dart': '''
