@@ -42,21 +42,41 @@ It also covers the classics: debuggable builds, backups, cleartext traffic, netw
 
 aegis has **no dependency on `package:analyzer`**: it uses its own Dart tokenizer, so it runs on any Dart 3 SDK and never conflicts with your app's dependencies.
 
-## Install
+## Quick start
 
 ```bash
-dart pub global activate aegis          # once published
-# or from a local checkout:
-dart pub global activate --source path /path/to/aegis
+dart pub global activate --source git https://github.com/khaledSayedAbdellah/aegis.git --git-ref v0.5.0
 ```
 
-Then, in your Flutter project:
+In your Flutter project (after `flutter pub get`):
+
+```bash
+aegis init                 # once: asks what kind of app it is, writes aegis.yaml
+aegis run                  # code + the newest release APK/AAB in build/, if any
+```
+
+`aegis run` prints the report and writes `build/aegis-report.html`; add `--open` to open it in the browser. Choose what to audit with `--mode`:
+
+| Command | Audits |
+|---|---|
+| `aegis run` | `--mode all`: the code, plus the newest release APK or AAB in `build/` (code only when none is built) |
+| `aegis run --mode code` | Dart code, your git/path packages, Android and iOS configuration |
+| `aegis run --mode apk` | the code + the newest `build/app/outputs/flutter-apk/*release*.apk` |
+| `aegis run --mode aab` | the code + the newest `build/app/outputs/bundle/*Release/*.aab` |
+
+The language follows `lang:` in aegis.yaml, else your system language. If `~/.pub-cache/bin` is not on your PATH, add `export PATH="$PATH:$HOME/.pub-cache/bin"` to your shell profile.
+
+## Full control (CI)
+
+Plain `aegis` takes every setting as an option and only prints to the console unless asked, which is what CI scripts want:
 
 ```bash
 aegis                                   # audit the current folder
 aegis --profile banking --lang ar      # banking app, Arabic report
 aegis -f console,html,sarif -o build/aegis
 ```
+
+`-f/--format` picks the outputs: `console` (the terminal), `html` (a page to open in a browser), `md`, `json`, `sarif` (code-scanning dashboards) and `azure` (Azure Pipelines annotations). `-o` is the file name without extension.
 
 ## Scan the release APK or App Bundle
 
@@ -182,14 +202,14 @@ resources:
     type: github
     endpoint: <your GitHub service connection>
     name: khaledSayedAbdellah/aegis
-    ref: refs/tags/v0.4.0
+    ref: refs/tags/v0.5.0
 
 steps:
 - template: ci/azure-pipelines/aegis-steps.yml@aegis
   parameters:
     aegisSource: git
     aegisGitUrl: https://github.com/khaledSayedAbdellah/aegis.git
-    aegisGitRef: v0.4.0
+    aegisGitRef: v0.5.0
     failOn: high
 ```
 
@@ -275,9 +295,14 @@ Without `--apk` it reads source and configuration only, so build-time values, me
 **aegis** أداة بتفحص أمان تطبيقات Flutter، وبتتأكد إن الحماية **شغالة فعلاً** مش بس موجودة. يعني مش بتسأل "عندك RASP؟" وبس، لكن بتسأل كمان: هل اتشغّل؟ هل إعداداته مطابقة لتطبيقك؟ وهل لما يكتشف تهديد بيعمل رد فعل حقيقي ولا بيطبع log وخلاص؟
 
 ```bash
-aegis --profile banking --lang ar
-aegis --apk build/app/outputs/flutter-apk/app-release.apk --lang ar
+aegis init                 # مرة واحدة: بيسألك نوع التطبيق وبيعمل aegis.yaml
+aegis run                  # الكود + آخر APK/AAB متبني في build/ لو موجود
+aegis run --mode code      # الكود بس
+aegis run --mode apk       # الكود + آخر APK
+aegis run --mode aab       # الكود + آخر AAB
 ```
+
+التقرير بيظهر في الـ terminal وبيتكتب في `build/aegis-report.html`، وتقدر تضيف `--open` عشان يفتحه في المتصفح على طول.
 
 مع `--apk` الأداة بتفحص الـ APK اللي اتبنى فعلاً: الأسرار اللي اتحطت بـ `--dart-define`، والصلاحيات والمكونات اللي المكتبات ضافتها، والشهادة اللي وقّعت التطبيق، وهل الـ obfuscation اتعمل بجد. وبتطبعلك الـ hash اللي تحطه في إعدادات freeRASP.
 

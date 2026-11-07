@@ -1,3 +1,9 @@
+## 0.5.0
+
+* `aegis init`: asks what kind of app it is (or takes `--profile`/`--lang`) and writes aegis.yaml.
+* `aegis run [--mode all|code|apk|aab]`: friendly defaults for people, not CI. It finds the newest release APK/AAB under `build/app/outputs/` by itself, prints the report, writes `build/aegis-report.html` in the project (`--open` opens it), and follows the system language when aegis.yaml has no `lang:`.
+* Plain `aegis` with options is unchanged, for scripts and CI.
+
 ## 0.4.0
 
 * Android App Bundles: `--apk` also takes an `.aab`. aegis decodes the protobuf manifest and res/xml files (aapt2 format) in pure Dart, scans the base and feature modules' code, resource table and assets, and skips `BUNDLE-METADATA/`. All APK rules apply.

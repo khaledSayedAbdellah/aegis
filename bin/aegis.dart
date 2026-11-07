@@ -6,7 +6,12 @@ import 'package:path/path.dart' as p;
 
 const _formats = ['console', 'json', 'md', 'html', 'sarif', 'azure'];
 
-ArgParser _parser() => ArgParser()
+const _modes = ['all', 'code', 'apk', 'aab'];
+
+/// Options shared by plain `aegis` and `aegis run`. `run` has friendlier
+/// defaults: an HTML report next to the console output, and the APK/AAB is
+/// found in build/ instead of being passed with --apk.
+ArgParser _parser({bool run = false}) => ArgParser()
   ..addOption('profile',
       abbr: 'p',
       help: 'MAS profile: l1, l2, l1+r, l2+r, or a preset '
@@ -19,10 +24,12 @@ ArgParser _parser() => ArgParser()
   ..addMultiOption('format',
       abbr: 'f',
       allowed: _formats,
-      defaultsTo: ['console'],
+      defaultsTo: run ? ['console', 'html'] : ['console'],
       help: 'Output formats (comma separated). "azure" prints Azure Pipelines annotations for new findings.')
   ..addOption('output',
-      abbr: 'o', defaultsTo: 'aegis-report', help: 'Report path without extension for file formats.')
+      abbr: 'o',
+      defaultsTo: run ? 'build/aegis-report' : 'aegis-report',
+      help: 'Report path without extension for file formats.')
   ..addOption('fail-on',
       allowed: ['critical', 'high', 'medium', 'low'],
       help: 'Exit with code 1 when a finding at or above this severity exists.')
@@ -38,23 +45,75 @@ ArgParser _parser() => ArgParser()
   ..addFlag('color', defaultsTo: true, help: 'Colored console output.')
   ..addFlag('list-rules', negatable: false, help: 'List all rules and exit.')
   ..addFlag('version', negatable: false, help: 'Print the version and exit.')
+  ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.')
+  ..addOption('mode',
+      abbr: 'm',
+      allowed: _modes,
+      defaultsTo: 'all',
+      hide: !run,
+      allowedHelp: {
+        'all': 'Code + the newest release APK/AAB in build/ (code only when none is built).',
+        'code': 'Dart code, packages and Android/iOS configuration only.',
+        'apk': 'Code + the newest release APK in build/app/outputs/flutter-apk/.',
+        'aab': 'Code + the newest release AAB in build/app/outputs/bundle/.',
+      },
+      help: 'What to audit.')
+  ..addFlag('open', negatable: false, hide: !run, help: 'Open the HTML report in the browser.');
+
+ArgParser _initParser() => ArgParser()
+  ..addOption('profile',
+      abbr: 'p', help: 'l1, l2, l1+r, l2+r or a preset. Asked interactively when omitted.')
+  ..addOption('lang', abbr: 'l', allowed: ['en', 'ar'], help: 'Report language (default: system language).')
+  ..addFlag('force', negatable: false, help: 'Overwrite an existing aegis.yaml.')
   ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
 
-Future<void> main(List<String> arguments) async {
-  final parser = _parser();
-  final ArgResults args;
+ArgParser _rootParser() => _parser()
+  ..addCommand('run', _parser(run: true))
+  ..addCommand('init', _initParser());
+
+/// `ar` when the system language is Arabic, else `en`.
+String _systemLang() {
   try {
-    args = parser.parse(arguments);
+    return Platform.localeName.toLowerCase().startsWith('ar') ? 'ar' : 'en';
+  } catch (_) {
+    return 'en';
+  }
+}
+
+
+
+Future<void> main(List<String> arguments) async {
+  final parser = _rootParser();
+  final ArgResults root;
+  try {
+    root = parser.parse(arguments);
   } on FormatException catch (e) {
     stderr.writeln(e.message);
-    stderr.writeln(parser.usage);
+    stderr.writeln('Run "aegis --help" for usage.');
     exit(2);
   }
 
+  if (root.command?.name == 'init') {
+    await _init(root.command!);
+    return;
+  }
+  final run = root.command?.name == 'run';
+  final args = run ? root.command! : root;
+
   if (args['help'] as bool) {
     stdout.writeln('aegis $aegisVersion - security audit for Flutter apps\n');
-    stdout.writeln('Usage: aegis [project-path] [--apk app-release.apk] [options]\n');
-    stdout.writeln(parser.usage);
+    if (run) {
+      stdout.writeln('Usage: aegis run [project-path] [--mode all|code|apk|aab] [options]\n');
+      stdout.writeln('Audits the project with the settings in aegis.yaml, prints the report and writes');
+      stdout.writeln('build/aegis-report.html. The APK/AAB is taken from build/, no path needed.\n');
+      stdout.writeln(parser.commands['run']!.usage);
+    } else {
+      stdout.writeln('Usage:');
+      stdout.writeln('  aegis init                  Create aegis.yaml (app type and language) once.');
+      stdout.writeln('  aegis run [--mode MODE]     Audit with friendly defaults: all, code, apk or aab.');
+      stdout.writeln('  aegis [project-path] [options]   Full control, for CI.\n');
+      stdout.writeln(parser.usage);
+    }
     return;
   }
   if (args['version'] as bool) {
@@ -85,7 +144,11 @@ Future<void> main(List<String> arguments) async {
     }
     config = config.copyWith(profile: profile);
   }
-  if (args['lang'] != null) config = config.copyWith(lang: args['lang'] as String);
+  if (args['lang'] != null) {
+    config = config.copyWith(lang: args['lang'] as String);
+  } else if (run && !config.langSet) {
+    config = config.copyWith(lang: _systemLang());
+  }
   final failOn = Severity.tryParse(args['fail-on'] as String?);
   if (failOn != null) config = config.copyWith(failOn: failOn);
   final minScoreArg = args['min-score'] as String?;
@@ -98,7 +161,30 @@ Future<void> main(List<String> arguments) async {
     config = config.copyWith(minScore: v);
   }
 
-  final apkPath = args['apk'] as String?;
+  var apkPath = args['apk'] as String?;
+  if (run && apkPath == null) {
+    final mode = args['mode'] as String;
+    final File? found = switch (mode) {
+      'apk' => findBuiltBinary(path, 'apk'),
+      'aab' => findBuiltBinary(path, 'aab'),
+      'all' => findNewestBinary(path),
+      _ => null,
+    };
+    if (found != null) {
+      apkPath = found.path;
+      stdout.writeln('aegis: auditing the code and ${p.relative(found.path, from: path)}');
+    } else if (mode == 'apk' || mode == 'aab') {
+      final build = mode == 'apk' ? 'flutter build apk --release' : 'flutter build appbundle --release';
+      final dir = mode == 'apk' ? flutterApkDir : flutterBundleDir;
+      stderr.writeln('No release ${mode.toUpperCase()} in $dir. Build one first: $build');
+      exit(2);
+    } else if (mode == 'all') {
+      stdout.writeln('aegis: no release APK/AAB in build/, auditing the code only');
+    }
+    if (config.file == null) {
+      stdout.writeln('aegis: no aegis.yaml, using profile ${config.profile}. Run "aegis init" to set your app type.');
+    }
+  }
   if (apkPath != null && !File(apkPath).existsSync()) {
     stderr.writeln('File not found: $apkPath');
     exit(2);
@@ -153,7 +239,10 @@ Future<void> main(List<String> arguments) async {
       (config.minScore != null && report.score.value < config.minScore!);
 
   final formats = (args['format'] as List<String>).toSet();
-  final output = args['output'] as String;
+  // `aegis run` writes into the audited project's build/ folder.
+  final output = run && !args.wasParsed('output')
+      ? p.join(path, 'build', 'aegis-report')
+      : args['output'] as String;
   final lang = config.lang;
   final written = <String>[];
 
@@ -179,6 +268,9 @@ Future<void> main(List<String> arguments) async {
   for (final w in written) {
     stdout.writeln('Report: $w');
   }
+  if (run && (args['open'] as bool) && formats.contains('html')) {
+    await _openInBrowser('$output.html');
+  }
 
   var code = 0;
   if (config.failOn != null && report.countAtLeast(config.failOn!) > 0) {
@@ -202,4 +294,77 @@ void _listRules(String lang) {
     stdout.writeln('${m.id.padRight(8)} ${m.severity.name.padRight(8)} ${profiles.padRight(9)} '
         '${m.title.of(lang)}  [${m.masvs.join(', ')}]');
   }
+}
+
+Future<void> _openInBrowser(String file) async {
+  final path = p.absolute(file);
+  try {
+    if (Platform.isMacOS) {
+      await Process.run('open', [path]);
+    } else if (Platform.isWindows) {
+      await Process.run('cmd', ['/c', 'start', '', path]);
+    } else {
+      await Process.run('xdg-open', [path]);
+    }
+  } catch (_) {
+    stdout.writeln('Open $path in a browser.');
+  }
+}
+
+const _appTypes = [
+  ('l1', 'Normal app, no sensitive data', 'تطبيق عادي، مفيهوش بيانات حساسة'),
+  ('l2', 'Personal or business data (accounts, HR, health)', 'بيانات شخصية أو بيانات شغل (حسابات، HR، صحة)'),
+  ('l2+r', 'Banking, payments or government', 'بنوك أو مدفوعات أو جهات حكومية'),
+  ('l1+r', 'Game or app that must resist tampering', 'لعبة أو تطبيق لازم يقاوم التعديل والغش'),
+];
+
+Future<void> _init(ArgResults args) async {
+  if (args['help'] as bool) {
+    stdout.writeln('Usage: aegis init [project-path] [--profile P] [--lang en|ar] [--force]\n');
+    stdout.writeln('Writes aegis.yaml so that "aegis run" needs no options.\n');
+    stdout.writeln(_initParser().usage);
+    return;
+  }
+  final root = args.rest.isEmpty ? '.' : args.rest.first;
+  final file = File(p.join(root, AegisConfig.fileName));
+  if (file.existsSync() && !(args['force'] as bool)) {
+    stderr.writeln('${file.path} already exists. Edit it, or use --force to overwrite it.');
+    exit(2);
+  }
+  final lang = (args['lang'] as String?) ?? _systemLang();
+  final ar = lang == 'ar';
+
+  var profile = args['profile'] as String?;
+  if (profile != null && ProfileSet.tryParse(profile) == null) {
+    stderr.writeln('Unknown profile "$profile". Use l1, l2, l1+r, l2+r or a preset like banking.');
+    exit(2);
+  }
+  if (profile == null) {
+    if (!stdin.hasTerminal) {
+      profile = 'l1';
+    } else {
+      stdout.writeln(ar ? 'نوع التطبيق إيه؟' : 'What kind of app is it?');
+      for (var i = 0; i < _appTypes.length; i++) {
+        final (id, en, arText) = _appTypes[i];
+        stdout.writeln('  ${i + 1}) ${ar ? arText : en}  ($id)');
+      }
+      while (profile == null) {
+        stdout.write(ar ? 'اختار رقم [1-${_appTypes.length}]: ' : 'Choose [1-${_appTypes.length}]: ');
+        final n = int.tryParse(stdin.readLineSync()?.trim() ?? '');
+        if (n != null && n >= 1 && n <= _appTypes.length) profile = _appTypes[n - 1].$1;
+      }
+    }
+  }
+
+  file.writeAsStringSync('''
+# aegis settings: https://github.com/khaledSayedAbdellah/aegis
+# l1: any app · l2: sensitive data · +r: resist tampering and reverse engineering
+profile: $profile
+lang: $lang
+# The run fails (exit code 1) on a new finding at or above this severity.
+fail_on: high
+''');
+  stdout.writeln(ar
+      ? 'اتعمل ${file.path}. شغّل: aegis run'
+      : 'Wrote ${file.path}. Now run: aegis run');
 }
