@@ -59,7 +59,10 @@ ArgParser _parser({bool run = false}) => ArgParser()
         'aab': 'Code + the newest release AAB in build/app/outputs/bundle/.',
       },
       help: 'What to audit.')
-  ..addFlag('open', negatable: false, hide: !run, help: 'Open the HTML report in the browser.');
+  ..addFlag('open',
+      defaultsTo: run,
+      hide: !run,
+      help: 'Open the HTML report in the browser (only in a terminal, never in CI).');
 
 ArgParser _initParser() => ArgParser()
   ..addOption('profile',
@@ -106,7 +109,8 @@ Future<void> main(List<String> arguments) async {
     if (run) {
       stdout.writeln('Usage: aegis run [project-path] [--mode all|code|apk|aab] [options]\n');
       stdout.writeln('Audits the project with the settings in aegis.yaml, prints the report and writes');
-      stdout.writeln('build/aegis-report.html. The APK/AAB is taken from build/, no path needed.\n');
+      stdout.writeln('build/aegis-report.html and opens it (--no-open to skip). The APK/AAB is taken');
+      stdout.writeln('from build/, no path needed.\n');
       stdout.writeln(parser.commands['run']!.usage);
     } else {
       stdout.writeln('Usage:');
@@ -269,7 +273,7 @@ Future<void> main(List<String> arguments) async {
   for (final w in written) {
     stdout.writeln('Report: $w');
   }
-  if (run && (args['open'] as bool) && formats.contains('html')) {
+  if (run && (args['open'] as bool) && formats.contains('html') && stdout.hasTerminal) {
     await _openInBrowser('$output.html');
   }
 

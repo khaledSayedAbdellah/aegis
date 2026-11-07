@@ -1,7 +1,7 @@
 ## 0.5.0
 
 * `aegis init`: asks what kind of app it is (or takes `--profile`/`--lang`) and writes aegis.yaml.
-* `aegis run [--mode all|code|apk|aab]`: friendly defaults for people, not CI. It finds the newest release APK/AAB under `build/app/outputs/` by itself, prints the report, writes `build/aegis-report.html` in the project (`--open` opens it), and follows the system language when aegis.yaml has no `lang:`.
+* `aegis run [--mode all|code|apk|aab]`: friendly defaults for people, not CI. It finds the newest release APK/AAB under `build/app/outputs/` by itself, prints the report, writes `build/aegis-report.html` in the project and opens it in the browser when run in a terminal (`--no-open` to skip), and follows the system language when aegis.yaml has no `lang:`.
 * Plain `aegis` with options is unchanged, for scripts and CI.
 * MASVS coverage table (Markdown, Azure summary tab): a control is ✅ only when all its rules passed and ❌ when one failed (known findings included), with the failing rules in bold. It used to show ✅ for every control that was merely checked. JSON controls get `failedRules`.
 
