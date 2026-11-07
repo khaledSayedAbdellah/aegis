@@ -7,8 +7,9 @@ the PATH and the app checked out.
 resources:
   repositories:
   - repository: aegis
-    type: git
-    name: <project>/aegis
+    type: github
+    endpoint: <your GitHub service connection>
+    name: khaledSayedAbdellah/aegis
     ref: refs/tags/v0.3.0
 
 steps:
@@ -16,9 +17,14 @@ steps:
   parameters:
     projectDir: $(Build.SourcesDirectory)
     aegisSource: git
-    aegisGitUrl: https://dev.azure.com/<org>/<project>/_git/aegis
+    aegisGitUrl: https://github.com/khaledSayedAbdellah/aegis.git
     aegisGitRef: v0.3.0
 ```
+
+Azure Pipelines reads templates from GitHub through a service connection
+(Project settings → Service connections → GitHub). Without one, copy
+`aegis-steps.yml` into your repository and reference it by path; the template
+still installs aegis straight from GitHub.
 
 `example.yml` is a complete pipeline: a source audit on every pull request and
 an APK audit on `main`.
@@ -58,9 +64,12 @@ an APK audit on `main`.
 
 ## Notes
 
-* **Private aegis repository.** `dart pub global activate --source git` needs
-  read access. List the repository in the job's `uses: repositories` and
-  pass `System.AccessToken` to git (see `example.yml`).
+* **Private repository.** `dart pub global activate --source git` needs read
+  access. For a private GitHub repository give git a token before the
+  template, e.g. `git config --global url."https://x-access-token:$(GITHUB_TOKEN)@github.com/".insteadOf "https://github.com/"`
+  with `GITHUB_TOKEN` a secret pipeline variable. For a copy in Azure Repos,
+  list it in the job's `uses: repositories` and pass `System.AccessToken`
+  as an extraheader.
 * **Baseline.** Create it once on a laptop with the same options the pipeline
   uses (`--apk`, `--profile`), commit `aegis-baseline.json`, and the pipeline
   only fails on new findings. A source-only run does not report APK findings

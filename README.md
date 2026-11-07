@@ -169,18 +169,21 @@ Exit codes: `0` ok, `1` `--fail-on` / `--min-score` threshold reached, `2` usage
 resources:
   repositories:
   - repository: aegis
-    type: git
-    name: <project>/aegis
+    type: github
+    endpoint: <your GitHub service connection>
+    name: khaledSayedAbdellah/aegis
     ref: refs/tags/v0.3.0
 
 steps:
 - template: ci/azure-pipelines/aegis-steps.yml@aegis
   parameters:
     aegisSource: git
-    aegisGitUrl: https://dev.azure.com/<org>/<project>/_git/aegis
+    aegisGitUrl: https://github.com/khaledSayedAbdellah/aegis.git
     aegisGitRef: v0.3.0
     failOn: high
 ```
+
+No GitHub service connection? Copy `aegis-steps.yml` into your repository and use `- template: <path>/aegis-steps.yml`.
 
 See [ci/azure-pipelines/README.md](ci/azure-pipelines/README.md) for all parameters and a full example. `-f azure` prints the same annotations from any script.
 

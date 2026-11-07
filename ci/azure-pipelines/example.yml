@@ -1,8 +1,8 @@
 # Example: aegis on every pull request, plus an APK audit on main.
 #
-# Copy into your app repository and replace <org>, <project> and the Flutter
-# version. aegis is taken from its own Azure Repos repository; with aegis on
-# pub.dev use `aegisSource: hosted` and drop the git settings.
+# Copy into your app repository, set the GitHub service connection and the
+# Flutter version. aegis is installed from GitHub; once it is on pub.dev use
+# `aegisSource: hosted` and drop the git settings.
 trigger:
   branches:
     include: [ main ]
@@ -13,13 +13,14 @@ pr:
 resources:
   repositories:
   - repository: aegis              # the steps template comes from here
-    type: git
-    name: <project>/aegis
+    type: github
+    endpoint: <your GitHub service connection>
+    name: khaledSayedAbdellah/aegis
     ref: refs/tags/v0.3.0
 
 variables:
   FLUTTER_VERSION: '3.35.0'
-  AEGIS_GIT_URL: https://dev.azure.com/<org>/<project>/_git/aegis
+  AEGIS_GIT_URL: https://github.com/khaledSayedAbdellah/aegis.git
 
 stages:
 # Source audit: fast, runs on every PR. Fails only on findings that are not in
@@ -31,16 +32,8 @@ stages:
     displayName: aegis (source)
     pool:
       vmImage: ubuntu-latest
-    uses:
-      repositories: [ aegis ]      # lets System.AccessToken read the aegis repo
     steps:
     - checkout: self
-    - bash: |
-        set -euo pipefail
-        git config --global http.https://dev.azure.com/<org>/.extraheader "AUTHORIZATION: bearer ${SYSTEM_ACCESSTOKEN}"
-      displayName: Authorise git for dev.azure.com/<org>
-      env:
-        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
     - bash: |
         set -euo pipefail
         git clone --depth 1 --branch "$(FLUTTER_VERSION)" https://github.com/flutter/flutter.git "$(Agent.TempDirectory)/flutter"
@@ -68,16 +61,8 @@ stages:
     displayName: aegis (APK)
     pool:
       vmImage: ubuntu-latest
-    uses:
-      repositories: [ aegis ]
     steps:
     - checkout: self
-    - bash: |
-        set -euo pipefail
-        git config --global http.https://dev.azure.com/<org>/.extraheader "AUTHORIZATION: bearer ${SYSTEM_ACCESSTOKEN}"
-      displayName: Authorise git for dev.azure.com/<org>
-      env:
-        SYSTEM_ACCESSTOKEN: $(System.AccessToken)
     - bash: |
         set -euo pipefail
         git clone --depth 1 --branch "$(FLUTTER_VERSION)" https://github.com/flutter/flutter.git "$(Agent.TempDirectory)/flutter"
