@@ -421,6 +421,22 @@ const apiKey = 'q8Zr2LwX9vT4mN7pK1sB';
     });
   });
 
+  group('False positives seen in real code', () {
+    test('a bare http:// prefix and class names in strings', () async {
+      final r = await audit({
+        'lib/a.dart': '''
+bool isHttp(String v) => v.startsWith('http://');
+const engines = ['RC4Engine'];
+final weak = StreamCipher('RC4');
+final weak2 = Cipher('RC4/NONE/NoPadding');
+''',
+      });
+      expect(result(r, 'AEG-D02').status, RuleStatus.passed);
+      final d05 = result(r, 'AEG-D05').findings.map((f) => f.line).toList();
+      expect(d05, [3, 4]);
+    });
+  });
+
   group('Rule metadata', () {
     test('every rule has a unique id and its own pass title', () {
       final ids = allRules.map((r) => r.meta.id).toList();
