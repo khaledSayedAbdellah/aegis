@@ -19,7 +19,7 @@ final sensitiveName = RegExp(
 /// Suffixes of names that mention a sensitive word but hold something else
 /// (`tokenUrl`, `passwordHint`, `authService`, `tokenExpiry`...).
 final _notSecretSuffix = RegExp(
-    r'(url|uri|endpoint|path|route|label|hint|text|title|message|msg|error|type|field|param|placeholder|prefix|regex|pattern|format|name|service|repository|repo|provider|bloc|cubit|controller|manager|state|status|event|mode|enabled|required|button|screen|page|widget|dialog|view|model|response|request|result|callback|handler|listener|interceptor|client|api|expiry|expires|expiration|expiresat|timestamp|time|date|count|length|validator|visible|visibility|focus|node|icon|color|style)$');
+    r'(url|uri|endpoint|path|route|label|hint|text|title|message|msg|error|type|field|param|placeholder|prefix|regex|pattern|format|name|service|repository|repo|provider|bloc|cubit|controller|manager|state|status|event|mode|enabled|required|button|screen|page|widget|dialog|view|model|response|request|result|callback|handler|listener|interceptor|client|api|expiry|expires|expiration|expiresat|timestamp|time|date|count|length|validator|visible|visibility|focus|node|icon|color|style|hash|hashes|digest|sha1|sha256|sha512|checksum|fingerprint)$');
 
 /// Stems that make a trailing `key` a real secret (`apiKey`, `secretKey`),
 /// as opposed to a storage key name (`tokenKey`, `passwordKey`).
