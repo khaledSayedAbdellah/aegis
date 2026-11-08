@@ -18,6 +18,9 @@ class Proc {
   final String stderr;
   bool get ok => exitCode == 0;
 
+  /// Trimmed stdout.
+  String get out => stdout.trim();
+
   /// stdout and stderr together, trimmed (`java -version` writes to stderr).
   String get text => '$stdout\n$stderr'.trim();
 }

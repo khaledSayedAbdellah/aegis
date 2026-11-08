@@ -117,6 +117,7 @@ class Device implements ProbeDevice {
 
   /// Boots the `aegis-probe` AVD headless and waits for it to finish booting.
   /// Returns null on success, else a reason.
+  @override
   Future<String?> bootEmulator({int timeoutSeconds = 180}) async {
     if (tools.emulator == null) return 'emulator not found';
     // Fire-and-forget: the emulator stays up for the rest of the run.
@@ -133,6 +134,7 @@ class Device implements ProbeDevice {
   }
 
   /// Puts the dev emulator in a rooted state (google_apis images allow it).
+  @override
   Future<void> adbRoot() async {
     await _run(_adb(['root']));
     await _run(_adb(['wait-for-device']));
@@ -140,31 +142,38 @@ class Device implements ProbeDevice {
 
   // --- app lifecycle ------------------------------------------------------
 
+  @override
   Future<String?> install(String apk) async {
     final r = await _run(_adb(['install', '-r', '-t', apk]));
     if (r == null) return 'could not run adb';
     return r.ok ? null : 'adb install failed: ${r.text.trim()}';
   }
 
+  @override
   Future<void> uninstall(String package) async =>
       _run(_adb(['uninstall', package]));
 
   /// Launches the app's default launcher activity.
+  @override
   Future<void> launch(String package) async =>
       _run(_adb(['shell', 'monkey', '-p', package, '-c', 'android.intent.category.LAUNCHER', '1']));
 
   /// The app's pid, or null when it isn't running.
+  @override
   Future<int?> pidOf(String package) async {
     final r = await _run(_adb(['shell', 'pidof', package]));
     if (r == null || !r.ok) return null;
     return int.tryParse(r.out.trim().split(RegExp(r'\s+')).first);
   }
 
+  @override
   Future<bool> isAlive(String package) async => (await pidOf(package)) != null;
 
+  @override
   Future<void> clearLogcat() async => _run(_adb(['logcat', '-c']));
 
   /// The current logcat buffer (`-d` dumps and exits).
+  @override
   Future<String> logcat() async {
     final r = await _run(_adb(['logcat', '-d']));
     return r?.stdout ?? '';
@@ -174,6 +183,7 @@ class Device implements ProbeDevice {
 
   /// Pushes frida-server to the device and starts it in the background.
   /// Returns null on success.
+  @override
   Future<String?> startFridaServer() async {
     if (tools.fridaServer == null) return 'frida-server not found';
     const remote = '/data/local/tmp/frida-server';
@@ -187,6 +197,7 @@ class Device implements ProbeDevice {
 
   /// Attaches a Frida session to the running app, to see whether the app
   /// detects instrumentation. Returns null when a session was established.
+  @override
   Future<String?> fridaAttach(String package) async {
     if (tools.frida == null) return 'frida not found';
     // -U USB/emulator, attach by name, run a one-line script and detach.
@@ -201,6 +212,7 @@ class Device implements ProbeDevice {
 
   /// Marks the app to wait for a debugger and opens a JDWP channel, to see
   /// whether the app detects the debugger.
+  @override
   Future<String?> attachDebugger(String package) async {
     await _run(_adb(['shell', 'am', 'set-debug-app', '-w', package]));
     await launch(package);
@@ -210,6 +222,7 @@ class Device implements ProbeDevice {
     return fwd != null && fwd.ok ? null : 'could not open a JDWP channel';
   }
 
+  @override
   Future<void> clearDebugApp() async =>
       _run(_adb(['shell', 'am', 'clear-debug-app']));
 
@@ -218,6 +231,7 @@ class Device implements ProbeDevice {
   /// Re-signs [apk] with a throwaway debug key into [outApk], so the app's
   /// signing certificate differs from the original — the tamper signal that
   /// MASVS-RESILIENCE-2 is about. Returns null on success.
+  @override
   Future<String?> resignWithNewKey(String apk, String outApk, String keystore) async {
     if (tools.keytool == null || tools.apksigner == null) {
       return 'keytool/apksigner not found';
