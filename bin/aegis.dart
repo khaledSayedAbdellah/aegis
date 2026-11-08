@@ -517,7 +517,9 @@ Future<int> _setup(ArgResults a) async {
       stdout.writeln(m.nothingToRemove);
     } else {
       stdout.writeln(m.removed);
-      for (final r in removed) stdout.writeln('  🗑  $r');
+      for (final r in removed) {
+        stdout.writeln('  🗑  $r');
+      }
     }
     return 0;
   }
