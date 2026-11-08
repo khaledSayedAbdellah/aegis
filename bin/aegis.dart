@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:aegis/aegis.dart';
 import 'package:aegis/src/probe/host.dart';
 import 'package:aegis/src/probe/messages.dart';
+import 'package:aegis/src/probe/setup.dart';
 import 'package:aegis/src/probe/toolchain.dart';
 import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
@@ -74,14 +75,23 @@ ArgParser _initParser() => ArgParser()
   ..addFlag('force', negatable: false, help: 'Overwrite an existing aegis.yaml.')
   ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
 
-ArgParser _toolsParser() => ArgParser()
-  ..addOption('lang', abbr: 'l', allowed: ['en', 'ar'], help: 'Output language (default: system).')
-  ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
+ArgParser _toolsParser({bool setup = false}) {
+  final a = ArgParser()
+    ..addOption('lang', abbr: 'l', allowed: ['en', 'ar'], help: 'Output language (default: system).')
+    ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
+  if (setup) {
+    a
+      ..addFlag('yes', abbr: 'y', negatable: false, help: 'Install without asking first.')
+      ..addFlag('aab', negatable: false, help: 'Also install bundletool (for auditing .aab).');
+  }
+  return a;
+}
 
 ArgParser _rootParser() => _parser()
   ..addCommand('run', _parser(run: true))
   ..addCommand('init', _initParser())
-  ..addCommand('doctor', _toolsParser());
+  ..addCommand('doctor', _toolsParser())
+  ..addCommand('setup', _toolsParser(setup: true));
 
 /// `ar` when the system language is Arabic, else `en`.
 String _systemLang() {
@@ -112,6 +122,9 @@ Future<void> main(List<String> arguments) async {
   if (root.command?.name == 'doctor') {
     exit(await _doctor(root.command!));
   }
+  if (root.command?.name == 'setup') {
+    exit(await _setup(root.command!));
+  }
   final run = root.command?.name == 'run';
   final args = run ? root.command! : root;
 
@@ -128,6 +141,7 @@ Future<void> main(List<String> arguments) async {
       stdout.writeln('  aegis init                  Create aegis.yaml (app type and language) once.');
       stdout.writeln('  aegis run [--mode MODE]     Audit with friendly defaults: all, code, apk or aab.');
       stdout.writeln('  aegis doctor                Check the tools the resilience probe needs.');
+      stdout.writeln('  aegis setup [--yes]         Install the missing ones (present ones are skipped).');
       stdout.writeln('  aegis [project-path] [options]   Full control, for CI.\n');
       stdout.writeln(parser.usage);
     }
@@ -461,4 +475,97 @@ Future<int> _doctor(ArgResults a) async {
   if (missing.any((c) => c.installable)) stdout.writeln('⬇️  ${m.installHint}');
   if (missing.any((c) => c.state == ToolState.manual)) stdout.writeln('❌ ${m.someManual}');
   return 1;
+}
+
+// --- setup ------------------------------------------------------------------
+
+Future<int> _setup(ArgResults a) async {
+  final m = Msg(_toolsLang(a));
+  if (a['help'] as bool) {
+    stdout.writeln('Usage: aegis setup [--yes] [--aab] [--lang en|ar]\n');
+    stdout.writeln('Installs what "aegis doctor" reports as missing. Tools already present are');
+    stdout.writeln('skipped. Asks once before installing; --yes skips the question.\n');
+    stdout.writeln(_toolsParser(setup: true).usage);
+    return 0;
+  }
+  final aab = a['aab'] as bool;
+  final t = Toolchain(SystemHost());
+  final setup = Setup(t);
+  var checks = await t.checkAll(aab: aab);
+  final plan = setup.buildPlan(checks);
+
+  for (final c in plan.present) {
+    stdout.writeln('  ✅ ${m.title(c.id)}: ${m.alreadyThere}');
+  }
+  for (final c in plan.manual) {
+    stdout.writeln('  ❌ ${m.title(c.id)}: ${m.installYourself(c)}');
+  }
+  for (final e in plan.blocked.entries) {
+    stdout.writeln('  ⏸️  ${m.title(e.key)}: ${m.waitingFor(e.value)}');
+  }
+  if (!aab) {
+    for (final c in plan.optional) {
+      stdout.writeln('  ℹ️  ${m.title(c.id)}: ${m.issue(c)}');
+    }
+  }
+
+  if (plan.nothingToDo) {
+    setup.writeToolsJson(checks);
+    stdout.writeln('');
+    stdout.writeln(plan.coversEverything ? m.allPresent(m.ar) : m.someManual);
+    return plan.coversEverything ? 0 : 1;
+  }
+
+  stdout.writeln('\n${m.willInstall}');
+  for (final s in plan.steps) {
+    stdout.writeln('  ⬇️  ${m.title(s.id)}');
+  }
+  if (setup.sdkmanagerPackages(plan).isNotEmpty) stdout.writeln(m.licensesNote);
+
+  if (!(a['yes'] as bool)) {
+    if (!stdin.hasTerminal) {
+      stderr.writeln(m.noTerminal);
+      return 2;
+    }
+    stdout.write('\n${m.confirm}');
+    String? line;
+    try {
+      line = stdin.readLineSync(encoding: const Utf8Codec(allowMalformed: true));
+    } catch (_) {}
+    if (!yesAnswers.contains((line ?? '').trim().toLowerCase())) {
+      stdout.writeln(m.cancelled);
+      return 1;
+    }
+  }
+
+  // Warn (don't block) when the system image won't fit.
+  if (plan.steps.any((s) => s.id == 'system-image')) {
+    final root = (await t.findSdkRoot())?.path;
+    final free = root == null ? null : await SystemHost().freeBytes(root);
+    if (free != null && free < 4 * 1024 * 1024 * 1024) {
+      stdout.writeln('⚠️  ${m.freeSpaceWarning('4 GB', '${(free / (1 << 30)).toStringAsFixed(1)} GB')}');
+    }
+  }
+
+  final outcomes = await setup.execute(plan,
+      onStep: (id) => stdout.writeln('\n▶ ${m.step(m.title(id))}'),
+      log: (s) => stdout.writeln('    $s'));
+  for (final o in outcomes) {
+    if (o.skipped) {
+      stdout.writeln('  ⏸️  ${m.title(o.id)}: ${m.waitingFor(o.skippedFor ?? const [])}');
+    } else if (o.ok) {
+      stdout.writeln('  ✅ ${m.title(o.id)}');
+    } else {
+      stdout.writeln('  ❌ ${m.title(o.id)}: ${o.error}');
+    }
+  }
+
+  checks = await t.checkAll(aab: aab);
+  setup.writeToolsJson(checks);
+  stdout.writeln('\n${m.result}');
+  _printChecks(checks, m);
+  final ok = checks.where((c) => c.state != ToolState.optional).every((c) => c.ok);
+  stdout.writeln('');
+  stdout.writeln(ok ? m.savedTo(t.toolsJsonPath) : m.stillMissing);
+  return ok ? 0 : 1;
 }
