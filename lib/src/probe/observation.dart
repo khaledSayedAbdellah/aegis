@@ -47,19 +47,14 @@ ProbeStatus statusOf(Observation o) {
   return ProbeStatus.notBlocked;
 }
 
-/// True when [logcat] shows the app's **own** process dying or crashing,
-/// matched by package or pid so unrelated log noise doesn't count.
+/// True when [logcat] mentions the app's **own** process (by package or pid)
+/// and also shows a crash/kill marker, so unrelated log noise doesn't count.
 bool logcatShowsAppDeath(String logcat,
     {required int pid, required String package}) {
   final pidWord = RegExp(r'(^|\D)' + pid.toString() + r'($|\D)');
-  for (final line in logcat.split('\n')) {
-    final mentionsApp = line.contains(package) || pidWord.hasMatch(line);
-    if (!mentionsApp) continue;
-    for (final marker in _deathMarkers) {
-      if (line.contains(marker)) return true;
-    }
-  }
-  return false;
+  final mentionsApp = logcat.contains(package) || pidWord.hasMatch(logcat);
+  if (!mentionsApp) return false;
+  return _deathMarkers.any(logcat.contains);
 }
 
 const _deathMarkers = [
