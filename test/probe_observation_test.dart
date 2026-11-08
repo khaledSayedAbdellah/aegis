@@ -58,6 +58,28 @@ void main() {
     });
   });
 
+  group('classifyRepackageReaction', () {
+    test('a Google API key error → bound service', () {
+      expect(
+          classifyRepackageReaction('E Maps: Authorization failure. API_KEY is not authorized'),
+          CrashCause.boundService);
+    });
+    test('the app reading its own signature → integrity check', () {
+      expect(
+          classifyRepackageReaction('D app: getPackageInfo GET_SIGNATURES; signature mismatch, exiting'),
+          CrashCause.integrityCheck);
+    });
+    test('nothing recognizable → unknown', () {
+      expect(classifyRepackageReaction('E AndroidRuntime: NullPointerException'),
+          CrashCause.unknown);
+    });
+    test('both kinds present → unknown (ambiguous)', () {
+      expect(
+          classifyRepackageReaction('getPackageInfo ... API_KEY not authorized'),
+          CrashCause.unknown);
+    });
+  });
+
   test('ProbeReport groups scored results, excludes baseline', () {
     final report = ProbeReport(app: 'app.apk', baselineAlive: true, results: [
       ProbeResult(checkById('baseline'), ProbeStatus.notBlocked),

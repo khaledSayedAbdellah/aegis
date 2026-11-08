@@ -172,10 +172,23 @@ class ProbeRunner {
     }
     await dev.launch(package);
     final pid = await dev.waitForProcess(package, timeoutSeconds: 40);
-    final death = logcatShowsAppDeath(await dev.logcat(), pid: pid ?? -1, package: package);
+    final logcat = await dev.logcat();
+    final death = logcatShowsAppDeath(logcat, pid: pid ?? -1, package: package);
     final status = statusOf(Observation(
         setupOk: true, aliveBefore: true, aliveAfter: pid != null, appDeathLogged: death));
-    return ProbeResult(check, status, evidence: _evidence(status, pid != null, death));
+    String? note;
+    if (status == ProbeStatus.blocked) {
+      note = switch (classifyRepackageReaction(logcat)) {
+        CrashCause.integrityCheck =>
+          "the crash references a signature/integrity check — likely the app's own anti-tampering",
+        CrashCause.boundService =>
+          'the crash references a signature-bound service (e.g. a Google API key tied to the '
+              'original cert) — this may not be the app\'s own anti-tampering',
+        CrashCause.unknown =>
+          "cannot tell if this is the app's integrity check or a signature-bound service failing",
+      };
+    }
+    return ProbeResult(check, status, evidence: _evidence(status, pid != null, death), note: note);
   }
 
   String _evidence(ProbeStatus status, bool aliveAfter, bool death) => switch (status) {
