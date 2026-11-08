@@ -57,6 +57,31 @@ bool logcatShowsAppDeath(String logcat,
   return _deathMarkers.any(logcat.contains);
 }
 
+/// A best-effort guess at why a re-signed build died.
+enum CrashCause { integrityCheck, boundService, unknown }
+
+/// Classifies a repackage-test crash from [logcat]. A reference to the app
+/// reading its own signature points to a real integrity check; a Google/Play
+/// service auth error points to a key bound to the original cert (not the
+/// app's own anti-tampering). Heuristic — a Dart-side check may leave no trace.
+CrashCause classifyRepackageReaction(String logcat) {
+  final l = logcat.toLowerCase();
+  const service = [
+    'api_key', 'api key', 'apiexception', 'authorization failure',
+    'authfailureerror', 'safetynet', 'play integrity', 'integritymanager',
+    'developer_error', 'places api', 'maps api', 'is not authorized',
+  ];
+  const integrity = [
+    'get_signatures', 'get_signing', 'getpackageinfo', 'signinginfo',
+    'signatureexception', 'signature mismatch', 'tamper', 'integrity check',
+  ];
+  final isService = service.any(l.contains);
+  final isIntegrity = integrity.any(l.contains);
+  if (isIntegrity && !isService) return CrashCause.integrityCheck;
+  if (isService && !isIntegrity) return CrashCause.boundService;
+  return CrashCause.unknown;
+}
+
 const _deathMarkers = [
   'FATAL EXCEPTION',
   'has died',
