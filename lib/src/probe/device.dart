@@ -85,7 +85,8 @@ class ProbeTools {
 
 /// What the runner needs from the device, so it can be driven by a fake.
 abstract interface class ProbeDevice {
-  Future<String?> bootEmulator({int timeoutSeconds, void Function(String)? log});
+  Future<String?> bootEmulator(
+      {int timeoutSeconds, void Function(String)? log, String? logPath});
   Future<void> adbRoot();
   Future<String?> install(String apk);
   Future<void> uninstall(String package);
@@ -120,18 +121,21 @@ class Device implements ProbeDevice {
   /// awaited) and boot is detected by polling. Returns null on success.
   @override
   Future<String?> bootEmulator(
-      {int timeoutSeconds = 300, void Function(String)? log}) async {
+      {int timeoutSeconds = 420, void Function(String)? log, String? logPath}) async {
     if (tools.emulator == null) return 'emulator not found';
     if (await _bootCompleted()) {
       log?.call('emulator already running');
       return null;
     }
     log?.call('starting the emulator…');
-    await host.spawn(tools.emulator!, [
-      '-avd', tools.avdName,
-      '-no-window', '-no-snapshot', '-no-boot-anim',
-      '-gpu', 'swiftshader_indirect', '-netdelay', 'none',
-    ]);
+    await host.spawn(
+        tools.emulator!,
+        [
+          '-avd', tools.avdName,
+          '-no-window', '-no-snapshot', '-no-boot-anim',
+          '-gpu', 'swiftshader_indirect', '-netdelay', 'none', '-no-audio',
+        ],
+        logPath: logPath);
     for (var i = 0; i * 3 < timeoutSeconds; i++) {
       await Future<void>.delayed(const Duration(seconds: 3));
       if (await _bootCompleted()) {
@@ -140,7 +144,16 @@ class Device implements ProbeDevice {
       }
       if (i > 0 && i % 10 == 0) log?.call('still booting… (${i * 3}s)');
     }
-    return 'emulator did not finish booting in ${timeoutSeconds}s';
+    // Timed out: say what adb sees and the tail of the emulator's own output.
+    final devices = await _run(_adb(['devices']));
+    final buf = StringBuffer('emulator did not finish booting in ${timeoutSeconds}s');
+    if (devices != null) buf.write('\n  adb devices: ${devices.out.replaceAll('\n', ' ')}');
+    if (logPath != null && host.fileExists(logPath)) {
+      final tail = host.readText(logPath).trim().split('\n');
+      final last = tail.length > 6 ? tail.sublist(tail.length - 6) : tail;
+      if (last.join().isNotEmpty) buf.write('\n  emulator log:\n    ${last.join('\n    ')}');
+    }
+    return buf.toString();
   }
 
   /// True once `sys.boot_completed` is 1 (adb returns non-zero while there is

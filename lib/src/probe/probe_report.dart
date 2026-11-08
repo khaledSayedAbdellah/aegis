@@ -40,6 +40,16 @@ String renderProbe(ProbeReport r,
   final appName = r.app.split(RegExp(r'[\\/]')).last;
   b.writeln(_t(lang, 'Resilience probe — $appName', 'اختبار الحماية — $appName'));
 
+  if (r.emulatorError != null) {
+    b.writeln('  ⏸️  ${_t(lang, 'The emulator or tools could not run.', 'الإيموليتر أو الأدوات مقدرتش تشتغل.')}');
+    b.writeln('     ${r.emulatorError}');
+    b.writeln('');
+    b.writeln(_t(lang,
+        'Nothing was probed. Check that "aegis setup" finished, then make sure the aegis-probe emulator boots (you can run it once from Android Studio\'s Device Manager).',
+        'مفيش حاجة اتفحصت. اتأكد إن "aegis setup" خلص، وإن إيموليتر aegis-probe بيقلّع (جرّبه مرة من Device Manager في Android Studio).'));
+    return b.toString();
+  }
+
   final baseline = r.results.firstWhere((x) => x.check.id == 'baseline',
       orElse: () => ProbeResult(checkById('baseline'), ProbeStatus.inconclusive));
   if (!r.baselineAlive) {
@@ -96,6 +106,7 @@ String renderProbe(ProbeReport r,
 /// Exit code: 2 when nothing could be observed, 1 when a resilience profile
 /// has a real gap, else 0.
 int probeExitCode(ProbeReport r, {required bool resilienceProfile}) {
+  if (r.emulatorError != null) return 2;
   if (!r.baselineAlive) return 2;
   if (r.scored.every((x) => x.status == ProbeStatus.inconclusive)) return 2;
   if (resilienceProfile && r.notBlocked.isNotEmpty) return 1;

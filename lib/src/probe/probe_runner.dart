@@ -34,10 +34,12 @@ class ProbeRunner {
     void Function(String)? log,
   }) async {
     log ??= (_) {};
-    ProbeReport allInconclusive(String note, {bool baselineAlive = false}) =>
+    ProbeReport allInconclusive(String note,
+            {bool baselineAlive = false, String? emulatorError}) =>
         ProbeReport(
           app: appPath,
           baselineAlive: baselineAlive,
+          emulatorError: emulatorError,
           results: [
             for (final c in probeChecks)
               if (c.id != 'baseline')
@@ -45,8 +47,8 @@ class ProbeRunner {
           ],
         );
 
-    final bootErr = await dev.bootEmulator(log: log);
-    if (bootErr != null) return allInconclusive('emulator: $bootErr');
+    final bootErr = await dev.bootEmulator(log: log, logPath: '$workDir/emulator.log');
+    if (bootErr != null) return allInconclusive(bootErr, emulatorError: bootErr);
     await dev.adbRoot();
 
     log('installing $package…');
@@ -54,7 +56,7 @@ class ProbeRunner {
     // installing the original fail on a signature mismatch).
     await dev.uninstall(package);
     final installErr = await dev.install(appPath);
-    if (installErr != null) return allInconclusive(installErr);
+    if (installErr != null) return allInconclusive(installErr, emulatorError: installErr);
 
     // Baseline: does the app stay alive on the clean emulator?
     log('baseline: launching on a clean emulator…');
