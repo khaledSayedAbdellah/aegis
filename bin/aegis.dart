@@ -425,30 +425,29 @@ String _mark(ToolCheck c, {bool blocked = false}) => switch (c.state) {
       ToolState.optional => 'ℹ️ ',
     };
 
-/// Dependencies of [c] that are not present in [checks].
-List<String> _missingNeeds(ToolCheck c, List<ToolCheck> checks) {
-  final present = {for (final x in checks) if (x.ok) x.id};
-  return [for (final n in toolNeeds[c.id] ?? const <String>[]) if (!present.contains(n)) n];
-}
-
-/// Renders the detail column for one tool.
-String _detail(ToolCheck c, Msg m, List<ToolCheck> checks) {
+/// Renders the detail column for one tool. [blocked] are the dependencies
+/// that keep it from being installed this run (from the setup plan).
+String _detail(ToolCheck c, Msg m, Toolchain t, List<String>? blocked) {
   if (c.ok) {
-    final v = c.version != null ? '${c.version}  ' : '';
-    final src = c.source != null ? '(${c.source})' : (c.path ?? '');
-    return '$v$src'.trim();
+    return [
+      if (c.version != null) c.version!,
+      if (c.path != null) t.tilde(c.path!),
+      if (c.source != null) '(${c.source})',
+    ].join('  ');
   }
-  final blocked = c.installable && _missingNeeds(c, checks).isNotEmpty;
-  if (blocked) return m.waitingFor(_missingNeeds(c, checks));
+  if (blocked != null) return m.waitingFor(blocked);
   if (c.installable) return m.installHint;
   return m.issue(c);
 }
 
-void _printChecks(List<ToolCheck> checks, Msg m) {
+/// The table of tools. An installable tool is ⏸️ only when something it
+/// needs can't be installed in the same run (the person installs it first).
+void _printChecks(List<ToolCheck> checks, Msg m, Toolchain t) {
+  final blocked = Setup(t).buildPlan(checks).blocked;
   final w = checks.map((c) => m.title(c.id).length).fold(0, (a, b) => a > b ? a : b);
   for (final c in checks) {
-    final blocked = c.installable && _missingNeeds(c, checks).isNotEmpty;
-    stdout.writeln('  ${_mark(c, blocked: blocked)} ${m.title(c.id).padRight(w)}  ${_detail(c, m, checks)}');
+    final b = blocked[c.id];
+    stdout.writeln('  ${_mark(c, blocked: b != null)} ${m.title(c.id).padRight(w)}  ${_detail(c, m, t, b)}');
   }
 }
 
@@ -461,9 +460,10 @@ Future<int> _doctor(ArgResults a) async {
     stdout.writeln(_toolsParser().usage);
     return 0;
   }
-  final checks = await Toolchain(SystemHost()).checkAll();
+  final t = Toolchain(SystemHost());
+  final checks = await t.checkAll();
   stdout.writeln(m.header);
-  _printChecks(checks, m);
+  _printChecks(checks, m, t);
   stdout.writeln('');
 
   final required = checks.where((c) => c.state != ToolState.optional);
@@ -472,7 +472,8 @@ Future<int> _doctor(ArgResults a) async {
     stdout.writeln(m.allPresent(m.ar));
     return 0;
   }
-  if (missing.any((c) => c.installable)) stdout.writeln('⬇️  ${m.installHint}');
+  final installable = Setup(t).buildPlan(checks).steps.length;
+  if (installable > 0) stdout.writeln('⬇️  ${m.toInstall(installable)}');
   if (missing.any((c) => c.state == ToolState.manual)) stdout.writeln('❌ ${m.someManual}');
   return 1;
 }
@@ -563,7 +564,7 @@ Future<int> _setup(ArgResults a) async {
   checks = await t.checkAll(aab: aab);
   setup.writeToolsJson(checks);
   stdout.writeln('\n${m.result}');
-  _printChecks(checks, m);
+  _printChecks(checks, m, t);
   final ok = checks.where((c) => c.state != ToolState.optional).every((c) => c.ok);
   stdout.writeln('');
   stdout.writeln(ok ? m.savedTo(t.toolsJsonPath) : m.stillMissing);
