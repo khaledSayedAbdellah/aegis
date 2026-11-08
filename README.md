@@ -45,30 +45,51 @@ aegis has **no dependency on `package:analyzer`**: it uses its own Dart tokenize
 ## Quick start
 
 ```bash
-dart pub global activate --source git https://github.com/khaledSayedAbdellah/aegis.git --git-ref v0.6.0
+dart pub global activate --source git https://github.com/khaledSayedAbdellah/aegis.git --git-ref v0.7.0
 ```
 
 In your Flutter project (after `flutter pub get`):
 
 ```bash
 aegis init                 # once: asks what kind of app it is, writes aegis.yaml
-aegis run                  # code + the newest release APK/AAB in build/, if any
+aegis run                  # code + the APK/AAB set in aegis.yaml, if any
 ```
 
 `aegis run` prints the report, writes `build/aegis-report.html` and opens it in your browser (`--no-open` to skip; it never opens in CI). Choose what to audit with `--mode`:
 
 | Command | Audits |
 |---|---|
-| `aegis run` | `--mode all`: the code, plus the newest release APK or AAB in `build/` (code only when none is built) |
+| `aegis run` | `--mode all`: the code, plus the file at `apk:` (else `aab:`) in aegis.yaml with the resilience probe; the code only when neither is set |
 | `aegis run --mode code` | Dart code, your git/path packages, Android and iOS configuration |
-| `aegis run --mode apk` | the code + the newest `build/app/outputs/flutter-apk/*release*.apk` |
-| `aegis run --mode aab` | the code + the newest `build/app/outputs/bundle/*Release/*.aab` |
+| `aegis run --mode apk` | the code + the APK at `apk:` in aegis.yaml + the resilience probe on it |
+| `aegis run --mode aab` | the code + the AAB at `aab:` in aegis.yaml + the resilience probe on it |
+
+The APK/AAB path is yours to set, relative to the project, because build names change with flavors and versions; aegis never guesses one from `build/`:
+
+```yaml
+# aegis.yaml
+apk: build/app/outputs/flutter-apk/app-prod-release.apk
+aab: build/app/outputs/bundle/prodRelease/app-prod-release.aab
+```
+
+`--mode apk` or `aab` without that line, or with a file that isn't there, stops with the line to add or the build command to run.
 
 The language follows `lang:` in aegis.yaml, else your system language. If `~/.pub-cache/bin` is not on your PATH, add `export PATH="$PATH:$HOME/.pub-cache/bin"` to your shell profile.
 
-## Prepare for the resilience probe
+## The resilience probe
 
-A later command will check whether your app's anti-tampering actually resists a real attempt (run it on an emulator, try to attach and repackage, see what it blocks). That needs a few tools on your machine. aegis finds them the way Flutter does and installs only what you don't already have:
+With an APK or AAB, `aegis run` first checks on an emulator whether your app's own anti-tampering reacts, then runs the static audit, then writes one report with both. It runs the app on the `aegis-probe` emulator and, for each standard OWASP MASTG resilience condition, records whether the app's protection reacted (✅), did not (❌) or the check was inconclusive (⏸️). The probe tests your own build: it sets the standard condition and watches, it does not try to defeat any protection.
+
+| Id | Condition | MASVS · MASTG |
+|---|---|---|
+| AEG-R01 | Rooted device | RESILIENCE-1 · TEST-0048 |
+| AEG-R02 | Frida attached to the running app | RESILIENCE-4 · TEST-0046 |
+| AEG-R03 | Debugger attached (release builds are usually not debuggable, so often not applicable) | RESILIENCE-4 · TEST-0045 |
+| AEG-R04 | A copy re-signed with another key | RESILIENCE-2 · TEST-0047 |
+
+These are ordinary rules: a ❌ is a finding that lowers the score, goes into the baseline and triggers `fail_on`, under a profile with MAS-R (`l1+r`, `l2+r`, `banking`, …); outside one they are out of profile. ⏸️ is not applicable, with the reason. aegis first checks that the app stays alive on a clean emulator; if it doesn't, nothing is judged and the report says so. Every report format (console, HTML, Markdown, JSON) has a probe section with what was observed for each check.
+
+The probe needs a few tools. aegis finds them the way Flutter does and installs only what you don't already have:
 
 ```bash
 aegis doctor               # lists each tool: present, aegis can install it, or install it yourself
@@ -77,13 +98,12 @@ aegis setup                # installs the missing ones (asks once; --yes to skip
 
 `aegis setup` uses the Android SDK and JDK your Flutter build already uses (it never installs Java, the SDK or Flutter — it tells you how if they're missing). What it does install goes under `~/.aegis`: the SDK's emulator and an Android 14 image, an AVD named `aegis-probe`, a Python venv with Frida, and the matching `frida-server`. The Android SDK tools ask you to accept their licenses yourself. Anything already present is skipped, so a second `aegis setup` installs nothing. Add `--aab` to also fetch bundletool (needed only to probe an `.aab`). Downloads are checked against a pinned SHA-256. To undo it all, `aegis setup --remove` deletes what aegis installed (never your Java or Android SDK).
 
-Then run the probe against a release build:
+* Tools missing or the emulator unavailable: `aegis run` does the static checks only and the report says why the probe was skipped.
+* `--no-probe` skips it on purpose (static checks only).
+* Plain `aegis` (CI) never runs the probe, even with `--apk`.
+* An `.aab` is converted to a debug-signed universal APK with bundletool, so a protection that pins your release certificate treats it as tampered from the start.
 
-```bash
-aegis probe build/app/outputs/flutter-apk/app-release.apk
-```
-
-It runs the app on the `aegis-probe` emulator and, for each standard OWASP MASTG resilience condition (root, debugger, Frida instrumentation, a re-signed build), reports whether the app's own protection reacted (✅), did not react (❌) or the check was inconclusive (⏸️). It checks first that the app even stays alive on a clean emulator; if it doesn't, every check is inconclusive and the report says so. A gap counts as a finding only when the active profile includes MAS-R. The probe tests your own build — it sets the standard condition and watches, it does not try to defeat any protection. It reads the profile from the app's own project (the `aegis.yaml` above the APK), so you can run it from anywhere; `--project` or `--profile` override that. It also takes an `.aab` (converted to a debug-signed universal APK with bundletool, so a protection that pins your release certificate will treat it as tampered), and it ends with a static line saying whether the build is obfuscated.
+`aegis probe` runs only the probe, on the same `apk:`/`aab:` (or a path you pass), and prints its result without a report: a quick check while you work on the protection. It reads the profile from the project's aegis.yaml (`--project`/`--profile` to override) and ends with a static line saying whether the build is obfuscated.
 
 ## Full control (CI)
 
@@ -190,6 +210,8 @@ rules:
   AEG-C02: medium      # change a severity
 scan_packages: true    # also scan git/path dependencies (default)
 baseline: aegis-baseline.json   # default; see "Baselines"
+apk: build/app/outputs/flutter-apk/app-release.apk          # for aegis run --mode apk|all
+aab: build/app/outputs/bundle/release/app-release.aab       # for aegis run --mode aab|all
 ```
 
 **Your own packages are scanned too.** Many apps keep auth, networking and storage in internal packages pulled in as git or path dependencies. aegis reads `.dart_tool/package_config.json` (run `flutter pub get` first) and scans the Dart code of every git and path dependency, listing them under "Packages scanned"; findings point to `package:<name>/...`. pub.dev packages are not scanned. Turn this off with `scan_packages: false`.
@@ -242,14 +264,14 @@ resources:
     type: github
     endpoint: <your GitHub service connection>
     name: khaledSayedAbdellah/aegis
-    ref: refs/tags/v0.6.0
+    ref: refs/tags/v0.7.0
 
 steps:
 - template: ci/azure-pipelines/aegis-steps.yml@aegis
   parameters:
     aegisSource: git
     aegisGitUrl: https://github.com/khaledSayedAbdellah/aegis.git
-    aegisGitRef: v0.6.0
+    aegisGitRef: v0.7.0
     failOn: high
 ```
 
@@ -336,30 +358,36 @@ Without `--apk` it reads source and configuration only, so build-time values, me
 
 ```bash
 aegis init                 # مرة واحدة: بيسألك نوع التطبيق وبيعمل aegis.yaml
-aegis run                  # الكود + آخر APK/AAB متبني في build/ لو موجود
+aegis run                  # الكود + الـ APK/AAB اللي في aegis.yaml لو موجود
 aegis run --mode code      # الكود بس
-aegis run --mode apk       # الكود + آخر APK
-aegis run --mode aab       # الكود + آخر AAB
+aegis run --mode apk       # الكود + الـ APK اللي في apk: + اختبار الحماية
+aegis run --mode aab       # الكود + الـ AAB اللي في aab: + اختبار الحماية
+```
+
+مسار الـ APK/AAB إنت اللي بتحدده في aegis.yaml (نسبةً للمشروع)، لأن اسم الملف بيتغيّر مع الـ flavor والإصدار، وaegis عمره ما بيخمّنه من `build/`:
+
+```yaml
+apk: build/app/outputs/flutter-apk/app-prod-release.apk
+aab: build/app/outputs/bundle/prodRelease/app-prod-release.aab
 ```
 
 التقرير بيظهر في الـ terminal، وبيتكتب في `build/aegis-report.html` وبيتفتح في المتصفح على طول (`--no-open` لو مش عايزه يفتح، وفي الـ CI عمره ما بيفتح).
 
-قُدّام فيه أمر هيفحص إن حماية تطبيقك ضد التعديل شغالة فعلاً (بيشغّل التطبيق على محاكي، وبيجرّب يوصله ويعدّل عليه، ويشوف بيصد إيه). عشان كده محتاج شوية أدوات. aegis بيلاقيها بنفس طريقة Flutter، وبيسطّب اللي ناقص بس:
+لما يكون فيه APK أو AAB، `aegis run` بيشغّل الأول اختبار الحماية على إيموليتر، وبعدين الفحص الثابت، وبعدين بيطلع تقرير واحد فيه الاتنين. بيشغّل التطبيق على إيموليتر `aegis-probe`، ولكل حالة قياسية من OWASP MASTG (root = AEG-R01، حقن Frida = AEG-R02، debugger = AEG-R03، نسخة معاد توقيعها = AEG-R04) بيقول حماية التطبيق ردّت (✅)، مردتش (❌)، ولا الاختبار مش حاسم (⏸️). الـ ❌ مشكلة عادية: بتنزّل السكور وبتدخل الـ baseline و`fail_on`، بس في profile فيه MAS-R. بيتأكد الأول إن التطبيق بيفضل شغّال على إيموليتر نضيف؛ لو لأ، مفيش حاجة بتتحكم عليها والتقرير بيقول كده. الاختبار بيجرّب نسختك إنت — بيحط الحالة القياسية ويراقب، مش بيحاول يكسر أي حماية. وكل أشكال التقرير (console وHTML وMarkdown وJSON) فيها جزء بتفاصيل اللي حصل في كل اختبار.
+
+الاختبار محتاج شوية أدوات. aegis بيلاقيها بنفس طريقة Flutter، وبيسطّب اللي ناقص بس:
 
 ```bash
 aegis doctor               # بيعرض كل أداة: موجودة، aegis هيسطّبها، أو سطّبها بنفسك
 aegis setup                # بيسطّب الناقص (بيسأل مرة واحدة؛ --yes يلغي السؤال)
 ```
 
-`aegis setup` بيستخدم الـ Android SDK والـ JDK اللي الـ build بتاعك بيستخدمهم (عمره ما بيسطّب Java ولا الـ SDK ولا Flutter — بيقولك إزاي لو ناقصين). اللي بيسطّبه بيتحط في `~/.aegis`: محاكي وصورة Android 14، وجهاز وهمي اسمه `aegis-probe`، وبيئة Python فيها Frida، و`frida-server` بنفس الإصدار. أدوات الـ SDK هتطلب منك توافق على الرخص بنفسك. أي حاجة موجودة بيتخطّاها، فتشغيل `aegis setup` تاني ميسطبش حاجة. زوّد `--aab` لو عايز bundletool كمان (بتتستخدم لفحص الـ `.aab` بس). التحميلات بتتأكد بـ SHA-256 مثبّت. وللتراجع، `aegis setup --remove` بيمسح اللي aegis سطّبه (من غير ما يلمس Java ولا الـ SDK).
+`aegis setup` بيستخدم الـ Android SDK والـ JDK اللي الـ build بتاعك بيستخدمهم (عمره ما بيسطّب Java ولا الـ SDK ولا Flutter — بيقولك إزاي لو ناقصين). اللي بيسطّبه بيتحط في `~/.aegis`: محاكي وصورة Android 14، وجهاز وهمي اسمه `aegis-probe`، وبيئة Python فيها Frida، و`frida-server` بنفس الإصدار. أي حاجة موجودة بيتخطّاها. زوّد `--aab` لو عايز bundletool كمان. التحميلات بتتأكد بـ SHA-256 مثبّت. وللتراجع، `aegis setup --remove` بيمسح اللي aegis سطّبه.
 
-وبعدين شغّل الـ probe على نسخة release:
-
-```bash
-aegis probe build/app/outputs/flutter-apk/app-release.apk
-```
-
-بيشغّل التطبيق على إيموليتر `aegis-probe`، ولكل حالة قياسية من OWASP MASTG (root، debugger، حقن Frida، نسخة معاد توقيعها) بيقول إذا كانت حماية التطبيق ردّت (✅)، مردتش (❌)، ولا الاختبار مش حاسم (⏸️). بيتأكد الأول إن التطبيق بيفضل شغّال على إيموليتر نضيف؛ لو لأ، كل الاختبارات تبقى غير حاسمة والتقرير بيقول كده. المشكلة بتتحسب كـ finding بس لو الـ profile فيه MAS-R. الـ probe بيختبر نسختك إنت — بيحط الحالة القياسية ويراقب، مش بيحاول يكسر أي حماية. بيقرا الـ profile من مشروع التطبيق نفسه (الـ `aegis.yaml` اللي فوق الـ APK)، فتقدر تشغّله من أي مكان؛ و`--project` أو `--profile` بيغيّروا ده. وبياخد `.aab` كمان (بيتحوّل لـ APK شامل متوقّع بمفتاح debug عن طريق bundletool، فالحماية اللي بتثبّت شهادة الـ release هتعتبره معدّل)، وفي الآخر بيقولك النسخة متعمّلها obfuscation ولا لأ.
+* لو الأدوات ناقصة أو الإيموليتر مش متاح: `aegis run` بيعمل الفحص الثابت بس، والتقرير بيقول ليه الاختبار اتخطّى.
+* `--no-probe` بيتخطّاه بقصد.
+* `aegis` العادي (الـ CI) عمره ما بيشغّل الاختبار، حتى مع `--apk`.
+* `aegis probe` بيشغّل الاختبار بس على نفس `apk:`/`aab:` (أو مسار تمرّره) ويطبع النتيجة من غير تقرير، للتجربة السريعة وإنت شغّال على الحماية.
 
 مع `--apk` الأداة بتفحص الـ APK اللي اتبنى فعلاً: الأسرار اللي اتحطت بـ `--dart-define`، والصلاحيات والمكونات اللي المكتبات ضافتها، والشهادة اللي وقّعت التطبيق، وهل الـ obfuscation اتعمل بجد. وبتطبعلك الـ hash اللي تحطه في إعدادات freeRASP.
 
