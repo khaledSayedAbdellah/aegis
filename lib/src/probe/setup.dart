@@ -9,6 +9,7 @@ library;
 import 'dart:convert';
 
 import 'package:archive/archive.dart' show XZDecoder;
+import 'package:path/path.dart' as p;
 
 import '../version.dart';
 import 'host.dart';
@@ -294,11 +295,6 @@ class Setup {
     host.deleteFile(xz);
     host.makeExecutable(dest);
     return null;
-  }
-
-  Future<String?> _download(String url, String dest, void Function(String) log) async {
-    log('download $url');
-    return host.download(url, dest);
   }
 
   /// Downloads [url] to [dest] and checks its SHA-256 against [pin];
