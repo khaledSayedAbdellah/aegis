@@ -1,0 +1,152 @@
+/// Orchestrates `aegis probe` (docs/plans/probe.md §2–3): boot, baseline gate,
+/// then each resilience check, each judged only from what was observed.
+///
+/// Pure orchestration over the [ProbeDevice] seam and [observation.dart], so
+/// it runs against a fake device in tests. It applies the standard MASTG
+/// condition for each check on the developer's own app and reads the app's
+/// reaction; it never tries to defeat a protection.
+library;
+
+import 'device.dart';
+import 'observation.dart';
+import 'probe_model.dart';
+
+class ProbeRunner {
+  ProbeRunner(
+    this.dev, {
+    this.wait = const Duration(seconds: 8),
+    Future<void> Function(Duration)? sleep,
+  }) : _sleep = sleep ?? Future<void>.delayed;
+
+  final ProbeDevice dev;
+
+  /// How long to let the app settle before reading its state.
+  final Duration wait;
+  final Future<void> Function(Duration) _sleep;
+
+  /// Runs the probe. [only], when given, limits to those check ids.
+  Future<ProbeReport> run({
+    required String appPath,
+    required String package,
+    required String workDir,
+    Set<String>? only,
+  }) async {
+    ProbeReport allInconclusive(String note, {bool baselineAlive = false}) =>
+        ProbeReport(
+          app: appPath,
+          baselineAlive: baselineAlive,
+          results: [
+            for (final c in probeChecks)
+              if (c.id != 'baseline')
+                ProbeResult(c, ProbeStatus.inconclusive, note: note),
+          ],
+        );
+
+    final bootErr = await dev.bootEmulator();
+    if (bootErr != null) return allInconclusive('emulator: $bootErr');
+    await dev.adbRoot();
+
+    final installErr = await dev.install(appPath);
+    if (installErr != null) return allInconclusive(installErr);
+
+    // Baseline: does the app stay alive on the clean emulator?
+    await dev.launch(package);
+    await _sleep(wait);
+    final baselineAlive = await dev.isAlive(package);
+    if (!baselineAlive) {
+      return allInconclusive(
+          'the app did not stay alive on a clean emulator (emulator detection?)',
+          baselineAlive: false);
+    }
+
+    final results = <ProbeResult>[
+      ProbeResult(checkById('baseline'), ProbeStatus.notBlocked,
+          evidence: 'stayed alive ${wait.inSeconds}s'),
+    ];
+    bool wanted(String id) => only == null || only.contains(id);
+
+    if (wanted('root')) {
+      // The emulator is already rooted (adbRoot). Relaunch and watch.
+      results.add(await _observe(checkById('root'), package, () async => true));
+    }
+    if (wanted('hooking')) {
+      results.add(await _observe(checkById('hooking'), package, () async {
+        final err = await dev.startFridaServer();
+        if (err != null) return false;
+        await dev.fridaAttach(package);
+        return true;
+      }));
+    }
+    if (wanted('debugger')) {
+      results.add(await _observe(checkById('debugger'), package, () async {
+        final err = await dev.attachDebugger(package);
+        return err == null;
+      }, relaunch: false));
+      await dev.clearDebugApp();
+    }
+    if (wanted('repackage')) {
+      results.add(await _repackage(appPath, package, workDir));
+    }
+
+    return ProbeReport(app: appPath, baselineAlive: true, results: results);
+  }
+
+  /// Fresh-launches the app, applies [condition], waits, and judges the app's
+  /// state. [relaunch] is false when the condition launches the app itself
+  /// (the debugger case).
+  Future<ProbeResult> _observe(
+    ProbeCheck check,
+    String package,
+    Future<bool> Function() condition, {
+    bool relaunch = true,
+  }) async {
+    if (relaunch) {
+      await dev.launch(package);
+      await _sleep(wait);
+    }
+    final aliveBefore = await dev.isAlive(package);
+    final pid = await dev.pidOf(package) ?? -1;
+    await dev.clearLogcat();
+    final setupOk = await condition();
+    await _sleep(wait);
+    final aliveAfter = await dev.isAlive(package);
+    final death = logcatShowsAppDeath(await dev.logcat(), pid: pid, package: package);
+    final status = statusOf(Observation(
+        setupOk: setupOk,
+        aliveBefore: aliveBefore,
+        aliveAfter: aliveAfter,
+        appDeathLogged: death));
+    return ProbeResult(check, status, evidence: _evidence(status, aliveAfter, death));
+  }
+
+  Future<ProbeResult> _repackage(String appPath, String package, String workDir) async {
+    final check = checkById('repackage');
+    final out = '$workDir/aegis-resigned.apk';
+    final ks = '$workDir/aegis-probe.jks';
+    final signErr = await dev.resignWithNewKey(appPath, out, ks);
+    if (signErr != null) {
+      return ProbeResult(check, ProbeStatus.inconclusive, note: signErr);
+    }
+    final installErr = await dev.install(out);
+    if (installErr != null) {
+      // Android itself refusing to install over a different signature is not
+      // the app's own anti-tampering, so this is inconclusive, not blocked.
+      return ProbeResult(check, ProbeStatus.inconclusive,
+          note: 'could not install the re-signed build: $installErr');
+    }
+    await dev.launch(package);
+    await _sleep(wait);
+    final alive = await dev.isAlive(package);
+    final death = logcatShowsAppDeath(await dev.logcat(), pid: -1, package: package);
+    final status = statusOf(Observation(
+        setupOk: true, aliveBefore: true, aliveAfter: alive, appDeathLogged: death));
+    return ProbeResult(check, status, evidence: _evidence(status, alive, death));
+  }
+
+  String _evidence(ProbeStatus status, bool aliveAfter, bool death) => switch (status) {
+        ProbeStatus.blocked =>
+          death ? 'app crashed/was killed' : 'app exited after the condition',
+        ProbeStatus.notBlocked => 'app kept running normally',
+        ProbeStatus.inconclusive => 'could not observe',
+      };
+}
