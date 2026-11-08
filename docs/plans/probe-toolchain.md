@@ -77,9 +77,10 @@ and not installed earlier in the same run):
 platform-tools, build-tools, emulator, system-image  ← android-sdk, cmdline-tools, java
 avd           ← system-image, emulator
 frida         ← python
-frida-server  ← frida
-bundletool    ← java
 ```
+
+`frida-server` and `bundletool` depend on nothing: their versions are pinned,
+so the download does not need Frida or Java present first.
 
 Install order: `platform-tools`, `build-tools`, `emulator`, `system-image`,
 `avd`, `frida`, `frida-server`, `bundletool`.
@@ -88,13 +89,17 @@ Install order: `platform-tools`, `build-tools`, `emulator`, `system-image`,
 
 ### 4.1 Android SDK and Java
 
-Try in this order, stop at the first that gives an existing path:
+Use the same order Flutter itself resolves them, so aegis works with exactly
+the tools the app is built with. Stop at the first that gives an existing path:
 
-1. `ANDROID_HOME`, then `ANDROID_SDK_ROOT` (SDK); `JAVA_HOME` (Java).
-2. `flutter config --machine` → JSON; keys `android-sdk` and `jdk-dir` are
+1. `flutter config --machine` → JSON; keys `android-sdk` and `jdk-dir` are
    present only when the user set them. Ignore anything else in the JSON.
-3. `flutter --no-wrap doctor -v` (slow, 5–20 s: run it **once**, only if
-   1–2 didn't find both, and cache the text for the run). In a terminal
+   This comes first: it is what the Flutter build obeys.
+2. SDK: `ANDROID_HOME`, then `ANDROID_SDK_ROOT`. Java: Android Studio's JBR
+   (the default Flutter uses), then `JAVA_HOME`, then `java` on PATH.
+3. SDK: the default folder (step 4). Java: already covered in step 2.
+4. `flutter --no-wrap doctor -v` (slow, 5–20 s: run it **once**, only if
+   1–3 didn't give both, and cache the text for the run). In a terminal
    Flutter wraps long lines at spaces (seen on the owner's Mac:
    `Java binary at: /Applications/Android` + next line
    `Studio.app/Contents/jbr/Contents/home/bin/java`), so `--no-wrap` is
@@ -103,10 +108,10 @@ Try in this order, stop at the first that gives an existing path:
    regexes:
    * SDK: `Android SDK at (.+)$`
    * Java: `Java binary at: (.+)$` → the JDK home is two levels up (`…/bin/java`).
-4. Defaults: SDK `~/Library/Android/sdk` (macOS), `~/Android/Sdk` (Linux),
-   `%LOCALAPPDATA%\Android\Sdk` (Windows). Java: Android Studio's JBR
-   (`/Applications/Android Studio.app/Contents/jbr/Contents/Home` on macOS,
-   `/opt/android-studio/jbr` and `~/android-studio/jbr` on Linux).
+Default SDK folder: `~/Library/Android/sdk` (macOS), `~/Android/Sdk` (Linux),
+`%LOCALAPPDATA%\Android\Sdk` (Windows). Android Studio JBR:
+`/Applications/Android Studio.app/Contents/jbr/Contents/Home` on macOS,
+`/opt/android-studio/jbr` and `~/android-studio/jbr` on Linux.
 
 The owner's real outputs are the test fixtures in
 `test/fixtures/toolchain/` (home replaced with `/Users/dev`). On his Mac
