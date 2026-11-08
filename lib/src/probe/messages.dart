@@ -82,6 +82,14 @@ class Msg {
   String get installHint =>
       _t('"aegis setup" installs it', '"aegis setup" هيسطّبه');
 
+  String toInstall(int n) => _t(
+      '$n ${n == 1 ? 'tool' : 'tools'} to install: run "aegis setup".',
+      switch (n) {
+        1 => 'أداة واحدة ناقصة: شغّل "aegis setup".',
+        2 => 'أداتين ناقصين: شغّل "aegis setup".',
+        _ => '$n أدوات ناقصة: شغّل "aegis setup".',
+      });
+
   String allPresent(bool ar) =>
       _t('Everything the probe needs is installed.', 'كل اللي الاختبار محتاجه متسطّب.');
 
