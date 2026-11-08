@@ -101,11 +101,19 @@ class ProbeRunner {
     }
     if (wanted('debugger')) {
       log('check: debugger…');
-      results.add(await _observe(checkById('debugger'), package, () async {
+      final r = await _observe(checkById('debugger'), package, () async {
         final err = await dev.attachDebugger(package);
         return err == null;
-      }, relaunch: false));
+      }, relaunch: false);
       await dev.clearDebugApp();
+      // A debugger can only attach to a debuggable build; a release build is
+      // not, so an inconclusive here usually means exactly that.
+      results.add(r.status == ProbeStatus.inconclusive
+          ? ProbeResult(r.check, r.status,
+              evidence: r.evidence,
+              note: 'a debugger can only attach to a debuggable build; '
+                  'release builds are not debuggable')
+          : r);
     }
     if (wanted('repackage')) {
       log('check: repackaging / integrity…');
@@ -153,10 +161,12 @@ class ProbeRunner {
     if (signErr != null) {
       return ProbeResult(check, ProbeStatus.inconclusive, note: signErr);
     }
+    // Remove the original first: Android rejects installing a differently
+    // signed APK over it, and that rejection is Android's, not the app's
+    // anti-tampering. A fresh install of the re-signed build is the real test.
+    await dev.uninstall(package);
     final installErr = await dev.install(out);
     if (installErr != null) {
-      // Android itself refusing to install over a different signature is not
-      // the app's own anti-tampering, so this is inconclusive, not blocked.
       return ProbeResult(check, ProbeStatus.inconclusive,
           note: 'could not install the re-signed build: $installErr');
     }
