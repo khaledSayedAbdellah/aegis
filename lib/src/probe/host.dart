@@ -77,10 +77,12 @@ abstract class Host {
   Future<int?> runAttached(String exe, List<String> args,
       {Map<String, String>? environment});
 
-  /// Starts a long-running program detached and returns at once, without
-  /// waiting for it to exit (the emulator, which runs for the whole probe).
+  /// Starts a long-running program and returns at once, without waiting for it
+  /// to exit (the emulator, which runs for the whole probe). When [logPath] is
+  /// given, its stdout/stderr are appended there so a boot failure can be
+  /// shown; otherwise it is fully detached.
   Future<void> spawn(String exe, List<String> args,
-      {Map<String, String>? environment});
+      {Map<String, String>? environment, String? logPath});
 
   /// Downloads [url] to [dest] through `<dest>.part`, so a failed download
   /// leaves nothing at [dest]. Returns null on success, else the reason.
@@ -238,11 +240,27 @@ class SystemHost implements Host {
 
   @override
   Future<void> spawn(String exe, List<String> args,
-      {Map<String, String>? environment}) async {
+      {Map<String, String>? environment, String? logPath}) async {
     try {
-      // Detached: it keeps running on its own and we never await its exit.
-      await Process.start(exe, args,
-          environment: environment, mode: ProcessStartMode.detached);
+      if (logPath == null) {
+        // Detached: it keeps running on its own and we never await its exit.
+        await Process.start(exe, args,
+            environment: environment, mode: ProcessStartMode.detached);
+        return;
+      }
+      final log = File(logPath);
+      log.parent.createSync(recursive: true);
+      log.writeAsStringSync('');
+      // Keep stdio so a boot failure (PANIC, missing image) is captured; we
+      // never await its exit, so the process keeps running during the probe.
+      final p = await Process.start(exe, args, environment: environment);
+      void append(List<int> data) {
+        try {
+          log.writeAsBytesSync(data, mode: FileMode.append);
+        } catch (_) {}
+      }
+      p.stdout.listen(append);
+      p.stderr.listen(append);
     } on ProcessException {
       // Left for the caller's boot check to report as "not booting".
     }

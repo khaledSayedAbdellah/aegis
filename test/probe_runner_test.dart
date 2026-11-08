@@ -18,7 +18,8 @@ class FakeDevice implements ProbeDevice {
   final calls = <String>[];
 
   @override
-  Future<String?> bootEmulator({int timeoutSeconds = 300, void Function(String)? log}) async {
+  Future<String?> bootEmulator(
+      {int timeoutSeconds = 420, void Function(String)? log, String? logPath}) async {
     calls.add('boot');
     return bootError;
   }

@@ -64,10 +64,16 @@ class ProbeReport {
     required this.app,
     required this.baselineAlive,
     required this.results,
+    this.emulatorError,
   });
 
   /// The app that was probed (file name).
   final String app;
+
+  /// Set when the emulator or install could not run at all (a tooling
+  /// problem, not the app). Distinct from [baselineAlive] being false, which
+  /// means the app itself did not stay up on a working emulator.
+  final String? emulatorError;
 
   /// Whether the app stayed alive on the clean emulator. When false, the
   /// scored checks are all inconclusive.

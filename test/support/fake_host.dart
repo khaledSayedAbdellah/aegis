@@ -169,7 +169,7 @@ class FakeHost implements Host {
 
   @override
   Future<void> spawn(String exe, List<String> args,
-      {Map<String, String>? environment}) async {
+      {Map<String, String>? environment, String? logPath}) async {
     log.add('spawn: ${[exe, ...args].join(' ')}');
   }
 
