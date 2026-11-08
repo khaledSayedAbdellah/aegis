@@ -93,3 +93,13 @@ class ProbeReport {
   Iterable<ProbeResult> get inconclusive =>
       scored.where((r) => r.status == ProbeStatus.inconclusive);
 }
+
+/// What an audit knows about the probe: its report, or why it did not run
+/// (no emulator tools, --no-probe, ...). Rules AEG-R01..R04 read it.
+class ProbeOutcome {
+  const ProbeOutcome.ran(ProbeReport this.report) : skipped = null;
+  const ProbeOutcome.skipped(String this.skipped) : report = null;
+
+  final ProbeReport? report;
+  final String? skipped;
+}
