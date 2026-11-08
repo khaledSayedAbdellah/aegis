@@ -184,12 +184,32 @@ class Device implements ProbeDevice {
   Future<void> uninstall(String package) async =>
       _run(_adb(['uninstall', package]));
 
-  /// Launches the app's main activity and returns monkey's output (it prints
-  /// "No activities found" when the package has no launchable activity).
+  /// Launches the app's main activity. Resolves the LAUNCHER activity and
+  /// starts it with `am start -W` (which prints `Status: ok` or `Error:`),
+  /// falling back to monkey. Returns the launcher's own output.
   @override
   Future<String> launch(String package) async {
-    final r = await _run(_adb(['shell', 'monkey', '-p', package, '1']));
-    return r?.text.trim() ?? 'could not run monkey';
+    final resolve = await _run(_adb([
+      'shell', 'cmd', 'package', 'resolve-activity', '--brief',
+      '-a', 'android.intent.action.MAIN',
+      '-c', 'android.intent.category.LAUNCHER', package,
+    ]));
+    String? component;
+    if (resolve != null && resolve.ok) {
+      for (final line in resolve.out.split('\n')) {
+        final t = line.trim();
+        if (t.startsWith('$package/')) {
+          component = t;
+          break;
+        }
+      }
+    }
+    if (component == null) {
+      final m = await _run(_adb(['shell', 'monkey', '-p', package, '1']));
+      return 'monkey: ${m?.text.trim() ?? 'failed'}';
+    }
+    final start = await _run(_adb(['shell', 'am', 'start', '-W', '-n', component]));
+    return 'am start $component → ${start?.text.trim() ?? 'failed'}';
   }
 
   /// The app's pid, or null when it isn't running. Falls back to `ps` when
