@@ -1,6 +1,6 @@
 # Plan: `aegis probe` (resilience verification)
 
-Status: **in progress**. Base: `main` at `73ab8dc`. Depends on the toolchain
+Status: **done 2026-11-08**, released in 0.6.0. Verified on the owner's Mac against the Aldrees release APK (no RASP): baseline alive; root, Frida and repackage not blocked; debugger inconclusive (release build not debuggable); static line: not obfuscated. Base: `main` at `73ab8dc`. Depends on the toolchain
 from `probe-toolchain.md` (done): `aegis setup` has installed the emulator,
 the `aegis-probe` AVD, Frida + frida-server and the SDK tools, and recorded
 their paths in `~/.aegis/tools.json`.

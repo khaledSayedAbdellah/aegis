@@ -45,7 +45,7 @@ aegis has **no dependency on `package:analyzer`**: it uses its own Dart tokenize
 ## Quick start
 
 ```bash
-dart pub global activate --source git https://github.com/khaledSayedAbdellah/aegis.git --git-ref v0.5.0
+dart pub global activate --source git https://github.com/khaledSayedAbdellah/aegis.git --git-ref v0.6.0
 ```
 
 In your Flutter project (after `flutter pub get`):
@@ -83,7 +83,7 @@ Then run the probe against a release build:
 aegis probe build/app/outputs/flutter-apk/app-release.apk
 ```
 
-It runs the app on the `aegis-probe` emulator and, for each standard OWASP MASTG resilience condition (root, debugger, Frida instrumentation, a re-signed build), reports whether the app's own protection reacted (✅), did not react (❌) or the check was inconclusive (⏸️). It checks first that the app even stays alive on a clean emulator; if it doesn't, every check is inconclusive and the report says so. A gap counts as a finding only when the active profile includes MAS-R. The probe tests your own build — it sets the standard condition and watches, it does not try to defeat any protection.
+It runs the app on the `aegis-probe` emulator and, for each standard OWASP MASTG resilience condition (root, debugger, Frida instrumentation, a re-signed build), reports whether the app's own protection reacted (✅), did not react (❌) or the check was inconclusive (⏸️). It checks first that the app even stays alive on a clean emulator; if it doesn't, every check is inconclusive and the report says so. A gap counts as a finding only when the active profile includes MAS-R. The probe tests your own build — it sets the standard condition and watches, it does not try to defeat any protection. It reads the profile from the app's own project (the `aegis.yaml` above the APK), so you can run it from anywhere; `--project` or `--profile` override that. It also takes an `.aab` (converted to a debug-signed universal APK with bundletool, so a protection that pins your release certificate will treat it as tampered), and it ends with a static line saying whether the build is obfuscated.
 
 ## Full control (CI)
 
@@ -242,14 +242,14 @@ resources:
     type: github
     endpoint: <your GitHub service connection>
     name: khaledSayedAbdellah/aegis
-    ref: refs/tags/v0.5.0
+    ref: refs/tags/v0.6.0
 
 steps:
 - template: ci/azure-pipelines/aegis-steps.yml@aegis
   parameters:
     aegisSource: git
     aegisGitUrl: https://github.com/khaledSayedAbdellah/aegis.git
-    aegisGitRef: v0.5.0
+    aegisGitRef: v0.6.0
     failOn: high
 ```
 
@@ -359,7 +359,7 @@ aegis setup                # بيسطّب الناقص (بيسأل مرة واح
 aegis probe build/app/outputs/flutter-apk/app-release.apk
 ```
 
-بيشغّل التطبيق على إيموليتر `aegis-probe`، ولكل حالة قياسية من OWASP MASTG (root، debugger، حقن Frida، نسخة معاد توقيعها) بيقول إذا كانت حماية التطبيق ردّت (✅)، مردتش (❌)، ولا الاختبار مش حاسم (⏸️). بيتأكد الأول إن التطبيق بيفضل شغّال على إيموليتر نضيف؛ لو لأ، كل الاختبارات تبقى غير حاسمة والتقرير بيقول كده. المشكلة بتتحسب كـ finding بس لو الـ profile فيه MAS-R. الـ probe بيختبر نسختك إنت — بيحط الحالة القياسية ويراقب، مش بيحاول يكسر أي حماية.
+بيشغّل التطبيق على إيموليتر `aegis-probe`، ولكل حالة قياسية من OWASP MASTG (root، debugger، حقن Frida، نسخة معاد توقيعها) بيقول إذا كانت حماية التطبيق ردّت (✅)، مردتش (❌)، ولا الاختبار مش حاسم (⏸️). بيتأكد الأول إن التطبيق بيفضل شغّال على إيموليتر نضيف؛ لو لأ، كل الاختبارات تبقى غير حاسمة والتقرير بيقول كده. المشكلة بتتحسب كـ finding بس لو الـ profile فيه MAS-R. الـ probe بيختبر نسختك إنت — بيحط الحالة القياسية ويراقب، مش بيحاول يكسر أي حماية. بيقرا الـ profile من مشروع التطبيق نفسه (الـ `aegis.yaml` اللي فوق الـ APK)، فتقدر تشغّله من أي مكان؛ و`--project` أو `--profile` بيغيّروا ده. وبياخد `.aab` كمان (بيتحوّل لـ APK شامل متوقّع بمفتاح debug عن طريق bundletool، فالحماية اللي بتثبّت شهادة الـ release هتعتبره معدّل)، وفي الآخر بيقولك النسخة متعمّلها obfuscation ولا لأ.
 
 مع `--apk` الأداة بتفحص الـ APK اللي اتبنى فعلاً: الأسرار اللي اتحطت بـ `--dart-define`، والصلاحيات والمكونات اللي المكتبات ضافتها، والشهادة اللي وقّعت التطبيق، وهل الـ obfuscation اتعمل بجد. وبتطبعلك الـ hash اللي تحطه في إعدادات freeRASP.
 

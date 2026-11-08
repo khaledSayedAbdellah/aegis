@@ -3,7 +3,7 @@ description: >-
   Security audit for Flutter apps that checks whether your protections actually
   work, not just whether they exist. OWASP MASVS-mapped rules, MAS profile
   scoring (L1/L2/R), and reports in English and Arabic.
-version: 0.5.0
+version: 0.6.0
 repository: https://github.com/khaledSayedAbdellah/aegis
 issue_tracker: https://github.com/khaledSayedAbdellah/aegis/issues
 
