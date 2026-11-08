@@ -22,6 +22,8 @@ class AegisConfig {
     this.baseline,
     this.langSet = false,
     this.file,
+    this.apk,
+    this.aab,
   });
 
   final ProfileSet profile;
@@ -49,6 +51,22 @@ class AegisConfig {
 
   /// The aegis.yaml this was read from, if any.
   final String? file;
+
+  /// The release APK to audit with `aegis run --mode apk|all` and `aegis
+  /// probe`, as written in aegis.yaml (relative to the project or absolute).
+  /// Build paths change with flavors and versions, so the developer keeps it
+  /// up to date; aegis does not search build/ for it.
+  final String? apk;
+
+  /// The release App Bundle, for `--mode aab|all`. Same rules as [apk].
+  final String? aab;
+
+  /// [apk] or [aab] made absolute against [projectRoot], or null when unset.
+  static String? resolve(String projectRoot, String? path) {
+    if (path == null || path.trim().isEmpty) return null;
+    final v = path.trim();
+    return p.normalize(p.isAbsolute(v) ? v : p.join(projectRoot, v));
+  }
 
   late final List<RegExp> _excludeRes = exclude.map(globToRegExp).toList();
 
@@ -112,7 +130,14 @@ class AegisConfig {
       baseline: doc['baseline']?.toString(),
       langSet: doc['lang'] != null,
       file: file,
+      apk: _path(doc['apk']),
+      aab: _path(doc['aab']),
     );
+  }
+
+  static String? _path(Object? v) {
+    final s = v?.toString().trim();
+    return s == null || s.isEmpty ? null : s;
   }
 
   static Object? _loadYaml(String text) {
@@ -141,5 +166,7 @@ class AegisConfig {
         baseline: baseline,
         langSet: lang != null || langSet,
         file: file,
+        apk: apk,
+        aab: aab,
       );
 }

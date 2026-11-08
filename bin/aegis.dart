@@ -425,6 +425,11 @@ profile: $profile
 lang: $lang
 # The run fails (exit code 1) on a new finding at or above this severity.
 fail_on: high
+# The release build to audit with `aegis run --mode apk|aab|all` (static checks
+# plus the resilience probe on the emulator). Relative to this folder; update it
+# when the path changes (flavor, version in the file name).
+# apk: build/app/outputs/flutter-apk/app-release.apk
+# aab: build/app/outputs/bundle/release/app-release.aab
 ''');
   stdout.writeln(ar
       ? 'اتعمل ${file.path}. شغّل: aegis run'
