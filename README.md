@@ -42,11 +42,44 @@ It also covers the classics: debuggable builds, backups, cleartext traffic, netw
 
 aegis has **no dependency on `package:analyzer`**: it uses its own Dart tokenizer, so it runs on any Dart 3 SDK and never conflicts with your app's dependencies.
 
-## Quick start
+## Install
+
+aegis is a Dart command-line tool. It needs the Dart 3 SDK (the one inside Flutter is fine).
+
+**1. Activate it.** Pick one:
 
 ```bash
+# A released version, from GitHub
 dart pub global activate --source git https://github.com/khaledSayedAbdellah/aegis.git --git-ref v0.7.0
+
+# Or your local clone: every change in the clone is used right away, no reinstall
+dart pub global activate --source path ~/path/to/aegis
 ```
+
+**2. Put `~/.pub-cache/bin` on your PATH** (once), so the shell finds `aegis`:
+
+```bash
+# zsh (macOS default); for bash use ~/.bashrc
+grep -q 'pub-cache/bin' ~/.zshrc || echo 'export PATH="$PATH:$HOME/.pub-cache/bin"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+**3. Check it.**
+
+```bash
+aegis --version            # aegis 0.7.0
+dart pub global list       # shows where it was activated from
+```
+
+| Problem | Fix |
+|---|---|
+| `command not found: aegis` | `~/.pub-cache/bin` is not on your PATH (step 2), or `~/.pub-cache` was deleted: activate again (step 1). |
+| `aegis --version` shows an older version than `dart pub global list` | An old compiled copy is cached. Run `dart pub global deactivate aegis`, delete `.dart_tool/pub/bin` in the aegis clone (for a path activation), activate again and `hash -r`. |
+| Errors like `No such file or directory` for packages | The pub cache was cleaned. Run `dart pub get` in the aegis clone, then activate again. |
+
+Update: run the same `activate` command with the new tag (a path activation needs nothing). Uninstall: `dart pub global deactivate aegis`, and `aegis setup --remove` first if you installed the probe tools.
+
+## Quick start
 
 In your Flutter project (after `flutter pub get`):
 
@@ -116,6 +149,29 @@ aegis -f console,html,sarif -o build/aegis
 ```
 
 `-f/--format` picks the outputs: `console` (the terminal), `html` (a page to open in a browser), `md`, `json`, `sarif` (code-scanning dashboards) and `azure` (Azure Pipelines annotations). `-o` is the file name without extension.
+
+## Commands
+
+Run `aegis --help`, or `aegis <command> --help`, for every option.
+
+| Command | What it does |
+|---|---|
+| `aegis init` | Asks what kind of app it is and writes `aegis.yaml` (`--profile`, `--lang` to skip the questions, `--force` to overwrite). |
+| `aegis run` | Audits with the settings in `aegis.yaml`, prints the report, writes `build/aegis-report.html` and opens it. |
+| `aegis run --mode code\|apk\|aab\|all` | What to audit (see Quick start). `apk`/`aab` need `apk:`/`aab:` in aegis.yaml. |
+| `aegis run --no-probe` | Audit the APK/AAB without running the resilience probe. |
+| `aegis run --no-open` | Don't open the HTML report in the browser. |
+| `aegis run --lang ar` / `--profile banking` | Override aegis.yaml for this run. |
+| `aegis run -f console,html,md,json,sarif` | Choose the report formats. |
+| `aegis doctor` | Lists the tools the probe needs and whether each is present. Changes nothing. |
+| `aegis setup` | Installs the missing probe tools (`--yes` no prompt, `--aab` also bundletool, `--remove` uninstall them). |
+| `aegis probe` | Only the resilience probe, on `apk:`/`aab:` or a path you pass (`--only root,hooking`, `--project`, `--profile`). |
+| `aegis [path] [options]` | Full control for CI: console only unless `-f`, never runs the probe. |
+| `aegis --apk app-release.apk` | CI: also audit a built APK or AAB. |
+| `aegis --update-baseline` | Accept today's findings; later runs fail only on new ones. |
+| `aegis --list-rules` | Lists every rule with its MASVS control. |
+
+Exit codes: `0` passed, `1` findings at or above `fail_on` or a score below `min_score`, `2` usage error (bad option, missing file or path).
 
 ## Scan the release APK or App Bundle
 
@@ -322,6 +378,24 @@ Run `aegis --list-rules` for the full list.
 | AEG-C01 | Dependency with known vulnerabilities (OSV, skipped with `--offline`) | CODE-3 |
 | AEG-C02 | Unpinned git dependencies, `dependency_overrides` | CODE-3 |
 
+## Development: run from source and run the tests
+
+```bash
+git clone https://github.com/khaledSayedAbdellah/aegis.git
+cd aegis
+dart pub get
+
+dart run bin/aegis.dart --version                       # run without activating
+dart run bin/aegis.dart run ~/path/to/app --mode code   # any command, on any project
+
+dart analyze                                            # must print "No issues found!"
+dart test                                               # the whole suite
+dart test test/cli_test.dart                            # one file
+dart test -N "apk mode"                                 # tests whose name contains the text
+```
+
+The tests need no network, emulator or Android tools: the CLI tests run `bin/aegis.dart` on temporary projects with `--offline` and `--no-probe`, and the probe tests use a fake host and a fake device (`test/support/fake_host.dart`, `test/probe_runner_test.dart`). To try your change as the real `aegis` command, activate the clone with `--source path` (see Install).
+
 ## Use from Dart
 
 ```dart
@@ -355,6 +429,81 @@ Without `--apk` it reads source and configuration only, so build-time values, me
 ## بالعربي
 
 **aegis** أداة بتفحص أمان تطبيقات Flutter، وبتتأكد إن الحماية **شغالة فعلاً** مش بس موجودة. يعني مش بتسأل "عندك RASP؟" وبس، لكن بتسأل كمان: هل اتشغّل؟ هل إعداداته مطابقة لتطبيقك؟ وهل لما يكتشف تهديد بيعمل رد فعل حقيقي ولا بيطبع log وخلاص؟
+
+### التسطيب
+
+aegis أداة سطر أوامر بـ Dart، ومحتاجة Dart 3 SDK (اللي جوه Flutter كفاية).
+
+**١. فعّلها.** اختار واحدة:
+
+```bash
+# نسخة منشورة من GitHub
+dart pub global activate --source git https://github.com/khaledSayedAbdellah/aegis.git --git-ref v0.7.0
+
+# أو من نسخة الريبو اللي عندك: أي تعديل فيها بيشتغل على طول من غير تسطيب تاني
+dart pub global activate --source path ~/path/to/aegis
+```
+
+**٢. ضيف `~/.pub-cache/bin` للـ PATH** (مرة واحدة) عشان الـ terminal يلاقي `aegis`:
+
+```bash
+# zsh (الافتراضي على الماك)؛ لو bash استخدم ~/.bashrc
+grep -q 'pub-cache/bin' ~/.zshrc || echo 'export PATH="$PATH:$HOME/.pub-cache/bin"' >> ~/.zshrc
+source ~/.zshrc
+```
+
+**٣. اتأكد.**
+
+```bash
+aegis --version            # aegis 0.7.0
+dart pub global list       # بيقولك اتسطّب منين
+```
+
+| المشكلة | الحل |
+|---|---|
+| `command not found: aegis` | `~/.pub-cache/bin` مش في الـ PATH (خطوة ٢)، أو `~/.pub-cache` اتمسح: فعّلها تاني (خطوة ١). |
+| `aegis --version` بيطبع إصدار أقدم من اللي في `dart pub global list` | فيه نسخة مترجمة قديمة في الكاش. شغّل `dart pub global deactivate aegis`، وامسح `.dart_tool/pub/bin` جوه ريبو aegis (لو مسطّبها بـ path)، وفعّلها تاني، وبعدين `hash -r`. |
+| أخطاء `No such file or directory` للـ packages | كاش الـ pub اتمسح. شغّل `dart pub get` جوه ريبو aegis وفعّلها تاني. |
+
+للتحديث: نفس أمر الـ `activate` بالـ tag الجديد (تسطيب الـ path مش محتاج حاجة). وللمسح: `dart pub global deactivate aegis`، وقبلها `aegis setup --remove` لو سطّبت أدوات الـ probe.
+
+### الأوامر
+
+| الأمر | بيعمل إيه |
+|---|---|
+| `aegis init` | بيسألك نوع التطبيق وبيكتب `aegis.yaml` (`--profile` و`--lang` من غير أسئلة، `--force` يكتب فوق القديم). |
+| `aegis run` | بيفحص بإعدادات `aegis.yaml`، ويطبع التقرير، ويكتب `build/aegis-report.html` ويفتحه. |
+| `aegis run --mode code\|apk\|aab\|all` | تفحص إيه. `apk`/`aab` محتاجين `apk:`/`aab:` في aegis.yaml. |
+| `aegis run --no-probe` | يفحص الـ APK/AAB من غير اختبار الحماية على الإيموليتر. |
+| `aegis run --no-open` | ميفتحش التقرير في المتصفح. |
+| `aegis doctor` | بيعرض أدوات الـ probe وإيه الموجود منها، من غير ما يغيّر حاجة. |
+| `aegis setup` | بيسطّب أدوات الـ probe الناقصة (`--yes` من غير سؤال، `--aab` معاها bundletool، `--remove` يمسحها). |
+| `aegis probe` | اختبار الحماية بس، على `apk:`/`aab:` أو مسار تمرّره. |
+| `aegis [path] [options]` | للـ CI: console بس إلا لو `-f`، وعمره ما بيشغّل الـ probe. |
+| `aegis --update-baseline` | بيسجّل المشاكل الحالية كمعروفة، وبعد كده الفشل بيبقى على الجديد بس. |
+| `aegis --list-rules` | كل القواعد ومعاها MASVS. |
+
+أي أمر: `aegis <الأمر> --help` بيعرض كل الخيارات. الـ exit code: `0` تمام، `1` فيه مشاكل فوق `fail_on` أو السكور تحت `min_score`، `2` غلط في الاستخدام (خيار غلط، أو ملف/مسار مش موجود).
+
+### التطوير والتستات
+
+```bash
+git clone https://github.com/khaledSayedAbdellah/aegis.git
+cd aegis
+dart pub get
+
+dart run bin/aegis.dart --version                       # تشغيل من غير تفعيل
+dart run bin/aegis.dart run ~/path/to/app --mode code   # أي أمر على أي مشروع
+
+dart analyze                                            # لازم يطبع "No issues found!"
+dart test                                               # كل التستات
+dart test test/cli_test.dart                            # ملف واحد
+dart test -N "apk mode"                                 # التستات اللي اسمها فيه الكلمة دي
+```
+
+التستات مش محتاجة نت ولا إيموليتر ولا أدوات Android: تستات الـ CLI بتشغّل `bin/aegis.dart` على مشاريع مؤقتة بـ `--offline` و`--no-probe`، وتستات الـ probe بتستخدم host وجهاز وهميين (`test/support/fake_host.dart` و`test/probe_runner_test.dart`). ولو عايز تجرّب تعديلك كأمر `aegis` حقيقي، فعّل الريبو بـ `--source path` (شوف التسطيب).
+
+### الاستخدام
 
 ```bash
 aegis init                 # مرة واحدة: بيسألك نوع التطبيق وبيعمل aegis.yaml
