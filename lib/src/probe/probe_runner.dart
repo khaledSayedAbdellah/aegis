@@ -35,11 +35,12 @@ class ProbeRunner {
   }) async {
     log ??= (_) {};
     ProbeReport allInconclusive(String note,
-            {bool baselineAlive = false, String? emulatorError}) =>
+            {bool baselineAlive = false, String? emulatorError, String? baselineNote}) =>
         ProbeReport(
           app: appPath,
           baselineAlive: baselineAlive,
           emulatorError: emulatorError,
+          baselineNote: baselineNote,
           results: [
             for (final c in probeChecks)
               if (c.id != 'baseline')
@@ -58,15 +59,21 @@ class ProbeRunner {
     final installErr = await dev.install(appPath);
     if (installErr != null) return allInconclusive(installErr, emulatorError: installErr);
 
-    // Baseline: does the app stay alive on the clean emulator?
+    // Baseline: does the app come up and stay alive on the clean emulator?
     log('baseline: launching on a clean emulator…');
     await dev.launch(package);
-    await _sleep(wait);
-    final baselineAlive = await dev.isAlive(package);
+    final startPid = await dev.waitForProcess(package, timeoutSeconds: 40);
+    var baselineAlive = startPid != null;
+    if (baselineAlive) {
+      await _sleep(wait); // settle, then confirm it is still up
+      baselineAlive = (await dev.pidOf(package)) != null;
+    }
     if (!baselineAlive) {
       return allInconclusive(
-          'the app did not stay alive on a clean emulator (emulator detection?)',
-          baselineAlive: false);
+          'the app did not stay alive on a clean emulator '
+          '(emulator detection, a crash, or a slow first launch)',
+          baselineAlive: false,
+          baselineNote: _tail(await dev.logcat()));
     }
 
     final results = <ProbeResult>[
@@ -114,17 +121,19 @@ class ProbeRunner {
     Future<bool> Function() condition, {
     bool relaunch = true,
   }) async {
+    int? pid;
     if (relaunch) {
       await dev.launch(package);
-      await _sleep(wait);
+      pid = await dev.waitForProcess(package, timeoutSeconds: 40);
+    } else {
+      pid = await dev.pidOf(package);
     }
-    final aliveBefore = await dev.isAlive(package);
-    final pid = await dev.pidOf(package) ?? -1;
+    final aliveBefore = pid != null;
     await dev.clearLogcat();
     final setupOk = await condition();
     await _sleep(wait);
     final aliveAfter = await dev.isAlive(package);
-    final death = logcatShowsAppDeath(await dev.logcat(), pid: pid, package: package);
+    final death = logcatShowsAppDeath(await dev.logcat(), pid: pid ?? -1, package: package);
     final status = statusOf(Observation(
         setupOk: setupOk,
         aliveBefore: aliveBefore,
@@ -149,12 +158,11 @@ class ProbeRunner {
           note: 'could not install the re-signed build: $installErr');
     }
     await dev.launch(package);
-    await _sleep(wait);
-    final alive = await dev.isAlive(package);
-    final death = logcatShowsAppDeath(await dev.logcat(), pid: -1, package: package);
+    final pid = await dev.waitForProcess(package, timeoutSeconds: 40);
+    final death = logcatShowsAppDeath(await dev.logcat(), pid: pid ?? -1, package: package);
     final status = statusOf(Observation(
-        setupOk: true, aliveBefore: true, aliveAfter: alive, appDeathLogged: death));
-    return ProbeResult(check, status, evidence: _evidence(status, alive, death));
+        setupOk: true, aliveBefore: true, aliveAfter: pid != null, appDeathLogged: death));
+    return ProbeResult(check, status, evidence: _evidence(status, pid != null, death));
   }
 
   String _evidence(ProbeStatus status, bool aliveAfter, bool death) => switch (status) {
@@ -163,4 +171,10 @@ class ProbeRunner {
         ProbeStatus.notBlocked => 'app kept running normally',
         ProbeStatus.inconclusive => 'could not observe',
       };
+
+  /// The last few non-empty lines of [logcat], for a failure note.
+  static String _tail(String logcat, {int lines = 8}) {
+    final ls = logcat.split('\n').map((l) => l.trimRight()).where((l) => l.isNotEmpty).toList();
+    return (ls.length > lines ? ls.sublist(ls.length - lines) : ls).join('\n');
+  }
 }

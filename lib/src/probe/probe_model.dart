@@ -65,6 +65,7 @@ class ProbeReport {
     required this.baselineAlive,
     required this.results,
     this.emulatorError,
+    this.baselineNote,
   });
 
   /// The app that was probed (file name).
@@ -78,6 +79,9 @@ class ProbeReport {
   /// Whether the app stayed alive on the clean emulator. When false, the
   /// scored checks are all inconclusive.
   final bool baselineAlive;
+
+  /// A diagnostic (logcat tail) shown when [baselineAlive] is false.
+  final String? baselineNote;
 
   final List<ProbeResult> results;
 

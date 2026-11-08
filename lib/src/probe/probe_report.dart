@@ -54,6 +54,12 @@ String renderProbe(ProbeReport r,
       orElse: () => ProbeResult(checkById('baseline'), ProbeStatus.inconclusive));
   if (!r.baselineAlive) {
     b.writeln('  ⏸️  ${_t(lang, 'Baseline: the app did not stay alive on a clean emulator.', 'الأساس: التطبيق مكملش شغّال على إيموليتر نضيف.')}');
+    if (r.baselineNote != null && r.baselineNote!.trim().isNotEmpty) {
+      b.writeln(_t(lang, '     last logcat lines:', '     آخر سطور logcat:'));
+      for (final line in r.baselineNote!.split('\n')) {
+        b.writeln('       $line');
+      }
+    }
     for (final x in r.scored) {
       b.writeln('  ⏸️  ${_title(x.check, lang)} — ${x.note ?? _evidence(x, lang)}');
     }
