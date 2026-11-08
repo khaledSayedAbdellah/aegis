@@ -100,7 +100,9 @@ ArgParser _rootParser() => _parser()
 
 ArgParser _probeParser() => ArgParser()
   ..addOption('lang', abbr: 'l', allowed: ['en', 'ar'], help: 'Output language (default: system).')
-  ..addOption('profile', help: 'MAS profile (default: aegis.yaml, else L1).')
+  ..addOption('project',
+      help: "The app's Flutter project, for its aegis.yaml (default: found from the APK's location).")
+  ..addOption('profile', help: "MAS profile (default: the project's aegis.yaml, else L1).")
   ..addMultiOption('only',
       allowed: ['root', 'debugger', 'hooking', 'repackage'],
       help: 'Run only these checks.')
@@ -608,7 +610,7 @@ Future<int> _probe(ArgResults a) async {
   final lang = (a['lang'] as String?) ?? _systemLang();
   final ar = lang == 'ar';
   if (a['help'] as bool) {
-    stdout.writeln('Usage: aegis probe [app.apk] [--profile P] [--only root,hooking] [--lang en|ar]\n');
+    stdout.writeln('Usage: aegis probe [app.apk|app.aab] [--project DIR] [--profile P] [--only root,hooking] [--lang en|ar]\n');
     stdout.writeln('Runs the app on the aegis-probe emulator and checks whether its own');
     stdout.writeln('anti-tampering reacts to the standard MASTG resilience conditions.');
     stdout.writeln('Run "aegis setup" first to install the emulator and tools.\n');
@@ -616,7 +618,26 @@ Future<int> _probe(ArgResults a) async {
     return 0;
   }
 
-  const projectDir = '.';
+  // The app: a positional path, else the newest release build of --project
+  // (or of the current folder).
+  final projectArg = a['project'] as String?;
+  final rest = a.rest;
+  final appPath = rest.isNotEmpty ? rest.first : findNewestBinary(projectArg ?? '.')?.path;
+  if (appPath == null) {
+    stderr.writeln(ar
+        ? 'مفيش APK/AAB. ابنيه الأول أو مرّر مساره: aegis probe path/to/app.apk'
+        : 'No APK/AAB found. Build one or pass its path: aegis probe path/to/app.apk');
+    return 2;
+  }
+  if (!File(appPath).existsSync()) {
+    stderr.writeln('File not found: $appPath');
+    return 2;
+  }
+
+  // The profile comes from the app's own project (its aegis.yaml), found by
+  // walking up from the APK, so running aegis from another folder still uses
+  // the right profile. --project and --profile override it.
+  final projectDir = projectArg ?? projectOf(appPath) ?? '.';
   AegisConfig config;
   try {
     config = AegisConfig.load(p.absolute(projectDir));
@@ -633,20 +654,13 @@ Future<int> _probe(ArgResults a) async {
     }
     config = config.copyWith(profile: profile);
   }
+  final profileFrom = profileArg != null
+      ? '--profile'
+      : (config.file != null ? p.relative(config.file!) : (ar ? 'الافتراضي' : 'default'));
+  stdout.writeln(ar
+      ? 'الـ profile: ${config.profile} (من $profileFrom)'
+      : 'Profile: ${config.profile} (from $profileFrom)');
 
-  // Resolve the app: a positional path, else the newest release build.
-  final rest = a.rest;
-  var appPath = rest.isNotEmpty ? rest.first : findNewestBinary(projectDir)?.path;
-  if (appPath == null) {
-    stderr.writeln(ar
-        ? 'مفيش APK/AAB. ابنيه الأول أو مرّر مساره: aegis probe path/to/app.apk'
-        : 'No APK/AAB found. Build one or pass its path: aegis probe path/to/app.apk');
-    return 2;
-  }
-  if (!File(appPath).existsSync()) {
-    stderr.writeln('File not found: $appPath');
-    return 2;
-  }
   if (appPath.toLowerCase().endsWith('.aab')) {
     stderr.writeln(ar
         ? 'الـ probe بياخد APK دلوقتي. ابني APK (flutter build apk --release) ومرّره.'
@@ -722,3 +736,4 @@ bool? _looksObfuscated(ApkContext apk) {
       .length;
   return sourcePaths < 20;
 }
+

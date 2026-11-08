@@ -40,3 +40,15 @@ File? findNewestBinary(String root) {
     ..sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
   return candidates.isEmpty ? null : candidates.first;
 }
+
+/// The Flutter project a build file came from: the nearest folder at or above
+/// [file]'s folder that has a pubspec.yaml, or null.
+String? projectOf(String file) {
+  var dir = p.dirname(p.absolute(file));
+  while (true) {
+    if (File(p.join(dir, 'pubspec.yaml')).existsSync()) return dir;
+    final parent = p.dirname(dir);
+    if (parent == dir) return null;
+    dir = parent;
+  }
+}
