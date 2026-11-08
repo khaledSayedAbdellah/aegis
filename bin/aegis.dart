@@ -656,8 +656,11 @@ Future<int> _probe(ArgResults a) async {
 
   // The package name comes from the app's own manifest.
   String? package;
+  bool? obfuscated;
   try {
-    package = ApkContext.load(appPath).packageName;
+    final ctx = ApkContext.load(appPath);
+    package = ctx.packageName;
+    obfuscated = _looksObfuscated(ctx);
   } on FormatException catch (e) {
     stderr.writeln(e.message);
     return 2;
@@ -690,10 +693,32 @@ Future<int> _probe(ArgResults a) async {
         log: (m) => stdout.writeln('  · $m'));
     stdout.writeln('');
     stdout.write(renderProbe(report, lang: lang, resilienceProfile: config.profile.resilience));
+    if (obfuscated != null) {
+      stdout.writeln('');
+      stdout.writeln(obfuscated
+          ? (ar
+              ? 'ثابت (هندسة عكسية): النسخة دي معمولّها obfuscation ✅'
+              : 'Static (reverse engineering): this build is obfuscated ✅')
+          : (ar
+              ? 'ثابت (هندسة عكسية): النسخة دي مش معمولّها obfuscation ❌ — كود Dart مقروء. شغّل "aegis run --mode apk" لتفاصيل AEG-B07.'
+              : 'Static (reverse engineering): this build is NOT obfuscated ❌ — the Dart code is readable. Run "aegis run --mode apk" for the full check (AEG-B07).'));
+    }
     return probeExitCode(report, resilienceProfile: config.profile.resilience);
   } finally {
     try {
       work.deleteSync(recursive: true);
     } catch (_) {}
   }
+}
+
+/// A quick obfuscation signal for the probe's static line: a non-obfuscated
+/// Flutter build keeps its source paths (package:.../*.dart) in libapp.so,
+/// which --obfuscate strips. Null when there is no libapp.so to judge.
+/// The full check is AEG-B07 in the APK audit.
+bool? _looksObfuscated(ApkContext apk) {
+  if (apk.libappEntry == null) return null;
+  final sourcePaths = apk.libappStrings
+      .where((s) => s.startsWith('package:') && s.endsWith('.dart'))
+      .length;
+  return sourcePaths < 20;
 }
