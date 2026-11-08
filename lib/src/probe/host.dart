@@ -8,6 +8,8 @@ library;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart' as crypto;
+
 import '../version.dart';
 
 /// A finished process.
@@ -52,8 +54,14 @@ abstract class Host {
 
   /// Deletes a file; nothing when it is missing. Never deletes folders.
   void deleteFile(String path);
+
+  /// Deletes a file or a folder (recursively); nothing when it is missing.
+  void deletePath(String path);
   void rename(String from, String to);
   void makeExecutable(String path);
+
+  /// The SHA-256 of the file at [path], lowercase hex.
+  String sha256File(String path);
 
   /// Free bytes on the disk that holds [path], or null when unknown.
   Future<int?> freeBytes(String path);
@@ -149,6 +157,21 @@ class SystemHost implements Host {
     final f = File(path);
     if (f.existsSync()) f.deleteSync();
   }
+
+  @override
+  void deletePath(String path) {
+    final d = Directory(path);
+    if (d.existsSync()) {
+      d.deleteSync(recursive: true);
+      return;
+    }
+    final f = File(path);
+    if (f.existsSync()) f.deleteSync();
+  }
+
+  @override
+  String sha256File(String path) =>
+      crypto.sha256.convert(File(path).readAsBytesSync()).toString();
 
   @override
   void rename(String from, String to) => File(from).renameSync(to);
