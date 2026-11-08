@@ -170,25 +170,43 @@ class ProbeRunner {
       return ProbeResult(check, ProbeStatus.inconclusive,
           note: 'could not install the re-signed build: $installErr');
     }
-    await dev.launch(package);
+    // Clear first: the uninstall/install above log "Killing N:$package …" and
+    // PackageManager signature lines that are the installer's, not the app's.
+    await dev.clearLogcat();
+    final launchOut = await dev.launch(package);
     final pid = await dev.waitForProcess(package, timeoutSeconds: 40);
+    if (pid != null) await _sleep(wait); // give an integrity check time to fire
     final logcat = await dev.logcat();
+
+    if (!appStarted(logcat, package, pid: pid)) {
+      return ProbeResult(check, ProbeStatus.inconclusive,
+          note: 'the re-signed build did not start, so its reaction cannot be judged'
+              '${launchOut.trim().isEmpty ? '' : ' (launch: ${_short(launchOut)})'}');
+    }
+    final aliveAfter = (await dev.pidOf(package)) != null;
     final death = logcatShowsAppDeath(logcat, pid: pid ?? -1, package: package);
     final status = statusOf(Observation(
-        setupOk: true, aliveBefore: true, aliveAfter: pid != null, appDeathLogged: death));
+        setupOk: true, aliveBefore: true, aliveAfter: aliveAfter, appDeathLogged: death));
     String? note;
     if (status == ProbeStatus.blocked) {
-      note = switch (classifyRepackageReaction(logcat)) {
+      final cause = switch (classifyRepackageReaction(logcat, package: package, pid: pid)) {
         CrashCause.integrityCheck =>
-          "the crash references a signature/integrity check — likely the app's own anti-tampering",
+          "the app's own log references a signature/integrity check — likely its own anti-tampering",
         CrashCause.boundService =>
-          'the crash references a signature-bound service (e.g. a Google API key tied to the '
-              'original cert) — this may not be the app\'s own anti-tampering',
+          "the app's own log shows a signature-bound service failing (e.g. a Google API key tied to "
+              "the original cert) — not the app's own anti-tampering",
         CrashCause.unknown =>
-          "cannot tell if this is the app's integrity check or a signature-bound service failing",
+          "the app's own log doesn't say why; it may be an integrity check or a signature-bound service",
       };
+      final crash = appCrashLine(logcat, package, pid: pid);
+      note = crash == null ? '$cause; it exited without logging a crash' : '$cause\n       crash: ${_short(crash)}';
     }
-    return ProbeResult(check, status, evidence: _evidence(status, pid != null, death), note: note);
+    return ProbeResult(check, status, evidence: _evidence(status, aliveAfter, death), note: note);
+  }
+
+  static String _short(String s, {int max = 200}) {
+    final one = s.replaceAll(RegExp(r'\s+'), ' ').trim();
+    return one.length > max ? '${one.substring(0, max)}…' : one;
   }
 
   String _evidence(ProbeStatus status, bool aliveAfter, bool death) => switch (status) {

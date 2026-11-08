@@ -142,6 +142,32 @@ void main() {
     expect(statusOfId(r, 'repackage'), ProbeStatus.inconclusive);
   });
 
+  test('repackage: install-time Killing/signature noise is NOT a reaction', () async {
+    // The classic false positive: the re-install logs a system kill and a
+    // PackageManager signature mismatch, but the app itself runs fine.
+    final d = FakeDevice()
+      ..pidValue = 9123
+      ..logcatText =
+          '11-08 15:40:00.000   564   678 I ActivityManager: Killing 9123:com.x/u0a1 (adj 0): due to install\n'
+          '11-08 15:40:00.100   900   900 W PackageManager: Package com.x signatures do not match; ignoring!\n'
+          '11-08 15:40:01.000  9123  9123 I flutter: app running';
+    final r = await run(d, only: {'repackage'});
+    expect(statusOfId(r, 'repackage'), ProbeStatus.notBlocked);
+  });
+
+  test('repackage: the app crashing with a signature check → blocked + integrity', () async {
+    final d = FakeDevice()
+      ..pidValue = 9123
+      ..logcatText =
+          '11-08 15:40:01.000  9123  9123 E AndroidRuntime: FATAL EXCEPTION: main\n'
+          '11-08 15:40:01.000  9123  9123 E AndroidRuntime: Process: com.x, PID: 9123\n'
+          '11-08 15:40:01.000  9123  9123 E AndroidRuntime: java.lang.SecurityException: signature mismatch';
+    final r = await run(d, only: {'repackage'});
+    final res = r.results.firstWhere((x) => x.check.id == 'repackage');
+    expect(res.status, ProbeStatus.blocked);
+    expect(res.note, contains('integrity'));
+  });
+
   test('only-filter runs just the asked checks', () async {
     final r = await run(FakeDevice(), only: {'root'});
     expect(r.scored.map((x) => x.check.id), ['root']);

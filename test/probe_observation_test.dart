@@ -32,51 +32,76 @@ void main() {
     });
   });
 
-  group('logcatShowsAppDeath', () {
+  group('logcatShowsAppDeath (app-scoped)', () {
     const pkg = 'com.example.app';
-    test('matches a FATAL for the package', () {
-      const log = 'E AndroidRuntime: FATAL EXCEPTION: main\n'
-          'E AndroidRuntime: Process: com.example.app, PID: 9123';
+    // threadtime line: "date time PID TID LEVEL Tag: msg"
+    String tt(int pid, String rest) => '11-08 15:29:21.344  $pid  $pid $rest';
+
+    test('a FATAL block for the package counts', () {
+      final log = '${tt(9123, 'E AndroidRuntime: FATAL EXCEPTION: main')}\n'
+          '${tt(9123, 'E AndroidRuntime: Process: com.example.app, PID: 9123')}';
       expect(logcatShowsAppDeath(log, pid: 9123, package: pkg), isTrue);
     });
 
-    test('matches ActivityManager killing the app by pid', () {
-      const log = 'I ActivityManager: Killing 9123:com.example.app/u0a123 (adj 0)';
+    test('ActivityManager killing the app by package counts', () {
+      final log = tt(564, 'I ActivityManager: Killing 9123:com.example.app/u0a123 (adj 0)');
       expect(logcatShowsAppDeath(log, pid: 9123, package: pkg), isTrue);
     });
 
-    test('ignores a crash in another app', () {
-      const log = 'E AndroidRuntime: FATAL EXCEPTION: main\n'
-          'E AndroidRuntime: Process: com.other.app, PID: 5555';
+    test('a FATAL in another app does not count', () {
+      final log = '${tt(5555, 'E AndroidRuntime: FATAL EXCEPTION: main')}\n'
+          '${tt(5555, 'E AndroidRuntime: Process: com.other.app, PID: 5555')}';
       expect(logcatShowsAppDeath(log, pid: 9123, package: pkg), isFalse);
     });
 
-    test('a pid substring does not count', () {
-      // 91230 contains "9123" but is a different pid, and no package mention.
-      const log = 'I ActivityManager: Killing 91230:com.other/u0a1 (adj 0)';
+    test('an install-time Killing of ANOTHER package is ignored', () {
+      final log = tt(564, 'I ActivityManager: Killing 91230:com.other/u0a1 (adj 0)');
+      expect(logcatShowsAppDeath(log, pid: 9123, package: pkg), isFalse);
+    });
+
+    test('a Killing of the app "due to install" is ignored (OS, not the app)', () {
+      final log = tt(564, 'I ActivityManager: Killing 9123:com.example.app/u0a123 (adj 0): due to install');
       expect(logcatShowsAppDeath(log, pid: 9123, package: pkg), isFalse);
     });
   });
 
-  group('classifyRepackageReaction', () {
-    test('a Google API key error → bound service', () {
-      expect(
-          classifyRepackageReaction('E Maps: Authorization failure. API_KEY is not authorized'),
-          CrashCause.boundService);
+  group('classifyRepackageReaction (app lines only)', () {
+    const pkg = 'com.example.app';
+    String tt(int pid, String rest) => '11-08 15:29:21.344  $pid  $pid $rest';
+
+    test('the app logging a Google API key error → bound service', () {
+      final log = tt(9123, 'E Maps: Authorization failure. API_KEY is not authorized');
+      expect(classifyRepackageReaction(log, package: pkg, pid: 9123), CrashCause.boundService);
     });
+
     test('the app reading its own signature → integrity check', () {
-      expect(
-          classifyRepackageReaction('D app: getPackageInfo GET_SIGNATURES; signature mismatch, exiting'),
-          CrashCause.integrityCheck);
+      final log = tt(9123, 'D Guard: getPackageInfo GET_SIGNATURES; signature mismatch');
+      expect(classifyRepackageReaction(log, package: pkg, pid: 9123), CrashCause.integrityCheck);
     });
-    test('nothing recognizable → unknown', () {
-      expect(classifyRepackageReaction('E AndroidRuntime: NullPointerException'),
-          CrashCause.unknown);
+
+    test('a signature line from the INSTALLER (not the app) is ignored', () {
+      // PackageManager / Play Protect under system pids, not the app's.
+      final log = '${tt(564, 'W PackageManager: Package com.example.app signatures do not match')}\n'
+          '${tt(1200, 'I PlayProtect: verifying signingInfo for com.example.app')}';
+      expect(classifyRepackageReaction(log, package: pkg, pid: 9123), CrashCause.unknown);
     });
-    test('both kinds present → unknown (ambiguous)', () {
-      expect(
-          classifyRepackageReaction('getPackageInfo ... API_KEY not authorized'),
-          CrashCause.unknown);
+
+    test('both kinds in the app log → unknown', () {
+      final log = tt(9123, 'E x: getPackageInfo ... API_KEY not authorized');
+      expect(classifyRepackageReaction(log, package: pkg, pid: 9123), CrashCause.unknown);
+    });
+  });
+
+  group('appStarted / appPids', () {
+    const pkg = 'com.example.app';
+    test('Start proc gives the pid even if the passed pid is stale', () {
+      const log = '11-08 15:29:21.344   564   678 I ActivityManager: Start proc '
+          '6301:com.example.app/u0a123 for next-top-activity';
+      expect(appStarted(log, pkg), isTrue);
+      expect(appPids(log, pkg), contains(6301));
+    });
+    test('no trace of the app → not started', () {
+      expect(appStarted('11-08 … I ActivityManager: idle', pkg), isFalse);
     });
   });
 
