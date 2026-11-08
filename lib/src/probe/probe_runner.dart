@@ -28,6 +28,7 @@ class ProbeRunner {
   /// receives a line at each stage, so the user sees progress.
   Future<ProbeReport> run({
     required String appPath,
+    String? appLabel,
     required String package,
     required String workDir,
     Set<String>? only,
@@ -37,7 +38,7 @@ class ProbeRunner {
     ProbeReport allInconclusive(String note,
             {bool baselineAlive = false, String? emulatorError, String? baselineNote}) =>
         ProbeReport(
-          app: appPath,
+          app: appLabel ?? appPath,
           baselineAlive: baselineAlive,
           emulatorError: emulatorError,
           baselineNote: baselineNote,
@@ -120,7 +121,7 @@ class ProbeRunner {
       results.add(await _repackage(appPath, package, workDir));
     }
 
-    return ProbeReport(app: appPath, baselineAlive: true, results: results);
+    return ProbeReport(app: appLabel ?? appPath, baselineAlive: true, results: results);
   }
 
   /// Fresh-launches the app, applies [condition], waits, and judges the app's

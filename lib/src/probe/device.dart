@@ -8,7 +8,11 @@
 /// particular protection — it observes whether the app reacts.
 library;
 
+import 'dart:typed_data';
+
 import 'package:path/path.dart' as p;
+
+import '../binary/zip.dart';
 
 import 'host.dart';
 import 'pins.dart' as pins;
@@ -336,17 +340,25 @@ class Device implements ProbeDevice {
     return null;
   }
 
-  /// Builds a universal APK from an `.aab` with bundletool. Returns the APK
-  /// path, or null on failure.
+  /// Builds a universal APK from an `.aab` with bundletool into [outApk]
+  /// (via the [outApks] set). bundletool signs it with the debug keystore, so
+  /// it never carries the release signature. Returns null on success, else
+  /// the reason.
   Future<String?> aabToApk(String aab, String outApks, String outApk) async {
-    if (tools.bundletool == null || tools.java == null) return null;
+    if (tools.bundletool == null) return 'bundletool not found (run "aegis setup --aab")';
+    if (tools.java == null) return 'java not found';
     final r = await _run([
       tools.java!, '-jar', tools.bundletool!,
-      'build-apks', '--mode=universal', '--bundle=$aab', '--output=$outApks',
+      'build-apks', '--mode=universal', '--overwrite',
+      '--bundle=$aab', '--output=$outApks',
     ]);
-    if (r == null || !r.ok) return null;
-    // outApks is a zip; the universal APK is universal.apk inside it. The
-    // runner unzips it with the existing zip reader.
-    return outApk;
+    if (r == null) return 'could not run java';
+    if (!r.ok) return 'bundletool failed: ${r.text.trim()}';
+    if (!host.fileExists(outApks)) return 'bundletool wrote nothing';
+    final universal =
+        ZipReader(Uint8List.fromList(host.readBytes(outApks))).read('universal.apk');
+    if (universal == null) return 'no universal.apk in the bundletool output';
+    host.writeBytes(outApk, universal);
+    return null;
   }
 }

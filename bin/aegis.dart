@@ -661,12 +661,7 @@ Future<int> _probe(ArgResults a) async {
       ? 'الـ profile: ${config.profile} (من $profileFrom)'
       : 'Profile: ${config.profile} (from $profileFrom)');
 
-  if (appPath.toLowerCase().endsWith('.aab')) {
-    stderr.writeln(ar
-        ? 'الـ probe بياخد APK دلوقتي. ابني APK (flutter build apk --release) ومرّره.'
-        : 'probe takes an APK for now. Build one (flutter build apk --release) and pass it.');
-    return 2;
-  }
+  final isAab = appPath.toLowerCase().endsWith('.aab');
 
   // The package name comes from the app's own manifest.
   String? package;
@@ -686,11 +681,12 @@ Future<int> _probe(ArgResults a) async {
 
   final host = SystemHost();
   final tools = await ProbeTools.resolve(host, Toolchain(host));
-  final missing = tools.missing();
+  final missing = tools.missing(needsBundletool: isAab);
   if (missing.isNotEmpty) {
+    final cmd = isAab ? 'aegis setup --aab' : 'aegis setup';
     stderr.writeln(ar
-        ? 'ناقص: ${missing.join('، ')}. شغّل "aegis setup" الأول.'
-        : 'Missing: ${missing.join(', ')}. Run "aegis setup" first.');
+        ? 'ناقص: ${missing.join('، ')}. شغّل "$cmd" الأول.'
+        : 'Missing: ${missing.join(', ')}. Run "$cmd" first.');
     return 2;
   }
 
@@ -700,13 +696,33 @@ Future<int> _probe(ArgResults a) async {
     stdout.writeln(ar
         ? 'بيشغّل $package على إيموليتر aegis-probe… (ممكن ياخد دقيقة)'
         : 'Running $package on the aegis-probe emulator… (this can take a minute)');
-    final runner = ProbeRunner(Device(host, tools));
+    final device = Device(host, tools);
+    // An AAB can't be installed directly: bundletool turns it into a
+    // universal APK, signed with the debug key.
+    var installPath = appPath;
+    if (isAab) {
+      stdout.writeln(ar
+          ? '  · بيحوّل الـ AAB لـ APK شامل بـ bundletool…'
+          : '  · converting the AAB to a universal APK with bundletool…');
+      installPath = p.join(work.path, 'universal.apk');
+      final err = await device.aabToApk(appPath, p.join(work.path, 'app.apks'), installPath);
+      if (err != null) {
+        stderr.writeln(ar ? 'تحويل الـ AAB فشل: $err' : 'Could not convert the AAB: $err');
+        return 2;
+      }
+    }
+    final runner = ProbeRunner(device);
     final report = await runner.run(
-        appPath: appPath, package: package, workDir: work.path,
+        appPath: installPath, appLabel: appPath, package: package, workDir: work.path,
         only: only.isEmpty ? null : only,
         log: (m) => stdout.writeln('  · $m'));
     stdout.writeln('');
     stdout.write(renderProbe(report, lang: lang, resilienceProfile: config.profile.resilience));
+    if (isAab) {
+      stdout.writeln(ar
+          ? '• الـ AAB اتحوّل لـ APK متوقّع بمفتاح debug، فحماية بتثبّت شهادة الـ release هتعتبره نسخة معدّلة من البداية.'
+          : '• The AAB was converted to an APK signed with a debug key, so a protection that pins your release certificate treats it as tampered from the start.');
+    }
     if (obfuscated != null) {
       stdout.writeln('');
       stdout.writeln(obfuscated
@@ -714,8 +730,8 @@ Future<int> _probe(ArgResults a) async {
               ? 'ثابت (هندسة عكسية): النسخة دي معمولّها obfuscation ✅'
               : 'Static (reverse engineering): this build is obfuscated ✅')
           : (ar
-              ? 'ثابت (هندسة عكسية): النسخة دي مش معمولّها obfuscation ❌ — كود Dart مقروء. شغّل "aegis run --mode apk" لتفاصيل AEG-B07.'
-              : 'Static (reverse engineering): this build is NOT obfuscated ❌ — the Dart code is readable. Run "aegis run --mode apk" for the full check (AEG-B07).'));
+              ? 'ثابت (هندسة عكسية): النسخة دي مش معمولّها obfuscation ❌ — كود Dart مقروء. شغّل "aegis run --mode ${isAab ? 'aab' : 'apk'}" لتفاصيل AEG-B07.'
+              : 'Static (reverse engineering): this build is NOT obfuscated ❌ — the Dart code is readable. Run "aegis run --mode ${isAab ? 'aab' : 'apk'}" for the full check (AEG-B07).'));
     }
     return probeExitCode(report, resilienceProfile: config.profile.resilience);
   } finally {
