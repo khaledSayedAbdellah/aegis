@@ -103,6 +103,11 @@ String renderProbe(ProbeReport r,
   b.writeln(_t(lang,
       '• A report-only RASP (one that silently logs to a backend and keeps running) cannot be seen from the device; it shows as no reaction.',
       '• الحماية اللي بتبلّغ السيرفر بصمت وتفضل شغّالة مش بتبان من الجهاز؛ بتظهر كأنها مردتش.'));
+  if (r.blocked.any((x) => x.check.id == 'repackage')) {
+    b.writeln(_t(lang,
+        '• The re-signed build crashing can be the app\'s integrity check, or a service bound to the original signing key (Google Maps, Firebase) failing — the probe cannot tell them apart.',
+        '• كراش النسخة المعاد توقيعها ممكن يكون فحص سلامة في التطبيق، أو خدمة مربوطة بالتوقيع الأصلي (Google Maps، Firebase) وقعت — الأداة مش بتفرّق بينهم.'));
+  }
   b.writeln(_t(lang,
       '• This shows what happened on this emulator and this build, not a proof of security.',
       '• ده بيوضّح اللي حصل على الإيموليتر ده والنسخة دي، مش إثبات أمان.'));
