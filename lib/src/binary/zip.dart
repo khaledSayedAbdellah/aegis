@@ -27,8 +27,7 @@ class ZipReader {
 
   factory ZipReader.file(String path) => ZipReader(File(path).readAsBytesSync());
 
-  ZipReader._view(this.bytes, int centralDirectoryOffset, Map<String, ZipEntry> entries) {
-    this.centralDirectoryOffset = centralDirectoryOffset;
+  ZipReader._view(this.bytes, this.centralDirectoryOffset, Map<String, ZipEntry> entries) {
     this.entries.addAll(entries);
   }
 
