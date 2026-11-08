@@ -43,6 +43,9 @@ class FakeDevice implements ProbeDevice {
   Future<bool> isAlive(String package) async =>
       aliveQueue.isNotEmpty ? aliveQueue.removeAt(0) : defaultAlive;
   @override
+  Future<int?> waitForProcess(String package, {int timeoutSeconds = 40}) async =>
+      (aliveQueue.isNotEmpty ? aliveQueue.removeAt(0) : defaultAlive) ? pidValue : null;
+  @override
   Future<void> clearLogcat() async {}
   @override
   Future<String> logcat() async => logcatText;

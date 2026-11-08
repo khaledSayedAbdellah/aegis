@@ -93,6 +93,7 @@ abstract interface class ProbeDevice {
   Future<void> launch(String package);
   Future<int?> pidOf(String package);
   Future<bool> isAlive(String package);
+  Future<int?> waitForProcess(String package, {int timeoutSeconds});
   Future<void> clearLogcat();
   Future<String> logcat();
   Future<String?> startFridaServer();
@@ -198,6 +199,18 @@ class Device implements ProbeDevice {
 
   @override
   Future<bool> isAlive(String package) async => (await pidOf(package)) != null;
+
+  /// Polls until the app's process appears, or null after [timeoutSeconds].
+  /// A first launch after install can take much longer than a single check.
+  @override
+  Future<int?> waitForProcess(String package, {int timeoutSeconds = 40}) async {
+    for (var i = 0; i * 2 < timeoutSeconds; i++) {
+      final pid = await pidOf(package);
+      if (pid != null) return pid;
+      await Future<void>.delayed(const Duration(seconds: 2));
+    }
+    return null;
+  }
 
   @override
   Future<void> clearLogcat() async => _run(_adb(['logcat', '-c']));
