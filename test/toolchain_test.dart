@@ -33,7 +33,7 @@ ToolCheck pick(List<ToolCheck> cs, String id) => cs.firstWhere((c) => c.id == id
 void main() {
   group('detection on a ready Mac', () {
     test('finds Flutter, Java (JBR), the SDK, adb, cmdline-tools, Python', () async {
-      final checks = await studioMac().checkAll();
+      final checks = await Toolchain(studioMac()).checkAll();
       expect(pick(checks, 'flutter').version, '3.41.9');
       expect(pick(checks, 'java').ok, isTrue);
       expect(pick(checks, 'java').version, '21');
@@ -46,12 +46,12 @@ void main() {
     });
 
     test('what aegis will install is installable, bundletool optional', () async {
-      final checks = await studioMac().checkAll();
+      final checks = await Toolchain(studioMac()).checkAll();
       for (final id in ['build-tools', 'emulator', 'system-image', 'avd', 'frida', 'frida-server']) {
         expect(pick(checks, id).state, ToolState.installable, reason: id);
       }
       expect(pick(checks, 'bundletool').state, ToolState.optional);
-      expect((await studioMac().checkAll(aab: true)).firstWhere((c) => c.id == 'bundletool').state,
+      expect((await Toolchain(studioMac()).checkAll(aab: true)).firstWhere((c) => c.id == 'bundletool').state,
           ToolState.installable);
     });
 
@@ -88,6 +88,13 @@ void main() {
       final java = await t.checkJava();
       expect(java.ok, isTrue);
       expect(java.source, 'flutter doctor');
+    });
+
+    test('longestExisting drops the sentence glued after a path', () {
+      const bin = '/Applications/Android Studio.app/Contents/jbr/Contents/home/bin/java';
+      expect(Toolchain.longestExisting('$bin This JDK is specified in your Flutter configuration.',
+          (p) => p == bin), bin);
+      expect(Toolchain.longestExisting('/nowhere at all', (_) => false), isNull);
     });
 
     test('unwrapDoctor rejoins a path wrapped across two lines', () {

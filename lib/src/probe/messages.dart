@@ -14,7 +14,7 @@ const _titles = <String, (String, String)>{
   'build-tools': ('build-tools (apksigner)', 'build-tools (apksigner)'),
   'emulator': ('Emulator', 'المحاكي'),
   'system-image': ('Android 14 system image', 'صورة نظام Android 14'),
-  'avd': ('AVD "${avd}"', 'جهاز وهمي "${avd}"'),
+  'avd': ('AVD "{avd}"', 'جهاز وهمي "{avd}"'),
   'python': ('Python 3', 'Python 3'),
   'frida': ('Frida', 'Frida'),
   'frida-server': ('frida-server (Android)', 'frida-server (أندرويد)'),
@@ -30,7 +30,7 @@ class Msg {
   String title(String id) {
     final t = _titles[id];
     if (t == null) return id;
-    return (ar ? t.$2 : t.$1).replaceAll(r'${avd}', pins.avdName);
+    return (ar ? t.$2 : t.$1).replaceAll('{avd}', pins.avdName);
   }
 
   String get header => _t('Resilience probe tools', 'أدوات اختبار الحماية');

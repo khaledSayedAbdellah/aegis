@@ -201,6 +201,19 @@ class Toolchain {
     return out.join('\n');
   }
 
+  /// The longest space-separated prefix of [text] that [exists]. Unwrapping
+  /// `flutter doctor` can glue the sentence after a path onto it
+  /// ("…/bin/java This JDK is specified…"); paths with spaces
+  /// ("Android Studio.app") still match because longer prefixes go first.
+  static String? longestExisting(String text, bool Function(String) exists) {
+    final words = text.trim().split(' ');
+    for (var n = words.length; n > 0; n--) {
+      final candidate = words.take(n).join(' ');
+      if (exists(candidate)) return candidate;
+    }
+    return null;
+  }
+
   // --- Flutter / SDK / Java -----------------------------------------------
 
   Future<ToolCheck> checkFlutter() async {
@@ -244,10 +257,8 @@ class Toolchain {
     final doctor = await flutterDoctor();
     if (doctor != null) {
       final m = RegExp(r'Android SDK at (.+)$', multiLine: true).firstMatch(doctor);
-      final path = m?.group(1)?.trim();
-      if (path != null && host.dirExists(path)) {
-        return (path: path, source: 'flutter doctor');
-      }
+      final path = m == null ? null : longestExisting(m.group(1)!, host.dirExists);
+      if (path != null) return (path: path, source: 'flutter doctor');
     }
     return null;
   }
@@ -293,8 +304,8 @@ class Toolchain {
     if (doctor != null) {
       final m =
           RegExp(r'Java binary at: (.+)$', multiLine: true).firstMatch(doctor);
-      final bin = m?.group(1)?.trim();
-      if (bin != null && host.fileExists(bin)) {
+      final bin = m == null ? null : longestExisting(m.group(1)!, host.fileExists);
+      if (bin != null) {
         // …/bin/java → the home is two levels up.
         final home = _p.dirname(_p.dirname(bin));
         return (home: home, source: 'flutter doctor');
