@@ -85,7 +85,8 @@ ArgParser _toolsParser({bool setup = false}) {
   if (setup) {
     a
       ..addFlag('yes', abbr: 'y', negatable: false, help: 'Install without asking first.')
-      ..addFlag('aab', negatable: false, help: 'Also install bundletool (for auditing .aab).');
+      ..addFlag('aab', negatable: false, help: 'Also install bundletool (for auditing .aab).')
+      ..addFlag('remove', negatable: false, help: "Delete what aegis installed under ~/.aegis and exit.");
   }
   return a;
 }
@@ -499,15 +500,27 @@ Future<int> _doctor(ArgResults a) async {
 Future<int> _setup(ArgResults a) async {
   final m = Msg(_toolsLang(a));
   if (a['help'] as bool) {
-    stdout.writeln('Usage: aegis setup [--yes] [--aab] [--lang en|ar]\n');
+    stdout.writeln('Usage: aegis setup [--yes] [--aab] [--remove] [--lang en|ar]\n');
     stdout.writeln('Installs what "aegis doctor" reports as missing. Tools already present are');
-    stdout.writeln('skipped. Asks once before installing; --yes skips the question.\n');
+    stdout.writeln('skipped. Asks once before installing; --yes skips the question.');
+    stdout.writeln('--remove deletes what aegis installed (never your Java or Android SDK).\n');
     stdout.writeln(_toolsParser(setup: true).usage);
     return 0;
   }
   final aab = a['aab'] as bool;
   final t = Toolchain(SystemHost());
   final setup = Setup(t);
+
+  if (a['remove'] as bool) {
+    final removed = await setup.remove();
+    if (removed.isEmpty) {
+      stdout.writeln(m.nothingToRemove);
+    } else {
+      stdout.writeln(m.removed);
+      for (final r in removed) stdout.writeln('  🗑  $r');
+    }
+    return 0;
+  }
   var checks = await t.checkAll(aab: aab);
   final plan = setup.buildPlan(checks);
 

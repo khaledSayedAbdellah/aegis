@@ -229,7 +229,8 @@ class Setup {
         'avd' => await _createAvd(),
         'frida' => await _installFrida(log),
         'frida-server' => await _installFridaServer(log),
-        'bundletool' => await _download(pins.bundletoolUrl, toolchain.bundletoolPath, log),
+        'bundletool' => await verifiedDownload(
+            pins.bundletoolUrl, toolchain.bundletoolPath, pins.bundletoolPin, log),
         'platform-tools' ||
         'build-tools' ||
         'emulator' ||
@@ -285,9 +286,9 @@ class Setup {
     final dest = toolchain.fridaServerPath;
     final xz = '$dest.xz';
     final url = pins.fridaServerUrl(toolchain.fridaArch);
-    log('download $url');
-    final err = await host.download(url, xz);
-    if (err != null) return err;
+    final verifyErr =
+        await verifiedDownload(url, xz, pins.fridaServerPin(toolchain.fridaArch), log);
+    if (verifyErr != null) return verifyErr;
     final bytes = XZDecoder().decodeBytes(host.readBytes(xz));
     host.writeBytes(dest, bytes);
     host.deleteFile(xz);
@@ -298,6 +299,52 @@ class Setup {
   Future<String?> _download(String url, String dest, void Function(String) log) async {
     log('download $url');
     return host.download(url, dest);
+  }
+
+  /// Downloads [url] to [dest] and checks its SHA-256 against [pin];
+  /// a mismatch deletes the file and fails. Returns null on success.
+  Future<String?> verifiedDownload(
+      String url, String dest, pins.Pinned pin, void Function(String) log) async {
+    log('download $url');
+    final err = await host.download(url, dest);
+    if (err != null) return err;
+    final got = host.sha256File(dest);
+    if (got != pin.sha256) {
+      host.deleteFile(dest);
+      return 'checksum mismatch for ${p.basename(dest)}\n'
+          '      expected ${pin.sha256}\n      got      $got';
+    }
+    log('verified sha256');
+    return null;
+  }
+
+  /// Deletes what aegis installed under `~/.aegis` (the Frida venv, the tools
+  /// folder, tools.json) and the `aegis-probe` AVD. Never touches Java, the
+  /// Android SDK or its packages — those are the user's, not aegis's. Returns
+  /// the paths/items removed.
+  Future<List<String>> remove() async {
+    final removed = <String>[];
+    for (final path in [toolchain.venvDir, toolchain.toolsDir, toolchain.toolsJsonPath]) {
+      if (host.fileExists(path) || host.dirExists(path)) {
+        host.deletePath(path);
+        removed.add(toolchain.tilde(path));
+      }
+    }
+    final avdHome = toolchain.avdHome;
+    final avdDir = avdHome == null ? null : p.join(avdHome, '${pins.avdName}.avd');
+    if (avdDir != null && host.dirExists(avdDir)) {
+      final root = (await toolchain.findSdkRoot())?.path;
+      final avdmanager = root == null ? null : toolchain.sdkTool(root, 'avdmanager');
+      if (avdmanager != null) {
+        await host.run(avdmanager, ['delete', 'avd', '-n', pins.avdName],
+            environment: await _javaEnv());
+      } else {
+        host.deletePath(avdDir);
+        host.deleteFile(p.join(avdHome!, '${pins.avdName}.ini'));
+      }
+      removed.add('AVD ${pins.avdName}');
+    }
+    return removed;
   }
 
   /// JAVA_HOME for sdkmanager/avdmanager, which need a JDK (often only in

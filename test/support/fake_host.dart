@@ -1,4 +1,5 @@
 import 'package:aegis/src/probe/host.dart';
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:path/path.dart' as p;
 
 /// An in-memory computer for the toolchain tests: no real files, programs or
@@ -120,6 +121,16 @@ class FakeHost implements Host {
 
   @override
   void deleteFile(String path) => files.remove(path);
+
+  @override
+  void deletePath(String path) {
+    files.removeWhere((k, _) => k == path || p.isWithin(path, k));
+    dirs.removeWhere((d) => d == path || p.isWithin(path, d));
+  }
+
+  @override
+  String sha256File(String path) =>
+      crypto.sha256.convert(files[path]!).toString();
 
   @override
   void rename(String from, String to) {

@@ -118,6 +118,11 @@ class Msg {
       _t('No terminal; use "aegis setup --yes".', 'مفيش terminal؛ استخدم "aegis setup --yes".');
   String get nothingToInstall =>
       _t('Nothing to install.', 'مفيش حاجة تتسطّب.');
+  String get removed =>
+      _t('Removed what aegis installed:', 'اتمسح اللي aegis سطّبه:');
+  String get nothingToRemove => _t(
+      'Nothing to remove; aegis had installed nothing.',
+      'مفيش حاجة تتمسح؛ aegis مكانش سطّب حاجة.');
   String get done => _t('Done.', 'خلص.');
   String get result => _t('Result:', 'النتيجة:');
   String savedTo(String path) =>

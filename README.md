@@ -75,7 +75,7 @@ aegis doctor               # lists each tool: present, aegis can install it, or 
 aegis setup                # installs the missing ones (asks once; --yes to skip the prompt)
 ```
 
-`aegis setup` uses the Android SDK and JDK your Flutter build already uses (it never installs Java, the SDK or Flutter — it tells you how if they're missing). What it does install goes under `~/.aegis`: the SDK's emulator and an Android 14 image, an AVD named `aegis-probe`, a Python venv with Frida, and the matching `frida-server`. The Android SDK tools ask you to accept their licenses yourself. Anything already present is skipped, so a second `aegis setup` installs nothing. Add `--aab` to also fetch bundletool (needed only to probe an `.aab`).
+`aegis setup` uses the Android SDK and JDK your Flutter build already uses (it never installs Java, the SDK or Flutter — it tells you how if they're missing). What it does install goes under `~/.aegis`: the SDK's emulator and an Android 14 image, an AVD named `aegis-probe`, a Python venv with Frida, and the matching `frida-server`. The Android SDK tools ask you to accept their licenses yourself. Anything already present is skipped, so a second `aegis setup` installs nothing. Add `--aab` to also fetch bundletool (needed only to probe an `.aab`). Downloads are checked against a pinned SHA-256. To undo it all, `aegis setup --remove` deletes what aegis installed (never your Java or Android SDK).
 
 Then run the probe against a release build:
 
@@ -351,7 +351,7 @@ aegis doctor               # بيعرض كل أداة: موجودة، aegis هي
 aegis setup                # بيسطّب الناقص (بيسأل مرة واحدة؛ --yes يلغي السؤال)
 ```
 
-`aegis setup` بيستخدم الـ Android SDK والـ JDK اللي الـ build بتاعك بيستخدمهم (عمره ما بيسطّب Java ولا الـ SDK ولا Flutter — بيقولك إزاي لو ناقصين). اللي بيسطّبه بيتحط في `~/.aegis`: محاكي وصورة Android 14، وجهاز وهمي اسمه `aegis-probe`، وبيئة Python فيها Frida، و`frida-server` بنفس الإصدار. أدوات الـ SDK هتطلب منك توافق على الرخص بنفسك. أي حاجة موجودة بيتخطّاها، فتشغيل `aegis setup` تاني ميسطبش حاجة. زوّد `--aab` لو عايز bundletool كمان (بتتستخدم لفحص الـ `.aab` بس).
+`aegis setup` بيستخدم الـ Android SDK والـ JDK اللي الـ build بتاعك بيستخدمهم (عمره ما بيسطّب Java ولا الـ SDK ولا Flutter — بيقولك إزاي لو ناقصين). اللي بيسطّبه بيتحط في `~/.aegis`: محاكي وصورة Android 14، وجهاز وهمي اسمه `aegis-probe`، وبيئة Python فيها Frida، و`frida-server` بنفس الإصدار. أدوات الـ SDK هتطلب منك توافق على الرخص بنفسك. أي حاجة موجودة بيتخطّاها، فتشغيل `aegis setup` تاني ميسطبش حاجة. زوّد `--aab` لو عايز bundletool كمان (بتتستخدم لفحص الـ `.aab` بس). التحميلات بتتأكد بـ SHA-256 مثبّت. وللتراجع، `aegis setup --remove` بيمسح اللي aegis سطّبه (من غير ما يلمس Java ولا الـ SDK).
 
 وبعدين شغّل الـ probe على نسخة release:
 
