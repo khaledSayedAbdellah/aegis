@@ -1,0 +1,46 @@
+[✓] Flutter (Channel stable, 3.41.9, on macOS 26.7 25G229 darwin-arm64, locale
+    en-EG) [741ms]
+    • Flutter version 3.41.9 on channel stable at
+      /Users/dev/developer/flutter_3.41.9
+    • Upstream repository https://github.com/flutter/flutter.git
+    • Framework revision 00b0c91f06 (6 months ago), 2026-04-29 10:03:19 -0700
+    • Engine revision 42d3d75a56
+    • Dart version 3.11.5
+    • DevTools version 2.54.2
+    • Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop,
+      enable-windows-desktop, enable-android, enable-ios, cli-animations,
+      enable-native-assets, omit-legacy-version-file, enable-lldb-debugging,
+      enable-uiscene-migration
+
+[✓] Android toolchain - develop for Android devices (Android SDK version 36.0.0)
+    [2.2s]
+    • Android SDK at /Users/dev/Library/Android/sdk
+    • Emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)
+    • Platform android-36, build-tools 36.0.0
+    • Java binary at: /Applications/Android
+      Studio.app/Contents/jbr/Contents/home/bin/java
+      This JDK is specified in your Flutter configuration.
+      To change the current JDK, run: `flutter config --jdk-dir="path/to/jdk"`.
+    • Java version OpenJDK Runtime Environment (build 21.0.6+-13368085-b895.109)
+    • All Android licenses accepted.
+
+[✓] Xcode - develop for iOS and macOS (Xcode 26.6) [2.1s]
+    • Xcode at /Applications/Xcode.app/Contents/Developer
+    • Build 17F113
+    • CocoaPods version 1.17.0
+
+[✓] Chrome - develop for the web [6ms]
+    • Chrome at /Applications/Google Chrome.app/Contents/MacOS/Google Chrome
+
+[✓] Connected device (3 available) [7.0s]
+    • iPhone 17 Pro (mobile) • 8C650057-47B9-4D33-921D-EAA18F61238E • ios
+      • com.apple.CoreSimulator.SimRuntime.iOS-26-5 (simulator)
+    • macOS (desktop)        • macos                                •
+      darwin-arm64   • macOS 26.7 25G229 darwin-arm64
+    • Chrome (web)           • chrome                               •
+      web-javascript • Google Chrome 156.0.8078.81
+
+[✓] Network resources [1,588ms]
+    • All expected network resources are available.
+
+• No issues found!
