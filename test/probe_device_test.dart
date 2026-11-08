@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:aegis/src/probe/device.dart';
 import 'package:aegis/src/probe/toolchain.dart';
+import 'package:archive/archive.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_host.dart';
@@ -64,7 +67,8 @@ void main() {
     late FakeHost h;
     late Device d;
     setUp(() {
-      h = FakeHost()..installed.addAll(['/adb', '/venv/frida', '/jdk/bin/keytool', '/bt/apksigner']);
+      h = FakeHost()
+        ..installed.addAll(['/adb', '/venv/frida', '/jdk/bin/keytool', '/jdk/bin/java', '/bt/apksigner']);
       d = Device(h, fakeTools());
     });
 
@@ -101,6 +105,36 @@ void main() {
       h.addFile('/ks.jks', 'KS');
       await d.resignWithNewKey('app.apk', 'out.apk', '/ks.jks');
       expect(h.ran.any((c) => c.contains('genkeypair')), isFalse);
+    });
+  });
+
+  group('AAB to universal APK', () {
+    test('runs bundletool and extracts universal.apk from the .apks', () async {
+      final apk = File('test/fixtures/apk/secure.apk').readAsBytesSync();
+      final apks = ZipEncoder().encode(Archive()..addFile(ArchiveFile('universal.apk', apk.length, apk)));
+      final h = FakeHost()..installed.add('/jdk/bin/java');
+      // What bundletool would have written.
+      h.writeBytes('/w/app.apks', apks);
+      final err = await Device(h, fakeTools()).aabToApk('/app.aab', '/w/app.apks', '/w/universal.apk');
+      expect(err, isNull);
+      expect(h.readBytes('/w/universal.apk'), apk);
+      expect(h.ran.single,
+          '/jdk/bin/java -jar /tools/bundletool.jar build-apks --mode=universal --overwrite --bundle=/app.aab --output=/w/app.apks');
+    });
+
+    test('says what is missing', () async {
+      final noBundletool = ProbeTools(keytool: '/jdk/bin/keytool', avdName: 'x');
+      expect(await Device(FakeHost(), noBundletool).aabToApk('/a.aab', '/o.apks', '/o.apk'),
+          contains('aegis setup --aab'));
+    });
+
+    test('a bundletool failure is reported, not hidden', () async {
+      final h = FakeHost()..answer('/jdk/bin/java', [
+          '-jar', '/tools/bundletool.jar', 'build-apks', '--mode=universal', '--overwrite',
+          '--bundle=/a.aab', '--output=/o.apks',
+        ], stderr: 'Invalid bundle', code: 1);
+      expect(await Device(h, fakeTools()).aabToApk('/a.aab', '/o.apks', '/o.apk'),
+          contains('Invalid bundle'));
     });
   });
 }
