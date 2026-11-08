@@ -77,6 +77,11 @@ abstract class Host {
   Future<int?> runAttached(String exe, List<String> args,
       {Map<String, String>? environment});
 
+  /// Starts a long-running program detached and returns at once, without
+  /// waiting for it to exit (the emulator, which runs for the whole probe).
+  Future<void> spawn(String exe, List<String> args,
+      {Map<String, String>? environment});
+
   /// Downloads [url] to [dest] through `<dest>.part`, so a failed download
   /// leaves nothing at [dest]. Returns null on success, else the reason.
   Future<String?> download(String url, String dest,
@@ -228,6 +233,18 @@ class SystemHost implements Host {
       return await p.exitCode;
     } on ProcessException {
       return null;
+    }
+  }
+
+  @override
+  Future<void> spawn(String exe, List<String> args,
+      {Map<String, String>? environment}) async {
+    try {
+      // Detached: it keeps running on its own and we never await its exit.
+      await Process.start(exe, args,
+          environment: environment, mode: ProcessStartMode.detached);
+    } on ProcessException {
+      // Left for the caller's boot check to report as "not booting".
     }
   }
 

@@ -168,6 +168,12 @@ class FakeHost implements Host {
   }
 
   @override
+  Future<void> spawn(String exe, List<String> args,
+      {Map<String, String>? environment}) async {
+    log.add('spawn: ${[exe, ...args].join(' ')}');
+  }
+
+  @override
   Future<String?> download(String url, String dest,
       {void Function(int received, int? total)? progress}) async {
     log.add('download: $url');

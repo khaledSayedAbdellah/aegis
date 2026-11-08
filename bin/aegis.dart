@@ -686,7 +686,8 @@ Future<int> _probe(ArgResults a) async {
     final runner = ProbeRunner(Device(host, tools));
     final report = await runner.run(
         appPath: appPath, package: package, workDir: work.path,
-        only: only.isEmpty ? null : only);
+        only: only.isEmpty ? null : only,
+        log: (m) => stdout.writeln('  · $m'));
     stdout.writeln('');
     stdout.write(renderProbe(report, lang: lang, resilienceProfile: config.profile.resilience));
     return probeExitCode(report, resilienceProfile: config.profile.resilience);

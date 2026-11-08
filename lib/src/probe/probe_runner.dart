@@ -24,13 +24,16 @@ class ProbeRunner {
   final Duration wait;
   final Future<void> Function(Duration) _sleep;
 
-  /// Runs the probe. [only], when given, limits to those check ids.
+  /// Runs the probe. [only], when given, limits to those check ids. [log]
+  /// receives a line at each stage, so the user sees progress.
   Future<ProbeReport> run({
     required String appPath,
     required String package,
     required String workDir,
     Set<String>? only,
+    void Function(String)? log,
   }) async {
+    log ??= (_) {};
     ProbeReport allInconclusive(String note, {bool baselineAlive = false}) =>
         ProbeReport(
           app: appPath,
@@ -42,14 +45,19 @@ class ProbeRunner {
           ],
         );
 
-    final bootErr = await dev.bootEmulator();
+    final bootErr = await dev.bootEmulator(log: log);
     if (bootErr != null) return allInconclusive('emulator: $bootErr');
     await dev.adbRoot();
 
+    log('installing $package…');
+    // Clear any build left by an earlier probe (a re-signed one would make
+    // installing the original fail on a signature mismatch).
+    await dev.uninstall(package);
     final installErr = await dev.install(appPath);
     if (installErr != null) return allInconclusive(installErr);
 
     // Baseline: does the app stay alive on the clean emulator?
+    log('baseline: launching on a clean emulator…');
     await dev.launch(package);
     await _sleep(wait);
     final baselineAlive = await dev.isAlive(package);
@@ -66,10 +74,12 @@ class ProbeRunner {
     bool wanted(String id) => only == null || only.contains(id);
 
     if (wanted('root')) {
+      log('check: root detection…');
       // The emulator is already rooted (adbRoot). Relaunch and watch.
       results.add(await _observe(checkById('root'), package, () async => true));
     }
     if (wanted('hooking')) {
+      log('check: Frida instrumentation…');
       results.add(await _observe(checkById('hooking'), package, () async {
         final err = await dev.startFridaServer();
         if (err != null) return false;
@@ -78,6 +88,7 @@ class ProbeRunner {
       }));
     }
     if (wanted('debugger')) {
+      log('check: debugger…');
       results.add(await _observe(checkById('debugger'), package, () async {
         final err = await dev.attachDebugger(package);
         return err == null;
@@ -85,6 +96,7 @@ class ProbeRunner {
       await dev.clearDebugApp();
     }
     if (wanted('repackage')) {
+      log('check: repackaging / integrity…');
       results.add(await _repackage(appPath, package, workDir));
     }
 
