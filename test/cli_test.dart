@@ -50,6 +50,16 @@ void main() {
       expect(findBuiltBinary(dir.path, 'apk'), isNull);
       expect(findNewestBinary(dir.path), isNull);
     });
+
+    test('projectOf finds the project a build file came from', () {
+      final dir = project();
+      final apk = put(dir, '$flutterApkDir/app-prod-release.apk');
+      expect(p.canonicalize(projectOf(apk.path)!), p.canonicalize(dir.path));
+      // A file outside any Flutter project has none.
+      final loose = Directory.systemTemp.createTempSync('aegis_loose_');
+      addTearDown(() => loose.deleteSync(recursive: true));
+      expect(projectOf(put(loose, 'app.apk').path), isNull);
+    });
   });
 
   test('menu answers in Arabic and Persian digits', () {
