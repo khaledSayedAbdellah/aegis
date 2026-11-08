@@ -85,7 +85,7 @@ class ProbeTools {
 
 /// What the runner needs from the device, so it can be driven by a fake.
 abstract interface class ProbeDevice {
-  Future<String?> bootEmulator({int timeoutSeconds});
+  Future<String?> bootEmulator({int timeoutSeconds, void Function(String)? log});
   Future<void> adbRoot();
   Future<String?> install(String apk);
   Future<void> uninstall(String package);
@@ -116,21 +116,38 @@ class Device implements ProbeDevice {
   // --- emulator -----------------------------------------------------------
 
   /// Boots the `aegis-probe` AVD headless and waits for it to finish booting.
-  /// Returns null on success, else a reason.
+  /// The emulator runs for the whole probe, so it is started detached (never
+  /// awaited) and boot is detected by polling. Returns null on success.
   @override
-  Future<String?> bootEmulator({int timeoutSeconds = 180}) async {
+  Future<String?> bootEmulator(
+      {int timeoutSeconds = 300, void Function(String)? log}) async {
     if (tools.emulator == null) return 'emulator not found';
-    // Fire-and-forget: the emulator stays up for the rest of the run.
-    await host.run(tools.emulator!,
-        ['-avd', tools.avdName, '-no-window', '-no-snapshot', '-no-boot-anim', '-netdelay', 'none']);
-    await _run(_adb(['wait-for-device']));
-    // Poll sys.boot_completed.
-    for (var i = 0; i < timeoutSeconds ~/ 2; i++) {
-      final r = await _run(_adb(['shell', 'getprop', 'sys.boot_completed']));
-      if (r != null && r.out.trim() == '1') return null;
-      await Future<void>.delayed(const Duration(seconds: 2));
+    if (await _bootCompleted()) {
+      log?.call('emulator already running');
+      return null;
+    }
+    log?.call('starting the emulator…');
+    await host.spawn(tools.emulator!, [
+      '-avd', tools.avdName,
+      '-no-window', '-no-snapshot', '-no-boot-anim',
+      '-gpu', 'swiftshader_indirect', '-netdelay', 'none',
+    ]);
+    for (var i = 0; i * 3 < timeoutSeconds; i++) {
+      await Future<void>.delayed(const Duration(seconds: 3));
+      if (await _bootCompleted()) {
+        log?.call('emulator booted');
+        return null;
+      }
+      if (i > 0 && i % 10 == 0) log?.call('still booting… (${i * 3}s)');
     }
     return 'emulator did not finish booting in ${timeoutSeconds}s';
+  }
+
+  /// True once `sys.boot_completed` is 1 (adb returns non-zero while there is
+  /// no device, so this stays false until the emulator is up).
+  Future<bool> _bootCompleted() async {
+    final r = await _run(_adb(['shell', 'getprop', 'sys.boot_completed']));
+    return r != null && r.ok && r.out.trim() == '1';
   }
 
   /// Puts the dev emulator in a rooted state (google_apis images allow it).
