@@ -1,3 +1,7 @@
+## Unreleased
+
+* `aegis doctor` and `aegis setup`: prepare the toolchain for the resilience probe. `doctor` checks Java, the Android SDK and its command-line/platform/build tools, the emulator and an Android 14 image, the `aegis-probe` AVD, Python, Frida and `frida-server` (and bundletool with `--aab`), reporting each as present, installable or install-it-yourself; it changes nothing. `setup` installs the missing ones and skips the present ones, so a second run does nothing. The Android SDK and JDK are resolved the way Flutter resolves them (`flutter config`, then the usual locations, then `flutter doctor -v`), and are never installed by aegis. What aegis installs lives under `~/.aegis`; the SDK packages are installed with one `sdkmanager` call that asks you to accept the licenses. Resolved paths are cached in `~/.aegis/tools.json`. New dependency: `archive` (unpacks `frida-server`'s `.xz`).
+
 ## 0.5.0
 
 * `aegis init`: asks what kind of app it is (or takes `--profile`/`--lang`) and writes aegis.yaml.
