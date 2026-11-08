@@ -61,19 +61,22 @@ class ProbeRunner {
 
     // Baseline: does the app come up and stay alive on the clean emulator?
     log('baseline: launching on a clean emulator…');
-    await dev.launch(package);
-    final startPid = await dev.waitForProcess(package, timeoutSeconds: 40);
+    final launchOut = await dev.launch(package);
+    final startPid = await dev.waitForProcess(package, timeoutSeconds: 60);
     var baselineAlive = startPid != null;
     if (baselineAlive) {
       await _sleep(wait); // settle, then confirm it is still up
       baselineAlive = (await dev.pidOf(package)) != null;
     }
     if (!baselineAlive) {
+      final note = StringBuffer();
+      if (launchOut.trim().isNotEmpty) note.writeln('launch: ${launchOut.trim()}');
+      note.write(_tail(await dev.logcat()));
       return allInconclusive(
           'the app did not stay alive on a clean emulator '
           '(emulator detection, a crash, or a slow first launch)',
           baselineAlive: false,
-          baselineNote: _tail(await dev.logcat()));
+          baselineNote: note.toString());
     }
 
     final results = <ProbeResult>[

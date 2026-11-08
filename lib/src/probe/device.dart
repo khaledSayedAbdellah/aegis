@@ -90,7 +90,7 @@ abstract interface class ProbeDevice {
   Future<void> adbRoot();
   Future<String?> install(String apk);
   Future<void> uninstall(String package);
-  Future<void> launch(String package);
+  Future<String> launch(String package);
   Future<int?> pidOf(String package);
   Future<bool> isAlive(String package);
   Future<int?> waitForProcess(String package, {int timeoutSeconds});
@@ -184,17 +184,34 @@ class Device implements ProbeDevice {
   Future<void> uninstall(String package) async =>
       _run(_adb(['uninstall', package]));
 
-  /// Launches the app's default launcher activity.
+  /// Launches the app's main activity and returns monkey's output (it prints
+  /// "No activities found" when the package has no launchable activity).
   @override
-  Future<void> launch(String package) async =>
-      _run(_adb(['shell', 'monkey', '-p', package, '-c', 'android.intent.category.LAUNCHER', '1']));
+  Future<String> launch(String package) async {
+    final r = await _run(_adb(['shell', 'monkey', '-p', package, '1']));
+    return r?.text.trim() ?? 'could not run monkey';
+  }
 
-  /// The app's pid, or null when it isn't running.
+  /// The app's pid, or null when it isn't running. Falls back to `ps` when
+  /// `pidof` is unavailable or empty.
   @override
   Future<int?> pidOf(String package) async {
     final r = await _run(_adb(['shell', 'pidof', package]));
-    if (r == null || !r.ok) return null;
-    return int.tryParse(r.out.trim().split(RegExp(r'\s+')).first);
+    if (r != null && r.ok) {
+      final pid = int.tryParse(r.out.trim().split(RegExp(r'\s+')).first);
+      if (pid != null) return pid;
+    }
+    final ps = await _run(_adb(['shell', 'ps', '-A']));
+    if (ps != null && ps.ok) {
+      for (final line in ps.stdout.split('\n')) {
+        final cols = line.trim().split(RegExp(r'\s+'));
+        if (cols.length >= 2 && cols.last == package) {
+          final pid = int.tryParse(cols[1]);
+          if (pid != null) return pid;
+        }
+      }
+    }
+    return null;
   }
 
   @override

@@ -74,7 +74,7 @@ void main() {
       await d.launch('com.x');
       expect(await d.pidOf('com.x'), 9123);
       expect(h.ran, contains('/adb install -r -t app.apk'));
-      expect(h.ran, contains('/adb shell monkey -p com.x -c android.intent.category.LAUNCHER 1'));
+      expect(h.ran, contains('/adb shell monkey -p com.x 1'));
     });
 
     test('startFridaServer pushes and backgrounds the server', () async {
