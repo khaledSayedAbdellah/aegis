@@ -84,9 +84,12 @@ Update: run the same `activate` command with the new tag (a path activation need
 In your Flutter project (after `flutter pub get`):
 
 ```bash
-aegis init                 # once: asks what kind of app it is, writes aegis.yaml
-aegis run                  # code + the APK/AAB set in aegis.yaml, if any
+aegis init                 # 1. once per project: asks what kind of app it is, writes aegis.yaml
+aegis setup                # 2. once per machine: installs the emulator and tools for the resilience probe
+aegis run                  # 3. audit: code + the APK/AAB set in aegis.yaml, if any
 ```
+
+**Don't skip `aegis setup`.** It prepares the emulator that `aegis run --mode apk|aab|all` uses to check whether your app's anti-tampering actually reacts (rules AEG-R01..R04). Without it, the APK/AAB gets the static checks only and the report says the probe was skipped. It installs only what's missing, so running it again is harmless; `aegis doctor` shows what's there. Details in [The resilience probe](#the-resilience-probe).
 
 `aegis run` prints the report, writes `build/aegis-report.html` and opens it in your browser (`--no-open` to skip; it never opens in CI). Choose what to audit with `--mode`:
 
@@ -156,15 +159,15 @@ Run `aegis --help`, or `aegis <command> --help`, for every option.
 
 | Command | What it does |
 |---|---|
-| `aegis init` | Asks what kind of app it is and writes `aegis.yaml` (`--profile`, `--lang` to skip the questions, `--force` to overwrite). |
+| `aegis init` | Once per project: asks what kind of app it is and writes `aegis.yaml` (`--profile`, `--lang` to skip the questions, `--force` to overwrite). |
+| `aegis setup` | Once per machine: installs the resilience-probe tools that are missing (`--yes` no prompt, `--aab` also bundletool, `--remove` uninstall them). |
+| `aegis doctor` | Lists the tools the probe needs and whether each is present. Changes nothing. |
 | `aegis run` | Audits with the settings in `aegis.yaml`, prints the report, writes `build/aegis-report.html` and opens it. |
 | `aegis run --mode code\|apk\|aab\|all` | What to audit (see Quick start). `apk`/`aab` need `apk:`/`aab:` in aegis.yaml. |
 | `aegis run --no-probe` | Audit the APK/AAB without running the resilience probe. |
 | `aegis run --no-open` | Don't open the HTML report in the browser. |
 | `aegis run --lang ar` / `--profile banking` | Override aegis.yaml for this run. |
 | `aegis run -f console,html,md,json,sarif` | Choose the report formats. |
-| `aegis doctor` | Lists the tools the probe needs and whether each is present. Changes nothing. |
-| `aegis setup` | Installs the missing probe tools (`--yes` no prompt, `--aab` also bundletool, `--remove` uninstall them). |
 | `aegis probe` | Only the resilience probe, on `apk:`/`aab:` or a path you pass (`--only root,hooking`, `--project`, `--profile`). |
 | `aegis [path] [options]` | Full control for CI: console only unless `-f`, never runs the probe. |
 | `aegis --apk app-release.apk` | CI: also audit a built APK or AAB. |
@@ -471,13 +474,13 @@ dart pub global list       # بيقولك اتسطّب منين
 
 | الأمر | بيعمل إيه |
 |---|---|
-| `aegis init` | بيسألك نوع التطبيق وبيكتب `aegis.yaml` (`--profile` و`--lang` من غير أسئلة، `--force` يكتب فوق القديم). |
+| `aegis init` | مرة لكل مشروع: بيسألك نوع التطبيق وبيكتب `aegis.yaml` (`--profile` و`--lang` من غير أسئلة، `--force` يكتب فوق القديم). |
+| `aegis setup` | مرة لكل جهاز: بيسطّب أدوات اختبار الحماية الناقصة (`--yes` من غير سؤال، `--aab` معاها bundletool، `--remove` يمسحها). |
+| `aegis doctor` | بيعرض أدوات الـ probe وإيه الموجود منها، من غير ما يغيّر حاجة. |
 | `aegis run` | بيفحص بإعدادات `aegis.yaml`، ويطبع التقرير، ويكتب `build/aegis-report.html` ويفتحه. |
 | `aegis run --mode code\|apk\|aab\|all` | تفحص إيه. `apk`/`aab` محتاجين `apk:`/`aab:` في aegis.yaml. |
 | `aegis run --no-probe` | يفحص الـ APK/AAB من غير اختبار الحماية على الإيموليتر. |
 | `aegis run --no-open` | ميفتحش التقرير في المتصفح. |
-| `aegis doctor` | بيعرض أدوات الـ probe وإيه الموجود منها، من غير ما يغيّر حاجة. |
-| `aegis setup` | بيسطّب أدوات الـ probe الناقصة (`--yes` من غير سؤال، `--aab` معاها bundletool، `--remove` يمسحها). |
 | `aegis probe` | اختبار الحماية بس، على `apk:`/`aab:` أو مسار تمرّره. |
 | `aegis [path] [options]` | للـ CI: console بس إلا لو `-f`، وعمره ما بيشغّل الـ probe. |
 | `aegis --update-baseline` | بيسجّل المشاكل الحالية كمعروفة، وبعد كده الفشل بيبقى على الجديد بس. |
@@ -506,12 +509,15 @@ dart test -N "apk mode"                                 # التستات الل�
 ### الاستخدام
 
 ```bash
-aegis init                 # مرة واحدة: بيسألك نوع التطبيق وبيعمل aegis.yaml
-aegis run                  # الكود + الـ APK/AAB اللي في aegis.yaml لو موجود
+aegis init                 # ١. مرة لكل مشروع: بيسألك نوع التطبيق وبيعمل aegis.yaml
+aegis setup                # ٢. مرة لكل جهاز: بيسطّب الإيموليتر وأدوات اختبار الحماية
+aegis run                  # ٣. الفحص: الكود + الـ APK/AAB اللي في aegis.yaml لو موجود
 aegis run --mode code      # الكود بس
 aegis run --mode apk       # الكود + الـ APK اللي في apk: + اختبار الحماية
 aegis run --mode aab       # الكود + الـ AAB اللي في aab: + اختبار الحماية
 ```
+
+**متنساش `aegis setup`.** هو اللي بيجهّز الإيموليتر اللي `aegis run --mode apk|aab|all` بيستخدمه عشان يتأكد إن حماية تطبيقك ضد التعديل بترد فعلًا (القواعد AEG-R01..R04). من غيره الـ APK/AAB بياخد الفحص الثابت بس، والتقرير بيقول إن الاختبار اتخطّى. بيسطّب الناقص بس، فتشغيله تاني مش بيضر، و`aegis doctor` بيوريك الموجود.
 
 مسار الـ APK/AAB إنت اللي بتحدده في aegis.yaml (نسبةً للمشروع)، لأن اسم الملف بيتغيّر مع الـ flavor والإصدار، وaegis عمره ما بيخمّنه من `build/`:
 

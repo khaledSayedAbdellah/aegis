@@ -78,6 +78,7 @@ void main() {
       final dir = project();
       final r = await aegis(['init', dir.path, '--profile', 'l2', '--lang', 'ar']);
       expect(r.exitCode, 0, reason: '${r.stdout}${r.stderr}');
+      expect(r.stdout, contains('aegis setup'), reason: 'the next step after init');
       final config = AegisConfig.load(dir.path);
       expect(config.profile.toString(), 'L2');
       expect(config.lang, 'ar');

@@ -166,10 +166,11 @@ Future<void> main(List<String> arguments) async {
       stdout.writeln(parser.commands['run']!.usage);
     } else {
       stdout.writeln('Usage:');
-      stdout.writeln('  aegis init                  Create aegis.yaml (app type and language) once.');
+      stdout.writeln('  aegis init                  Create aegis.yaml (app type and language) once per project.');
+      stdout.writeln('  aegis setup [--yes]         Install the resilience-probe tools once per machine');
+      stdout.writeln('                              (what you already have is skipped).');
+      stdout.writeln('  aegis doctor                Check those tools without changing anything.');
       stdout.writeln('  aegis run [--mode MODE]     Audit with friendly defaults: all, code, apk or aab.');
-      stdout.writeln('  aegis doctor                Check the tools the resilience probe needs.');
-      stdout.writeln('  aegis setup [--yes]         Install the missing ones (present ones are skipped).');
       stdout.writeln('  aegis probe                 Only the resilience probe on the apk:/aab: in aegis.yaml.');
       stdout.writeln('  aegis [project-path] [options]   Full control, for CI.\n');
       stdout.writeln(parser.usage);
@@ -471,8 +472,22 @@ fail_on: high
 # aab: build/app/outputs/bundle/release/app-release.aab
 ''');
   stdout.writeln(ar
-      ? 'اتعمل ${file.path}. شغّل: aegis run'
-      : 'Wrote ${file.path}. Now run: aegis run');
+      ? '''اتعمل ${file.path}.
+
+الخطوات الجاية:
+  1. aegis setup   مرة واحدة على الجهاز: بيسطّب الإيموليتر والأدوات اللي اختبار الحماية
+                   (probe) محتاجها، وبيتخطّى أي حاجة موجودة. من غيره aegis run بيعمل
+                   الفحص الثابت بس للـ APK/AAB.
+  2. حط مسار نسخة الـ release في aegis.yaml:  apk: build/app/outputs/flutter-apk/app-release.apk
+  3. aegis run'''
+      : '''Wrote ${file.path}.
+
+Next:
+  1. aegis setup   Once per machine: installs the emulator and tools the resilience
+                   probe needs, skipping what you already have. Without it, aegis run
+                   does only the static checks of the APK/AAB.
+  2. Set your release build's path in aegis.yaml:  apk: build/app/outputs/flutter-apk/app-release.apk
+  3. aegis run''');
 }
 
 // --- doctor -----------------------------------------------------------------
