@@ -436,7 +436,7 @@ String _detail(ToolCheck c, Msg m, Toolchain t, List<String>? blocked) {
     ].join('  ');
   }
   if (blocked != null) return m.waitingFor(blocked);
-  if (c.installable) return m.installHint;
+  if (c.installable) return m.installHintFor(c.id);
   return m.issue(c);
 }
 

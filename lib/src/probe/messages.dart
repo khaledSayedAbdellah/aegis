@@ -82,6 +82,11 @@ class Msg {
   String get installHint =>
       _t('"aegis setup" installs it', '"aegis setup" هيسطّبه');
 
+  /// [installHint] with the flag the tool needs (bundletool only with --aab).
+  String installHintFor(String id) => id == 'bundletool'
+      ? _t('"aegis setup --aab" installs it', '"aegis setup --aab" هيسطّبه')
+      : installHint;
+
   String toInstall(int n) => _t(
       '$n ${n == 1 ? 'tool' : 'tools'} to install: run "aegis setup".',
       switch (n) {

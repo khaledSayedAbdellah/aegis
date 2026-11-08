@@ -208,13 +208,25 @@ class SystemHost implements Host {
   @override
   Future<String?> download(String url, String dest,
       {void Function(int received, int? total)? progress}) async {
+    // GitHub's release CDN sometimes answers 502/503/504 or drops the
+    // connection; those are retried, a 404 is not.
+    const attempts = 3;
+    for (var i = 1;; i++) {
+      final (error, retry) = await _downloadOnce(url, dest, progress);
+      if (error == null || !retry || i == attempts) return error;
+      await Future<void>.delayed(Duration(seconds: 2 * i));
+    }
+  }
+
+  Future<(String?, bool)> _downloadOnce(String url, String dest,
+      void Function(int received, int? total)? progress) async {
     final client = HttpClient()..userAgent = 'aegis/$aegisVersion';
     final part = File('$dest.part');
     try {
       final resp = await (await client.getUrl(Uri.parse(url))).close();
       if (resp.statusCode != HttpStatus.ok) {
         await resp.drain<void>();
-        return 'HTTP ${resp.statusCode} for $url';
+        return ('HTTP ${resp.statusCode} for $url', resp.statusCode >= 500);
       }
       part.parent.createSync(recursive: true);
       final sink = part.openWrite();
@@ -231,13 +243,13 @@ class SystemHost implements Host {
       }
       if (total != null && got != total) {
         part.deleteSync();
-        return 'incomplete download ($got of $total bytes) from $url';
+        return ('incomplete download ($got of $total bytes) from $url', true);
       }
       part.renameSync(dest);
-      return null;
+      return (null, false);
     } catch (e) {
       if (part.existsSync()) part.deleteSync();
-      return 'download failed: $url ($e)';
+      return ('download failed: $url ($e)', true);
     } finally {
       client.close(force: true);
     }

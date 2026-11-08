@@ -1,6 +1,6 @@
 # Plan: `aegis doctor` and `aegis setup` (probe toolchain)
 
-Status: **approved by the owner 2026-11-08, in progress**. Base: `main` at `afa44a8` (v0.5.0).
+Status: **done 2026-11-08** (steps 1–7). Verified on the owner's Mac: `dart analyze` clean, 118 tests pass, `aegis setup` installed the system image, AVD, Frida and frida-server, and a second run installed nothing. Next: `aegis probe` (separate plan). Base: `main` at `afa44a8` (v0.5.0).
 Read this whole file before writing code. Follow the steps in order; each step
 ends in a commit that leaves `dart analyze` and `dart test` green.
 
@@ -135,6 +135,9 @@ General rules for every step:
 
 * Downloads go to `<dest>.part`, then rename to `<dest>`. A failed download
   leaves no file that `doctor` would count as present.
+* A download that gets HTTP 5xx or a dropped connection is retried up to
+  3 times (2 s, 4 s apart); a 4xx is not. GitHub's release CDN returned a
+  504 once during the verification.
 * Downloads use Dart's `HttpClient` (follows redirects). User-Agent
   `aegis/<version>`. Send nothing else about the user.
 * `sdkmanager` and `pip` run with the terminal attached
