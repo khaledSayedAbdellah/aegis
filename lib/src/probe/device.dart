@@ -83,8 +83,26 @@ class ProbeTools {
   }
 }
 
+/// What the runner needs from the device, so it can be driven by a fake.
+abstract interface class ProbeDevice {
+  Future<String?> bootEmulator({int timeoutSeconds});
+  Future<void> adbRoot();
+  Future<String?> install(String apk);
+  Future<void> uninstall(String package);
+  Future<void> launch(String package);
+  Future<int?> pidOf(String package);
+  Future<bool> isAlive(String package);
+  Future<void> clearLogcat();
+  Future<String> logcat();
+  Future<String?> startFridaServer();
+  Future<String?> fridaAttach(String package);
+  Future<String?> attachDebugger(String package);
+  Future<void> clearDebugApp();
+  Future<String?> resignWithNewKey(String apk, String outApk, String keystore);
+}
+
 /// A finished adb/emulator/frida action. Thin wrapper over [Proc].
-class Device {
+class Device implements ProbeDevice {
   Device(this.host, this.tools);
   final Host host;
   final ProbeTools tools;
