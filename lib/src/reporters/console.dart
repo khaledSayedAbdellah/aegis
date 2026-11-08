@@ -4,8 +4,10 @@ library;
 import '../engine.dart';
 import '../masvs.dart';
 import '../model.dart';
+import '../probe/probe_model.dart';
 import '../scoring.dart';
 import 'i18n.dart';
+import 'probe_view.dart';
 
 class ConsoleReporter {
   ConsoleReporter({this.lang = 'en', this.color = true, this.verbose = false});
@@ -98,6 +100,30 @@ class ConsoleReporter {
         };
         final open = c.failedRuleIds.isEmpty ? '' : '  ${c.failedRuleIds.join(', ')}';
         b.writeln('  $name $colored  ${_dim('${c.checked - c.failed}/${c.checked}$open')}');
+      }
+      b.writeln();
+    }
+
+    final probe = ProbeView.of(r, lang);
+    if (probe != null) {
+      b.writeln(_bold(probe.heading));
+      if (probe.message != null) b.writeln('  ⏸️  ${probe.message}');
+      for (final d in probe.details) {
+        b.writeln(_dim('     $d'));
+      }
+      if (probe.baseline != null) b.writeln('  ${probe.baseline}');
+      final w = probe.lines.map((l) => l.title.length).fold(0, (a, x) => a > x ? a : x);
+      for (final l in probe.lines) {
+        final mark = switch (l.status) {
+          ProbeStatus.blocked => _green(l.mark),
+          ProbeStatus.notBlocked => _red(l.mark),
+          ProbeStatus.inconclusive => _yellow(l.mark),
+        };
+        b.writeln('  $mark ${l.title.padRight(w)}  ${l.evidence}  ${_dim('${l.tag}${l.ruleId == null ? '' : ' · ${l.ruleId}'}')}');
+        if (l.note != null) b.writeln(_dim('       ${l.note}'));
+      }
+      for (final c in probe.caveats) {
+        b.writeln(_dim('  • $c'));
       }
       b.writeln();
     }

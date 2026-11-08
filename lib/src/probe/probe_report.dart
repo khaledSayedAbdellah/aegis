@@ -5,13 +5,15 @@ import 'probe_model.dart';
 
 String _t(String lang, String en, String ar) => lang == 'ar' ? ar : en;
 
-String _mark(ProbeStatus s) => switch (s) {
+/// ✅ blocked · ❌ not blocked · ⏸️ inconclusive.
+String probeMark(ProbeStatus s) => switch (s) {
       ProbeStatus.blocked => '✅',
       ProbeStatus.notBlocked => '❌',
       ProbeStatus.inconclusive => '⏸️ ',
     };
 
-String _title(ProbeCheck c, String lang) {
+/// The check's title in [lang].
+String probeCheckTitle(ProbeCheck c, String lang) {
   if (lang != 'ar') return c.title;
   return switch (c.id) {
     'baseline' => 'التشغيل الأساسي',
@@ -23,7 +25,8 @@ String _title(ProbeCheck c, String lang) {
   };
 }
 
-String _evidence(ProbeResult r, String lang) {
+/// What was observed, in [lang].
+String probeEvidence(ProbeResult r, String lang) {
   if (lang != 'ar') return r.evidence;
   return switch (r.status) {
     ProbeStatus.blocked => 'التطبيق صدّ الحالة',
@@ -61,7 +64,7 @@ String renderProbe(ProbeReport r,
       }
     }
     for (final x in r.scored) {
-      b.writeln('  ⏸️  ${_title(x.check, lang)} — ${x.note ?? _evidence(x, lang)}');
+      b.writeln('  ⏸️  ${probeCheckTitle(x.check, lang)} — ${x.note ?? probeEvidence(x, lang)}');
     }
     b.writeln('');
     b.writeln(_t(lang,
@@ -70,13 +73,13 @@ String renderProbe(ProbeReport r,
     return b.toString();
   }
 
-  b.writeln('  ✅ ${_title(baseline.check, lang)}  ${_evidence(baseline, lang)}');
+  b.writeln('  ✅ ${probeCheckTitle(baseline.check, lang)}  ${probeEvidence(baseline, lang)}');
   final w = r.scored
-      .map((x) => _title(x.check, lang).length)
+      .map((x) => probeCheckTitle(x.check, lang).length)
       .fold(0, (a, b) => a > b ? a : b);
   for (final x in r.scored) {
     final tag = '${x.check.masvs} · ${x.check.mastg}';
-    b.writeln('  ${_mark(x.status)} ${_title(x.check, lang).padRight(w)}  ${_evidence(x, lang).padRight(26)}  $tag');
+    b.writeln('  ${probeMark(x.status)} ${probeCheckTitle(x.check, lang).padRight(w)}  ${probeEvidence(x, lang).padRight(26)}  $tag');
     if (x.note != null) b.writeln('       ${x.note}');
   }
 

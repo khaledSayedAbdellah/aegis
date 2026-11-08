@@ -6,6 +6,8 @@ import 'dart:convert';
 import '../baseline.dart';
 import '../engine.dart';
 import '../model.dart';
+import '../probe/probe_model.dart';
+import 'probe_view.dart';
 
 Map<String, Object?> reportToJson(AuditReport r) => {
       'tool': 'aegis',
@@ -15,6 +17,7 @@ Map<String, Object?> reportToJson(AuditReport r) => {
       'profile': r.profile.toString(),
       'scannedPackages': r.scannedPackages,
       if (r.binary != null) 'binary': r.binary!.toJson(),
+      if (r.probe != null) 'probe': _probeJson(r.probe!),
       'score': {
         'value': r.score.value,
         'grade': r.score.grade,
@@ -180,4 +183,30 @@ String _securitySeverity(Severity s) {
     case Severity.info:
       return '0.0';
   }
+}
+
+/// The probe's outcome: what ran, each check's status and evidence, or why
+/// it was skipped. The verdicts also appear as rules AEG-R01..R04.
+Map<String, Object?> _probeJson(ProbeOutcome o) {
+  final r = o.report;
+  if (r == null) return {'ran': false, 'skipped': o.skipped};
+  return {
+    'ran': true,
+    'app': r.app.split(RegExp(r'[\\/]')).last,
+    if (r.emulatorError != null) 'emulatorError': r.emulatorError,
+    'baselineAlive': r.baselineAlive,
+    if (r.baselineNote != null && r.baselineNote!.trim().isNotEmpty) 'baselineNote': r.baselineNote,
+    'checks': [
+      for (final x in r.scored)
+        {
+          'id': x.check.id,
+          if (probeRuleIds[x.check.id] != null) 'rule': probeRuleIds[x.check.id],
+          'status': x.status.name,
+          if (x.check.masvs != null) 'masvs': x.check.masvs,
+          if (x.check.mastg != null) 'mastg': x.check.mastg,
+          if (x.evidence.isNotEmpty) 'evidence': x.evidence,
+          if (x.note != null) 'note': x.note,
+        }
+    ],
+  };
 }

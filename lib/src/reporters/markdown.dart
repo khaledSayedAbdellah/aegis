@@ -6,6 +6,7 @@ import '../masvs.dart';
 import '../model.dart';
 import '../scoring.dart';
 import 'i18n.dart';
+import 'probe_view.dart';
 
 String renderMarkdown(AuditReport r, {String lang = 'en'}) {
   final t = Strings(lang);
@@ -52,6 +53,39 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
           '${c.checked - c.failed}/${c.checked} | ${c.failedRuleIds.join(', ')} |');
     }
     b.writeln();
+  }
+
+  final probe = ProbeView.of(r, lang);
+  if (probe != null) {
+    b.writeln('## 🧪 ${probe.heading}');
+    b.writeln();
+    if (probe.message != null) {
+      b.writeln('⏸️ ${probe.message}');
+      b.writeln();
+    }
+    if (probe.details.isNotEmpty) {
+      b.writeln('```');
+      probe.details.forEach(b.writeln);
+      b.writeln('```');
+      b.writeln();
+    }
+    if (probe.baseline != null) {
+      b.writeln(probe.baseline);
+      b.writeln();
+    }
+    if (probe.lines.isNotEmpty) {
+      b.writeln('| ${t.probeCheck} | ${t.result} | ${t.probeObserved} | MASVS · MASTG | ${t.rules} |');
+      b.writeln('|---|:---:|---|---|---|');
+      for (final l in probe.lines) {
+        final note = l.note == null ? '' : '<br>_${l.note!.replaceAll('|', '/')}_';
+        b.writeln('| ${l.title} | ${l.mark} | ${l.evidence}$note | ${l.tag} | ${l.ruleId == null ? '' : '`${l.ruleId}`'} |');
+      }
+      b.writeln();
+    }
+    for (final c in probe.caveats) {
+      b.writeln('- _${c}_');
+    }
+    if (probe.caveats.isNotEmpty) b.writeln();
   }
 
   final failed = r.newFailed.toList();

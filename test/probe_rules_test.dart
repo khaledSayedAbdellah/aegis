@@ -103,4 +103,59 @@ void main() {
     final fb = Baseline.fingerprint(rule(b, 'AEG-R01')!.findings.single);
     expect(fa, fb);
   });
+
+  group('reports', () {
+    Future<AuditReport> gaps() => audit(ProbeOutcome.ran(report({
+          'root': ProbeStatus.notBlocked,
+          'hooking': ProbeStatus.blocked,
+          'debugger': ProbeStatus.inconclusive,
+        })));
+
+    test('every format shows the probe section with each check', () async {
+      final r = await gaps();
+      final console = ConsoleReporter(color: false).render(r);
+      final md = renderMarkdown(r);
+      final html = renderHtml(r);
+      for (final out in [console, md, html]) {
+        expect(out, contains('Resilience probe'));
+        expect(out, contains('app-prod-release-1.2.3.apk'));
+        expect(out, contains('AEG-R01'));
+        expect(out, contains('MASTG-TEST-'));
+        expect(out, contains('not debuggable'));
+      }
+      expect(md, contains('| Check |'));
+      expect(html, contains('class="probe"'));
+      expect(renderMarkdown(r, lang: 'ar'), contains('اختبار الحماية'));
+    });
+
+    test('JSON carries the probe outcome per check', () async {
+      final j = reportToJson(await gaps());
+      final probe = j['probe'] as Map<String, Object?>;
+      expect(probe['ran'], isTrue);
+      expect(probe['baselineAlive'], isTrue);
+      final checks = (probe['checks'] as List).cast<Map<String, Object?>>();
+      final root = checks.firstWhere((c) => c['id'] == 'root');
+      expect(root['status'], 'notBlocked');
+      expect(root['rule'], 'AEG-R01');
+      expect(root['masvs'], 'MASVS-RESILIENCE-1');
+      expect(checks.firstWhere((c) => c['id'] == 'debugger')['note'], contains('debuggable'));
+    });
+
+    test('a skipped probe says why, in every format', () async {
+      final r = await audit(const ProbeOutcome.skipped('no emulator tools (run aegis setup)'));
+      expect(ConsoleReporter(color: false).render(r), contains('aegis setup'));
+      expect(renderMarkdown(r), contains('aegis setup'));
+      expect(renderHtml(r), contains('aegis setup'));
+      final probe = reportToJson(r)['probe'] as Map<String, Object?>;
+      expect(probe['ran'], isFalse);
+      expect(probe['skipped'], contains('aegis setup'));
+    });
+
+    test('a run without the probe has no probe section', () async {
+      final r = await audit(null);
+      expect(ConsoleReporter(color: false).render(r), isNot(contains('Resilience probe')));
+      expect(renderMarkdown(r), isNot(contains('Resilience probe')));
+      expect(reportToJson(r).containsKey('probe'), isFalse);
+    });
+  });
 }

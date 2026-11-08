@@ -6,7 +6,9 @@ import 'dart:convert';
 import '../engine.dart';
 import '../masvs.dart';
 import '../model.dart';
+import '../probe/probe_model.dart';
 import 'i18n.dart';
+import 'probe_view.dart';
 
 /// Escapes text for HTML. `/` is left as is so paths and Base64 hashes stay
 /// readable and copyable.
@@ -94,6 +96,34 @@ String renderHtml(AuditReport r, {String lang = 'en'}) {
   final failedTitle = r.usesBaseline ? t.newIssues : t.failed;
   final emptyText = r.usesBaseline ? t.noNewIssues : t.noIssues;
 
+  final probeView = ProbeView.of(r, lang);
+  final probe = StringBuffer();
+  if (probeView != null) {
+    probe.writeln('<h2>🧪 ${_e(probeView.heading)}</h2><section class="card">');
+    if (probeView.message != null) probe.writeln('<p>⏸️ ${_e(probeView.message!)}</p>');
+    if (probeView.details.isNotEmpty) probe.writeln('<pre>${_e(probeView.details.join('\n'))}</pre>');
+    if (probeView.baseline != null) probe.writeln('<p>${_e(probeView.baseline!)}</p>');
+    if (probeView.lines.isNotEmpty) {
+      probe.writeln('<table class="probe"><tr><th>${_e(t.probeCheck)}</th><th>${_e(t.result)}</th>'
+          '<th>${_e(t.probeObserved)}</th><th>MASVS · MASTG</th><th>${_e(t.rules)}</th></tr>');
+      for (final l in probeView.lines) {
+        final color = switch (l.status) {
+          ProbeStatus.blocked => 'var(--ok)',
+          ProbeStatus.notBlocked => 'var(--bad)',
+          ProbeStatus.inconclusive => 'var(--warn)',
+        };
+        probe.writeln('<tr><td>${_e(l.title)}</td><td style="color:$color;text-align:center">${_e(l.mark)}</td>'
+            '<td>${_e(l.evidence)}${l.note == null ? '' : '<div class="muted">${_e(l.note!)}</div>'}</td>'
+            '<td class="muted">${_e(l.tag)}</td><td><code>${_e(l.ruleId ?? '')}</code></td></tr>');
+      }
+      probe.writeln('</table>');
+    }
+    if (probeView.caveats.isNotEmpty) {
+      probe.writeln('<ul class="muted">${probeView.caveats.map((c) => '<li>${_e(c)}</li>').join()}</ul>');
+    }
+    probe.writeln('</section>');
+  }
+
   final passed = r.passed.map((x) => '<li>✓ ${_e(x.meta.passTitle.of(lang))} <code>${x.meta.id}</code></li>').join();
   final manual = r.manual.map((m) => '<li>${_e(m.text.of(lang))} <code>${m.masvs}</code></li>').join();
 
@@ -120,6 +150,7 @@ code{font-size:12.5px;color:var(--muted)}.fix{border-inline-start:3px solid var(
 .sev{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:20px;color:#fff}
 .sev-critical{background:#b42318}.sev-high{background:var(--bad)}.sev-medium{background:var(--warn)}.sev-low{background:var(--accent)}.sev-info{background:var(--muted)}
 ul{padding-inline-start:20px}.known{opacity:.7}.tag{font-size:11px;border:1px solid var(--line);border-radius:10px;padding:0 6px;color:var(--muted)}.note{font-size:13px;color:var(--muted);margin-top:32px}
+.probe{width:100%;border-collapse:collapse;font-size:14px}.probe th,.probe td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:start;vertical-align:top}
 </style>
 </head>
 <body><main>
@@ -135,6 +166,7 @@ $baselineLine
 ${cats.toString()}
 </div>
 </section>
+${probe.toString()}
 <h2>✗ ${_e(failedTitle)} (${newFailed.length})</h2>
 ${newFailed.isEmpty ? '<p>${_e(emptyText)}</p>' : ''}${failed.toString()}
 $resolved
