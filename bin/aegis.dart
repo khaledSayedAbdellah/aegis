@@ -2,6 +2,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:aegis/aegis.dart';
+import 'package:aegis/src/probe/host.dart';
+import 'package:aegis/src/probe/messages.dart';
+import 'package:aegis/src/probe/toolchain.dart';
 import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
 
@@ -71,9 +74,14 @@ ArgParser _initParser() => ArgParser()
   ..addFlag('force', negatable: false, help: 'Overwrite an existing aegis.yaml.')
   ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
 
+ArgParser _toolsParser() => ArgParser()
+  ..addOption('lang', abbr: 'l', allowed: ['en', 'ar'], help: 'Output language (default: system).')
+  ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
+
 ArgParser _rootParser() => _parser()
   ..addCommand('run', _parser(run: true))
-  ..addCommand('init', _initParser());
+  ..addCommand('init', _initParser())
+  ..addCommand('doctor', _toolsParser());
 
 /// `ar` when the system language is Arabic, else `en`.
 String _systemLang() {
@@ -101,6 +109,9 @@ Future<void> main(List<String> arguments) async {
     await _init(root.command!);
     return;
   }
+  if (root.command?.name == 'doctor') {
+    exit(await _doctor(root.command!));
+  }
   final run = root.command?.name == 'run';
   final args = run ? root.command! : root;
 
@@ -116,6 +127,7 @@ Future<void> main(List<String> arguments) async {
       stdout.writeln('Usage:');
       stdout.writeln('  aegis init                  Create aegis.yaml (app type and language) once.');
       stdout.writeln('  aegis run [--mode MODE]     Audit with friendly defaults: all, code, apk or aab.');
+      stdout.writeln('  aegis doctor                Check the tools the resilience probe needs.');
       stdout.writeln('  aegis [project-path] [options]   Full control, for CI.\n');
       stdout.writeln(parser.usage);
     }
@@ -384,4 +396,69 @@ fail_on: high
   stdout.writeln(ar
       ? 'اتعمل ${file.path}. شغّل: aegis run'
       : 'Wrote ${file.path}. Now run: aegis run');
+}
+
+// --- doctor -----------------------------------------------------------------
+
+String _toolsLang(ArgResults a) => (a['lang'] as String?) ?? _systemLang();
+
+/// The icon for a tool's state. [blocked] is an installable tool whose
+/// dependencies are not present yet.
+String _mark(ToolCheck c, {bool blocked = false}) => switch (c.state) {
+      ToolState.present => '✅',
+      ToolState.installable => blocked ? '⏸️ ' : '⬇️ ',
+      ToolState.manual => '❌',
+      ToolState.optional => 'ℹ️ ',
+    };
+
+/// Dependencies of [c] that are not present in [checks].
+List<String> _missingNeeds(ToolCheck c, List<ToolCheck> checks) {
+  final present = {for (final x in checks) if (x.ok) x.id};
+  return [for (final n in toolNeeds[c.id] ?? const <String>[]) if (!present.contains(n)) n];
+}
+
+/// Renders the detail column for one tool.
+String _detail(ToolCheck c, Msg m, List<ToolCheck> checks) {
+  if (c.ok) {
+    final v = c.version != null ? '${c.version}  ' : '';
+    final src = c.source != null ? '(${c.source})' : (c.path ?? '');
+    return '$v$src'.trim();
+  }
+  final blocked = c.installable && _missingNeeds(c, checks).isNotEmpty;
+  if (blocked) return m.waitingFor(_missingNeeds(c, checks));
+  if (c.installable) return m.installHint;
+  return m.issue(c);
+}
+
+void _printChecks(List<ToolCheck> checks, Msg m) {
+  final w = checks.map((c) => m.title(c.id).length).fold(0, (a, b) => a > b ? a : b);
+  for (final c in checks) {
+    final blocked = c.installable && _missingNeeds(c, checks).isNotEmpty;
+    stdout.writeln('  ${_mark(c, blocked: blocked)} ${m.title(c.id).padRight(w)}  ${_detail(c, m, checks)}');
+  }
+}
+
+Future<int> _doctor(ArgResults a) async {
+  final m = Msg(_toolsLang(a));
+  if (a['help'] as bool) {
+    stdout.writeln('Usage: aegis doctor [--lang en|ar]\n');
+    stdout.writeln('Checks the tools the resilience probe needs. Changes nothing.');
+    stdout.writeln('Exit code 0 when everything required is present.\n');
+    stdout.writeln(_toolsParser().usage);
+    return 0;
+  }
+  final checks = await Toolchain(SystemHost()).checkAll();
+  stdout.writeln(m.header);
+  _printChecks(checks, m);
+  stdout.writeln('');
+
+  final required = checks.where((c) => c.state != ToolState.optional);
+  final missing = required.where((c) => !c.ok).toList();
+  if (missing.isEmpty) {
+    stdout.writeln(m.allPresent(m.ar));
+    return 0;
+  }
+  if (missing.any((c) => c.installable)) stdout.writeln('⬇️  ${m.installHint}');
+  if (missing.any((c) => c.state == ToolState.manual)) stdout.writeln('❌ ${m.someManual}');
+  return 1;
 }
