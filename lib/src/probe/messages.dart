@@ -95,7 +95,7 @@ class Msg {
         _ => '$n أدوات ناقصة: شغّل "aegis setup".',
       });
 
-  String allPresent(bool ar) =>
+  String get allPresent =>
       _t('Everything the probe needs is installed.', 'كل اللي الاختبار محتاجه متسطّب.');
 
   String get someManual => _t(

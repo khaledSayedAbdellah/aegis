@@ -488,7 +488,7 @@ Future<int> _doctor(ArgResults a) async {
   final required = checks.where((c) => c.state != ToolState.optional);
   final missing = required.where((c) => !c.ok).toList();
   if (missing.isEmpty) {
-    stdout.writeln(m.allPresent(m.ar));
+    stdout.writeln(m.allPresent);
     return 0;
   }
   final installable = Setup(t).buildPlan(checks).steps.length;
@@ -546,7 +546,7 @@ Future<int> _setup(ArgResults a) async {
   if (plan.nothingToDo) {
     setup.writeToolsJson(checks);
     stdout.writeln('');
-    stdout.writeln(plan.coversEverything ? m.allPresent(m.ar) : m.someManual);
+    stdout.writeln(plan.coversEverything ? m.allPresent : m.someManual);
     return plan.coversEverything ? 0 : 1;
   }
 
