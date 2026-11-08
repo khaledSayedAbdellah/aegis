@@ -17,8 +17,8 @@ const _formats = ['console', 'json', 'md', 'html', 'sarif', 'azure'];
 const _modes = ['all', 'code', 'apk', 'aab'];
 
 /// Options shared by plain `aegis` and `aegis run`. `run` has friendlier
-/// defaults: an HTML report next to the console output, and the APK/AAB is
-/// found in build/ instead of being passed with --apk.
+/// defaults: an HTML report next to the console output, the APK/AAB comes
+/// from apk:/aab: in aegis.yaml, and the resilience probe runs on it.
 ArgParser _parser({bool run = false}) => ArgParser()
   ..addOption('profile',
       abbr: 'p',
@@ -60,12 +60,18 @@ ArgParser _parser({bool run = false}) => ArgParser()
       defaultsTo: 'all',
       hide: !run,
       allowedHelp: {
-        'all': 'Code + the newest release APK/AAB in build/ (code only when none is built).',
+        'all': 'Code + the APK/AAB set in aegis.yaml (apk:, else aab:) with the resilience probe; '
+            'code only when neither is set.',
         'code': 'Dart code, packages and Android/iOS configuration only.',
-        'apk': 'Code + the newest release APK in build/app/outputs/flutter-apk/.',
-        'aab': 'Code + the newest release AAB in build/app/outputs/bundle/.',
+        'apk': 'Code + the APK at apk: in aegis.yaml + the resilience probe on the emulator.',
+        'aab': 'Code + the AAB at aab: in aegis.yaml + the resilience probe on the emulator.',
       },
       help: 'What to audit.')
+  ..addFlag('probe',
+      defaultsTo: true,
+      hide: !run,
+      help: 'Run the resilience probe on the emulator when an APK/AAB is audited. '
+          '--no-probe runs the static checks only.')
   ..addFlag('open',
       defaultsTo: run,
       hide: !run,
@@ -151,8 +157,12 @@ Future<void> main(List<String> arguments) async {
     if (run) {
       stdout.writeln('Usage: aegis run [project-path] [--mode all|code|apk|aab] [options]\n');
       stdout.writeln('Audits the project with the settings in aegis.yaml, prints the report and writes');
-      stdout.writeln('build/aegis-report.html and opens it (--no-open to skip). The APK/AAB is taken');
-      stdout.writeln('from build/, no path needed.\n');
+      stdout.writeln('build/aegis-report.html and opens it (--no-open to skip).\n');
+      stdout.writeln('--mode apk|aab|all audits the file set in aegis.yaml (relative to the project):');
+      stdout.writeln('  apk: build/app/outputs/flutter-apk/app-release.apk');
+      stdout.writeln('  aab: build/app/outputs/bundle/release/app-release.aab');
+      stdout.writeln('and first runs the resilience probe on it on the aegis-probe emulator (see');
+      stdout.writeln('"aegis setup"). Its results are rules AEG-R01..R04 in the same report.\n');
       stdout.writeln(parser.commands['run']!.usage);
     } else {
       stdout.writeln('Usage:');
@@ -160,7 +170,7 @@ Future<void> main(List<String> arguments) async {
       stdout.writeln('  aegis run [--mode MODE]     Audit with friendly defaults: all, code, apk or aab.');
       stdout.writeln('  aegis doctor                Check the tools the resilience probe needs.');
       stdout.writeln('  aegis setup [--yes]         Install the missing ones (present ones are skipped).');
-      stdout.writeln('  aegis probe [app.apk]       Check on an emulator whether the app resists tampering.');
+      stdout.writeln('  aegis probe                 Only the resilience probe on the apk:/aab: in aegis.yaml.');
       stdout.writeln('  aegis [project-path] [options]   Full control, for CI.\n');
       stdout.writeln(parser.usage);
     }
@@ -213,23 +223,35 @@ Future<void> main(List<String> arguments) async {
 
   var apkPath = args['apk'] as String?;
   if (run && apkPath == null) {
+    // The file comes from aegis.yaml only: build names and folders change
+    // between projects and flavors, so aegis never guesses one from build/.
     final mode = args['mode'] as String;
-    final File? found = switch (mode) {
-      'apk' => findBuiltBinary(path, 'apk'),
-      'aab' => findBuiltBinary(path, 'aab'),
-      'all' => findNewestBinary(path),
+    final key = switch (mode) {
+      'apk' => 'apk',
+      'aab' => 'aab',
+      'all' => config.apk != null ? 'apk' : (config.aab != null ? 'aab' : null),
       _ => null,
     };
-    if (found != null) {
-      apkPath = found.path;
-      stdout.writeln('aegis: auditing the code and ${p.relative(found.path, from: path)}');
+    final value = key == 'apk' ? config.apk : (key == 'aab' ? config.aab : null);
+    if (value != null) {
+      final resolved = AegisConfig.resolve(p.absolute(path), value)!;
+      if (!File(resolved).existsSync()) {
+        final build = key == 'apk' ? 'flutter build apk --release' : 'flutter build appbundle --release';
+        stderr.writeln('File not found: $resolved');
+        stderr.writeln('(from "$key: $value" in aegis.yaml). Build it ($build) or fix the path.');
+        exit(2);
+      }
+      apkPath = resolved;
+      stdout.writeln('aegis: auditing the code and ${p.relative(resolved, from: path)}');
     } else if (mode == 'apk' || mode == 'aab') {
-      final build = mode == 'apk' ? 'flutter build apk --release' : 'flutter build appbundle --release';
-      final dir = mode == 'apk' ? flutterApkDir : flutterBundleDir;
-      stderr.writeln('No release ${mode.toUpperCase()} in $dir. Build one first: $build');
+      final example = mode == 'apk'
+          ? '$flutterApkDir/app-release.apk'
+          : '$flutterBundleDir/release/app-release.aab';
+      stderr.writeln('--mode $mode needs the file\'s path in aegis.yaml, relative to the project, e.g.:');
+      stderr.writeln('  $mode: $example');
       exit(2);
     } else if (mode == 'all') {
-      stdout.writeln('aegis: no release APK/AAB in build/, auditing the code only');
+      stdout.writeln('aegis: no apk:/aab: in aegis.yaml, auditing the code only');
     }
     if (config.file == null) {
       stdout.writeln('aegis: no aegis.yaml, using profile ${config.profile}. Run "aegis init" to set your app type.');
@@ -259,13 +281,30 @@ Future<void> main(List<String> arguments) async {
     }
   }
 
+  // `aegis run` with an app runs the resilience probe first; its results are
+  // rules AEG-R01..R04 in the same report. Plain `aegis` (CI) never does.
+  ProbeOutcome? probe;
+  if (run && apkPath != null && File(apkPath).existsSync()) {
+    final ar = config.lang == 'ar';
+    final outcome = (args['probe'] as bool)
+        ? await _runProbe(apkPath, lang: config.lang)
+        : ProbeOutcome.skipped(ar ? 'اتقفل بـ --no-probe' : 'turned off with --no-probe');
+    probe = outcome;
+    if (outcome.skipped != null) {
+      stdout.writeln(ar
+          ? 'aegis: اختبار الحماية اتخطّى (${outcome.skipped})، الفحص الثابت بس'
+          : 'aegis: resilience probe skipped (${outcome.skipped}), static checks only');
+    }
+  }
+
   final AuditReport report;
   try {
     report = await runAudit(path,
         config: config,
         offline: args['offline'] as bool,
         apkPath: apkPath,
-        baseline: baseline);
+        baseline: baseline,
+        probe: probe);
   } on FileSystemException catch (e) {
     stderr.writeln('${e.message}: ${e.path}');
     if (apkPath == null) stderr.writeln('Tip: use --apk <file> to audit a compiled APK without the source.');
@@ -616,33 +655,21 @@ Future<int> _probe(ArgResults a) async {
   final ar = lang == 'ar';
   if (a['help'] as bool) {
     stdout.writeln('Usage: aegis probe [app.apk|app.aab] [--project DIR] [--profile P] [--only root,hooking] [--lang en|ar]\n');
-    stdout.writeln('Runs the app on the aegis-probe emulator and checks whether its own');
-    stdout.writeln('anti-tampering reacts to the standard MASTG resilience conditions.');
+    stdout.writeln('Runs only the resilience probe: the app on the aegis-probe emulator, checking');
+    stdout.writeln('whether its own anti-tampering reacts to the standard MASTG conditions.');
+    stdout.writeln('The app is apk: (else aab:) in the project\'s aegis.yaml, unless a path is given.');
+    stdout.writeln('"aegis run --mode apk" runs the same probe and puts it in the full report.');
     stdout.writeln('Run "aegis setup" first to install the emulator and tools.\n');
     stdout.writeln(_probeParser().usage);
     return 0;
   }
 
-  // The app: a positional path, else the newest release build of --project
-  // (or of the current folder).
+  // The app: a positional path, else apk:/aab: in the project's aegis.yaml.
+  // The project is --project, else the one the given file sits in, else the
+  // current folder; its aegis.yaml also gives the profile.
   final projectArg = a['project'] as String?;
-  final rest = a.rest;
-  final appPath = rest.isNotEmpty ? rest.first : findNewestBinary(projectArg ?? '.')?.path;
-  if (appPath == null) {
-    stderr.writeln(ar
-        ? 'مفيش APK/AAB. ابنيه الأول أو مرّر مساره: aegis probe path/to/app.apk'
-        : 'No APK/AAB found. Build one or pass its path: aegis probe path/to/app.apk');
-    return 2;
-  }
-  if (!File(appPath).existsSync()) {
-    stderr.writeln('File not found: $appPath');
-    return 2;
-  }
-
-  // The profile comes from the app's own project (its aegis.yaml), found by
-  // walking up from the APK, so running aegis from another folder still uses
-  // the right profile. --project and --profile override it.
-  final projectDir = projectArg ?? projectOf(appPath) ?? '.';
+  var appPath = a.rest.isNotEmpty ? a.rest.first : null;
+  final projectDir = projectArg ?? (appPath == null ? null : projectOf(appPath)) ?? '.';
   AegisConfig config;
   try {
     config = AegisConfig.load(p.absolute(projectDir));
@@ -650,6 +677,21 @@ Future<int> _probe(ArgResults a) async {
     stderr.writeln(e.message);
     return 2;
   }
+  if (appPath == null) {
+    final value = config.apk ?? config.aab;
+    if (value == null) {
+      stderr.writeln(ar
+          ? 'حدّد مسار التطبيق في aegis.yaml (نسبةً للمشروع)، مثلًا:\n  apk: $flutterApkDir/app-release.apk\nأو مرّره: aegis probe path/to/app.apk'
+          : 'Set the app\'s path in aegis.yaml (relative to the project), e.g.:\n  apk: $flutterApkDir/app-release.apk\nor pass it: aegis probe path/to/app.apk');
+      return 2;
+    }
+    appPath = AegisConfig.resolve(p.absolute(projectDir), value)!;
+  }
+  if (!File(appPath).existsSync()) {
+    stderr.writeln('File not found: $appPath');
+    return 2;
+  }
+
   final profileArg = a['profile'] as String?;
   if (profileArg != null) {
     final profile = ProfileSet.tryParse(profileArg);
@@ -666,22 +708,60 @@ Future<int> _probe(ArgResults a) async {
       ? 'الـ profile: ${config.profile} (من $profileFrom)'
       : 'Profile: ${config.profile} (from $profileFrom)');
 
-  final isAab = appPath.toLowerCase().endsWith('.aab');
-
-  // The package name comes from the app's own manifest.
-  String? package;
   bool? obfuscated;
   try {
-    final ctx = ApkContext.load(appPath);
-    package = ctx.packageName;
-    obfuscated = _looksObfuscated(ctx);
+    obfuscated = _looksObfuscated(ApkContext.load(appPath));
   } on FormatException catch (e) {
     stderr.writeln(e.message);
     return 2;
   }
-  if (package == null) {
-    stderr.writeln(ar ? 'مش قادر أقرا اسم الحزمة من التطبيق.' : "Couldn't read the package name from the app.");
+
+  final only = (a['only'] as List<String>).toSet();
+  final outcome = await _runProbe(appPath, lang: lang, only: only.isEmpty ? null : only);
+  final report = outcome.report;
+  if (report == null) {
+    stderr.writeln(outcome.skipped);
     return 2;
+  }
+  stdout.writeln('');
+  stdout.write(renderProbe(report, lang: lang, resilienceProfile: config.profile.resilience));
+  if (appPath.toLowerCase().endsWith('.aab')) stdout.writeln('• ${_aabNote(lang)}');
+  if (obfuscated != null) {
+    final mode = appPath.toLowerCase().endsWith('.aab') ? 'aab' : 'apk';
+    stdout.writeln('');
+    stdout.writeln(obfuscated
+        ? (ar
+            ? 'ثابت (هندسة عكسية): النسخة دي معمولّها obfuscation ✅'
+            : 'Static (reverse engineering): this build is obfuscated ✅')
+        : (ar
+            ? 'ثابت (هندسة عكسية): النسخة دي مش معمولّها obfuscation ❌ — كود Dart مقروء. شغّل "aegis run --mode $mode" للتقرير الكامل (AEG-B07).'
+            : 'Static (reverse engineering): this build is NOT obfuscated ❌ — the Dart code is readable. Run "aegis run --mode $mode" for the full report (AEG-B07).'));
+  }
+  return probeExitCode(report, resilienceProfile: config.profile.resilience);
+}
+
+String _aabNote(String lang) => lang == 'ar'
+    ? 'الـ AAB اتحوّل لـ APK متوقّع بمفتاح debug، فحماية بتثبّت شهادة الـ release هتعتبره نسخة معدّلة من البداية.'
+    : 'The AAB was converted to an APK signed with a debug key, so a protection that pins your release certificate treats it as tampered from the start.';
+
+/// Runs the resilience probe on [appPath] (an APK or AAB) and prints its
+/// progress. Whatever stops it before the emulator runs (no package name,
+/// missing tools, an AAB that won't convert) comes back as a skipped
+/// outcome with the reason, so `aegis run` carries on with the static checks.
+Future<ProbeOutcome> _runProbe(String appPath, {required String lang, Set<String>? only}) async {
+  final ar = lang == 'ar';
+  final isAab = appPath.toLowerCase().endsWith('.aab');
+
+  // The package name comes from the app's own manifest.
+  String? package;
+  try {
+    package = ApkContext.load(appPath).packageName;
+  } on FormatException catch (e) {
+    return ProbeOutcome.skipped(e.message);
+  }
+  if (package == null) {
+    return ProbeOutcome.skipped(
+        ar ? 'مش قادر أقرا اسم الحزمة من التطبيق' : "couldn't read the package name from the app");
   }
 
   final host = SystemHost();
@@ -689,13 +769,11 @@ Future<int> _probe(ArgResults a) async {
   final missing = tools.missing(needsBundletool: isAab);
   if (missing.isNotEmpty) {
     final cmd = isAab ? 'aegis setup --aab' : 'aegis setup';
-    stderr.writeln(ar
-        ? 'ناقص: ${missing.join('، ')}. شغّل "$cmd" الأول.'
-        : 'Missing: ${missing.join(', ')}. Run "$cmd" first.');
-    return 2;
+    return ProbeOutcome.skipped(ar
+        ? 'ناقص ${missing.join('، ')}؛ شغّل "$cmd"'
+        : 'missing ${missing.join(', ')}; run "$cmd"');
   }
 
-  final only = (a['only'] as List<String>).toSet();
   final work = Directory.systemTemp.createTempSync('aegis-probe-');
   try {
     stdout.writeln(ar
@@ -712,33 +790,14 @@ Future<int> _probe(ArgResults a) async {
       installPath = p.join(work.path, 'universal.apk');
       final err = await device.aabToApk(appPath, p.join(work.path, 'app.apks'), installPath);
       if (err != null) {
-        stderr.writeln(ar ? 'تحويل الـ AAB فشل: $err' : 'Could not convert the AAB: $err');
-        return 2;
+        return ProbeOutcome.skipped(ar ? 'تحويل الـ AAB فشل: $err' : 'could not convert the AAB: $err');
       }
     }
-    final runner = ProbeRunner(device);
-    final report = await runner.run(
+    final report = await ProbeRunner(device).run(
         appPath: installPath, appLabel: appPath, package: package, workDir: work.path,
-        only: only.isEmpty ? null : only,
+        only: only,
         log: (m) => stdout.writeln('  · $m'));
-    stdout.writeln('');
-    stdout.write(renderProbe(report, lang: lang, resilienceProfile: config.profile.resilience));
-    if (isAab) {
-      stdout.writeln(ar
-          ? '• الـ AAB اتحوّل لـ APK متوقّع بمفتاح debug، فحماية بتثبّت شهادة الـ release هتعتبره نسخة معدّلة من البداية.'
-          : '• The AAB was converted to an APK signed with a debug key, so a protection that pins your release certificate treats it as tampered from the start.');
-    }
-    if (obfuscated != null) {
-      stdout.writeln('');
-      stdout.writeln(obfuscated
-          ? (ar
-              ? 'ثابت (هندسة عكسية): النسخة دي معمولّها obfuscation ✅'
-              : 'Static (reverse engineering): this build is obfuscated ✅')
-          : (ar
-              ? 'ثابت (هندسة عكسية): النسخة دي مش معمولّها obfuscation ❌ — كود Dart مقروء. شغّل "aegis run --mode ${isAab ? 'aab' : 'apk'}" لتفاصيل AEG-B07.'
-              : 'Static (reverse engineering): this build is NOT obfuscated ❌ — the Dart code is readable. Run "aegis run --mode ${isAab ? 'aab' : 'apk'}" for the full check (AEG-B07).'));
-    }
-    return probeExitCode(report, resilienceProfile: config.profile.resilience);
+    return ProbeOutcome.ran(report);
   } finally {
     try {
       work.deleteSync(recursive: true);
