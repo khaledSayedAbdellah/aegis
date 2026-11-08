@@ -2,8 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:aegis/aegis.dart';
+import 'package:aegis/src/binary/apk.dart';
+import 'package:aegis/src/probe/device.dart';
 import 'package:aegis/src/probe/host.dart';
 import 'package:aegis/src/probe/messages.dart';
+import 'package:aegis/src/probe/probe_report.dart';
+import 'package:aegis/src/probe/probe_runner.dart';
 import 'package:aegis/src/probe/setup.dart';
 import 'package:aegis/src/probe/toolchain.dart';
 import 'package:args/args.dart';
@@ -91,7 +95,16 @@ ArgParser _rootParser() => _parser()
   ..addCommand('run', _parser(run: true))
   ..addCommand('init', _initParser())
   ..addCommand('doctor', _toolsParser())
-  ..addCommand('setup', _toolsParser(setup: true));
+  ..addCommand('setup', _toolsParser(setup: true))
+  ..addCommand('probe', _probeParser());
+
+ArgParser _probeParser() => ArgParser()
+  ..addOption('lang', abbr: 'l', allowed: ['en', 'ar'], help: 'Output language (default: system).')
+  ..addOption('profile', help: 'MAS profile (default: aegis.yaml, else L1).')
+  ..addMultiOption('only',
+      allowed: ['root', 'debugger', 'hooking', 'repackage'],
+      help: 'Run only these checks.')
+  ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
 
 /// `ar` when the system language is Arabic, else `en`.
 String _systemLang() {
@@ -125,6 +138,9 @@ Future<void> main(List<String> arguments) async {
   if (root.command?.name == 'setup') {
     exit(await _setup(root.command!));
   }
+  if (root.command?.name == 'probe') {
+    exit(await _probe(root.command!));
+  }
   final run = root.command?.name == 'run';
   final args = run ? root.command! : root;
 
@@ -142,6 +158,7 @@ Future<void> main(List<String> arguments) async {
       stdout.writeln('  aegis run [--mode MODE]     Audit with friendly defaults: all, code, apk or aab.');
       stdout.writeln('  aegis doctor                Check the tools the resilience probe needs.');
       stdout.writeln('  aegis setup [--yes]         Install the missing ones (present ones are skipped).');
+      stdout.writeln('  aegis probe [app.apk]       Check on an emulator whether the app resists tampering.');
       stdout.writeln('  aegis [project-path] [options]   Full control, for CI.\n');
       stdout.writeln(parser.usage);
     }
@@ -569,4 +586,99 @@ Future<int> _setup(ArgResults a) async {
   stdout.writeln('');
   stdout.writeln(ok ? m.savedTo(t.toolsJsonPath) : m.stillMissing);
   return ok ? 0 : 1;
+}
+
+// --- probe ------------------------------------------------------------------
+
+Future<int> _probe(ArgResults a) async {
+  final lang = (a['lang'] as String?) ?? _systemLang();
+  final ar = lang == 'ar';
+  if (a['help'] as bool) {
+    stdout.writeln('Usage: aegis probe [app.apk] [--profile P] [--only root,hooking] [--lang en|ar]\n');
+    stdout.writeln('Runs the app on the aegis-probe emulator and checks whether its own');
+    stdout.writeln('anti-tampering reacts to the standard MASTG resilience conditions.');
+    stdout.writeln('Run "aegis setup" first to install the emulator and tools.\n');
+    stdout.writeln(_probeParser().usage);
+    return 0;
+  }
+
+  const projectDir = '.';
+  AegisConfig config;
+  try {
+    config = AegisConfig.load(p.absolute(projectDir));
+  } on FormatException catch (e) {
+    stderr.writeln(e.message);
+    return 2;
+  }
+  final profileArg = a['profile'] as String?;
+  if (profileArg != null) {
+    final profile = ProfileSet.tryParse(profileArg);
+    if (profile == null) {
+      stderr.writeln('Unknown profile "$profileArg". Use l1, l2, l1+r, l2+r or a preset.');
+      return 2;
+    }
+    config = config.copyWith(profile: profile);
+  }
+
+  // Resolve the app: a positional path, else the newest release build.
+  final rest = a.rest;
+  var appPath = rest.isNotEmpty ? rest.first : findNewestBinary(projectDir)?.path;
+  if (appPath == null) {
+    stderr.writeln(ar
+        ? 'مفيش APK/AAB. ابنيه الأول أو مرّر مساره: aegis probe path/to/app.apk'
+        : 'No APK/AAB found. Build one or pass its path: aegis probe path/to/app.apk');
+    return 2;
+  }
+  if (!File(appPath).existsSync()) {
+    stderr.writeln('File not found: $appPath');
+    return 2;
+  }
+  if (appPath.toLowerCase().endsWith('.aab')) {
+    stderr.writeln(ar
+        ? 'الـ probe بياخد APK دلوقتي. ابني APK (flutter build apk --release) ومرّره.'
+        : 'probe takes an APK for now. Build one (flutter build apk --release) and pass it.');
+    return 2;
+  }
+
+  // The package name comes from the app's own manifest.
+  String? package;
+  try {
+    package = ApkContext.load(appPath).packageName;
+  } on FormatException catch (e) {
+    stderr.writeln(e.message);
+    return 2;
+  }
+  if (package == null) {
+    stderr.writeln(ar ? 'مش قادر أقرا اسم الحزمة من التطبيق.' : "Couldn't read the package name from the app.");
+    return 2;
+  }
+
+  final host = SystemHost();
+  final tools = await ProbeTools.resolve(host, Toolchain(host));
+  final missing = tools.missing();
+  if (missing.isNotEmpty) {
+    stderr.writeln(ar
+        ? 'ناقص: ${missing.join('، ')}. شغّل "aegis setup" الأول.'
+        : 'Missing: ${missing.join(', ')}. Run "aegis setup" first.');
+    return 2;
+  }
+
+  final only = (a['only'] as List<String>).toSet();
+  final work = Directory.systemTemp.createTempSync('aegis-probe-');
+  try {
+    stdout.writeln(ar
+        ? 'بيشغّل $package على إيموليتر aegis-probe… (ممكن ياخد دقيقة)'
+        : 'Running $package on the aegis-probe emulator… (this can take a minute)');
+    final runner = ProbeRunner(Device(host, tools));
+    final report = await runner.run(
+        appPath: appPath, package: package, workDir: work.path,
+        only: only.isEmpty ? null : only);
+    stdout.writeln('');
+    stdout.write(renderProbe(report, lang: lang, resilienceProfile: config.profile.resilience));
+    return probeExitCode(report, resilienceProfile: config.profile.resilience);
+  } finally {
+    try {
+      work.deleteSync(recursive: true);
+    } catch (_) {}
+  }
 }

@@ -77,6 +77,14 @@ aegis setup                # installs the missing ones (asks once; --yes to skip
 
 `aegis setup` uses the Android SDK and JDK your Flutter build already uses (it never installs Java, the SDK or Flutter — it tells you how if they're missing). What it does install goes under `~/.aegis`: the SDK's emulator and an Android 14 image, an AVD named `aegis-probe`, a Python venv with Frida, and the matching `frida-server`. The Android SDK tools ask you to accept their licenses yourself. Anything already present is skipped, so a second `aegis setup` installs nothing. Add `--aab` to also fetch bundletool (needed only to probe an `.aab`).
 
+Then run the probe against a release build:
+
+```bash
+aegis probe build/app/outputs/flutter-apk/app-release.apk
+```
+
+It runs the app on the `aegis-probe` emulator and, for each standard OWASP MASTG resilience condition (root, debugger, Frida instrumentation, a re-signed build), reports whether the app's own protection reacted (✅), did not react (❌) or the check was inconclusive (⏸️). It checks first that the app even stays alive on a clean emulator; if it doesn't, every check is inconclusive and the report says so. A gap counts as a finding only when the active profile includes MAS-R. The probe tests your own build — it sets the standard condition and watches, it does not try to defeat any protection.
+
 ## Full control (CI)
 
 Plain `aegis` takes every setting as an option and only prints to the console unless asked, which is what CI scripts want:
@@ -344,6 +352,14 @@ aegis setup                # بيسطّب الناقص (بيسأل مرة واح
 ```
 
 `aegis setup` بيستخدم الـ Android SDK والـ JDK اللي الـ build بتاعك بيستخدمهم (عمره ما بيسطّب Java ولا الـ SDK ولا Flutter — بيقولك إزاي لو ناقصين). اللي بيسطّبه بيتحط في `~/.aegis`: محاكي وصورة Android 14، وجهاز وهمي اسمه `aegis-probe`، وبيئة Python فيها Frida، و`frida-server` بنفس الإصدار. أدوات الـ SDK هتطلب منك توافق على الرخص بنفسك. أي حاجة موجودة بيتخطّاها، فتشغيل `aegis setup` تاني ميسطبش حاجة. زوّد `--aab` لو عايز bundletool كمان (بتتستخدم لفحص الـ `.aab` بس).
+
+وبعدين شغّل الـ probe على نسخة release:
+
+```bash
+aegis probe build/app/outputs/flutter-apk/app-release.apk
+```
+
+بيشغّل التطبيق على إيموليتر `aegis-probe`، ولكل حالة قياسية من OWASP MASTG (root، debugger، حقن Frida، نسخة معاد توقيعها) بيقول إذا كانت حماية التطبيق ردّت (✅)، مردتش (❌)، ولا الاختبار مش حاسم (⏸️). بيتأكد الأول إن التطبيق بيفضل شغّال على إيموليتر نضيف؛ لو لأ، كل الاختبارات تبقى غير حاسمة والتقرير بيقول كده. المشكلة بتتحسب كـ finding بس لو الـ profile فيه MAS-R. الـ probe بيختبر نسختك إنت — بيحط الحالة القياسية ويراقب، مش بيحاول يكسر أي حماية.
 
 مع `--apk` الأداة بتفحص الـ APK اللي اتبنى فعلاً: الأسرار اللي اتحطت بـ `--dart-define`، والصلاحيات والمكونات اللي المكتبات ضافتها، والشهادة اللي وقّعت التطبيق، وهل الـ obfuscation اتعمل بجد. وبتطبعلك الـ hash اللي تحطه في إعدادات freeRASP.
 
