@@ -66,6 +66,17 @@ aegis run                  # code + the newest release APK/AAB in build/, if any
 
 The language follows `lang:` in aegis.yaml, else your system language. If `~/.pub-cache/bin` is not on your PATH, add `export PATH="$PATH:$HOME/.pub-cache/bin"` to your shell profile.
 
+## Prepare for the resilience probe
+
+A later command will check whether your app's anti-tampering actually resists a real attempt (run it on an emulator, try to attach and repackage, see what it blocks). That needs a few tools on your machine. aegis finds them the way Flutter does and installs only what you don't already have:
+
+```bash
+aegis doctor               # lists each tool: present, aegis can install it, or install it yourself
+aegis setup                # installs the missing ones (asks once; --yes to skip the prompt)
+```
+
+`aegis setup` uses the Android SDK and JDK your Flutter build already uses (it never installs Java, the SDK or Flutter — it tells you how if they're missing). What it does install goes under `~/.aegis`: the SDK's emulator and an Android 14 image, an AVD named `aegis-probe`, a Python venv with Frida, and the matching `frida-server`. The Android SDK tools ask you to accept their licenses yourself. Anything already present is skipped, so a second `aegis setup` installs nothing. Add `--aab` to also fetch bundletool (needed only to probe an `.aab`).
+
 ## Full control (CI)
 
 Plain `aegis` takes every setting as an option and only prints to the console unless asked, which is what CI scripts want:
@@ -324,6 +335,15 @@ aegis run --mode aab       # الكود + آخر AAB
 ```
 
 التقرير بيظهر في الـ terminal، وبيتكتب في `build/aegis-report.html` وبيتفتح في المتصفح على طول (`--no-open` لو مش عايزه يفتح، وفي الـ CI عمره ما بيفتح).
+
+قُدّام فيه أمر هيفحص إن حماية تطبيقك ضد التعديل شغالة فعلاً (بيشغّل التطبيق على محاكي، وبيجرّب يوصله ويعدّل عليه، ويشوف بيصد إيه). عشان كده محتاج شوية أدوات. aegis بيلاقيها بنفس طريقة Flutter، وبيسطّب اللي ناقص بس:
+
+```bash
+aegis doctor               # بيعرض كل أداة: موجودة، aegis هيسطّبها، أو سطّبها بنفسك
+aegis setup                # بيسطّب الناقص (بيسأل مرة واحدة؛ --yes يلغي السؤال)
+```
+
+`aegis setup` بيستخدم الـ Android SDK والـ JDK اللي الـ build بتاعك بيستخدمهم (عمره ما بيسطّب Java ولا الـ SDK ولا Flutter — بيقولك إزاي لو ناقصين). اللي بيسطّبه بيتحط في `~/.aegis`: محاكي وصورة Android 14، وجهاز وهمي اسمه `aegis-probe`، وبيئة Python فيها Frida، و`frida-server` بنفس الإصدار. أدوات الـ SDK هتطلب منك توافق على الرخص بنفسك. أي حاجة موجودة بيتخطّاها، فتشغيل `aegis setup` تاني ميسطبش حاجة. زوّد `--aab` لو عايز bundletool كمان (بتتستخدم لفحص الـ `.aab` بس).
 
 مع `--apk` الأداة بتفحص الـ APK اللي اتبنى فعلاً: الأسرار اللي اتحطت بـ `--dart-define`، والصلاحيات والمكونات اللي المكتبات ضافتها، والشهادة اللي وقّعت التطبيق، وهل الـ obfuscation اتعمل بجد. وبتطبعلك الـ hash اللي تحطه في إعدادات freeRASP.
 
