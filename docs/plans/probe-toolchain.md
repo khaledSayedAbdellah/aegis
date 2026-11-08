@@ -1,6 +1,6 @@
 # Plan: `aegis doctor` and `aegis setup` (probe toolchain)
 
-Status: **approved approach, not started**. Base: `main` at `afa44a8` (v0.5.0).
+Status: **approved by the owner 2026-11-08, in progress**. Base: `main` at `afa44a8` (v0.5.0).
 Read this whole file before writing code. Follow the steps in order; each step
 ends in a commit that leaves `dart analyze` and `dart test` green.
 
@@ -58,7 +58,7 @@ Use what a Flutter developer already has, install only what is new.
 | `android-sdk` | SDK root | see §4.1 | manual: install Android Studio |
 | `cmdline-tools` | `sdkmanager`, `avdmanager` | `<sdk>/cmdline-tools/latest/bin/` (then any `cmdline-tools/*/bin/`) | manual: Android Studio → Settings → Languages & Frameworks → Android SDK → SDK Tools → *Android SDK Command-line Tools (latest)* |
 | `platform-tools` | `adb` | `<sdk>/platform-tools/adb` | **setup**: `sdkmanager "platform-tools"` |
-| `build-tools` | `apksigner`, `zipalign` ≥ 30.0.0 | newest `<sdk>/build-tools/<ver>/` that has both | **setup**: `sdkmanager "build-tools;35.0.0"` |
+| `build-tools` | `apksigner`, `zipalign` ≥ 30.0.0 | newest `<sdk>/build-tools/<ver>/` that has both | **setup**: `sdkmanager "build-tools;36.0.0"` |
 | `emulator` | `<sdk>/emulator/emulator` | file exists | **setup**: `sdkmanager "emulator"` |
 | `system-image` | Android 14 Google APIs image | dir `<sdk>/system-images/android-34/google_apis/<abi>/` | **setup**: `sdkmanager "system-images;android-34;google_apis;<abi>"` (~1.5 GB) |
 | `avd` | AVD `aegis-probe` | dir `<avdHome>/aegis-probe.avd` + `aegis-probe.ini` | **setup**: `avdmanager create avd` (§5.3) |
@@ -93,8 +93,14 @@ Try in this order, stop at the first that gives an existing path:
 1. `ANDROID_HOME`, then `ANDROID_SDK_ROOT` (SDK); `JAVA_HOME` (Java).
 2. `flutter config --machine` → JSON; keys `android-sdk` and `jdk-dir` are
    present only when the user set them. Ignore anything else in the JSON.
-3. `flutter doctor -v` (slow, 5–20 s: run it **once**, only if 1–2 didn't
-   find both, and cache the text for the run). Parse with tolerant regexes:
+3. `flutter --no-wrap doctor -v` (slow, 5–20 s: run it **once**, only if
+   1–2 didn't find both, and cache the text for the run). In a terminal
+   Flutter wraps long lines at spaces (seen on the owner's Mac:
+   `Java binary at: /Applications/Android` + next line
+   `Studio.app/Contents/jbr/Contents/home/bin/java`), so `--no-wrap` is
+   required, and the parser still joins an indented line that doesn't start
+   with `•` or `[` onto the previous one with one space. Parse with tolerant
+   regexes:
    * SDK: `Android SDK at (.+)$`
    * Java: `Java binary at: (.+)$` → the JDK home is two levels up (`…/bin/java`).
 4. Defaults: SDK `~/Library/Android/sdk` (macOS), `~/Android/Sdk` (Linux),
@@ -102,10 +108,11 @@ Try in this order, stop at the first that gives an existing path:
    (`/Applications/Android Studio.app/Contents/jbr/Contents/Home` on macOS,
    `/opt/android-studio/jbr` and `~/android-studio/jbr` on Linux).
 
-**Before writing the regexes, get a real `flutter doctor -v` and
-`flutter config --machine` output from the owner's Mac** and save them as
-test fixtures in `test/fixtures/toolchain/` (replace the home path with
-`/Users/dev`). Do not guess the format.
+The owner's real outputs are the test fixtures in
+`test/fixtures/toolchain/` (home replaced with `/Users/dev`). On his Mac
+`flutter config --machine` already has `jdk-dir` and `android-sdk`, so step 3
+never runs there. Paths may differ in case (`Contents/home` vs
+`Contents/Home`): compare paths as given, don't normalise case.
 
 Java version: run `<jdk>/bin/java -version` (prints to **stderr**). Parse
 `version "21.0.3"` → 21, `version "1.8.0_382"` → 8. Below 17 → manual.
@@ -146,19 +153,18 @@ One file with every version aegis installs, so results are reproducible and
 upgrading is one edit:
 
 ```dart
-const fridaVersion = '<x.y.z>';        // frida on PyPI = frida-server on GitHub
-const fridaToolsVersion = '<a.b.c>';   // a frida-tools release that accepts that frida
-const buildToolsVersion = '35.0.0';
+const fridaVersion = '17.26.2';       // frida on PyPI = frida-server on GitHub
+const fridaToolsVersion = '14.13.0';  // requires frida >=17.26.0 <18
+const buildToolsVersion = '36.0.0';   // what Flutter 3.41 uses
 const systemImageApi = 34;
-const bundletoolVersion = '<1.x.y>';
+const bundletoolVersion = '1.18.3';
 const avdName = 'aegis-probe';
 ```
 
-Fill the `<…>` with the newest stable releases **on the day you implement**
-(check pypi.org/project/frida, pypi.org/project/frida-tools,
-github.com/google/bundletool/releases), and confirm that
-`frida-server-<fridaVersion>-android-arm64.xz` exists in
-github.com/frida/frida/releases/tag/<fridaVersion>.
+Checked 2026-11-08: newest on PyPI, the frida-tools wheel's `Requires-Dist`,
+and both release assets
+(`frida-server-17.26.2-android-arm64.xz`, `bundletool-all-1.18.3.jar`)
+answer 302 on github.com. To upgrade later, repeat those three checks.
 
 ### 5.3 AVD
 

@@ -1,0 +1,13 @@
+[✓] Flutter (Channel stable, 3.41.9, on macOS 26.7 25G229 darwin-arm64, locale en-EG) [741ms]
+    • Flutter version 3.41.9 on channel stable at /Users/dev/developer/flutter_3.41.9
+[✓] Android toolchain - develop for Android devices (Android SDK version 36.0.0) [2.2s]
+    • Android SDK at /Users/dev/Library/Android/sdk
+    • Emulator version 37.1.11.0 (build_id 15917651) (CL:N/A)
+    • Platform android-36, build-tools 36.0.0
+    • Java binary at: /Applications/Android Studio.app/Contents/jbr/Contents/home/bin/java
+      This JDK is specified in your Flutter configuration.
+      To change the current JDK, run: `flutter config --jdk-dir="path/to/jdk"`.
+    • Java version OpenJDK Runtime Environment (build 21.0.6+-13368085-b895.109)
+    • All Android licenses accepted.
+
+• No issues found!
