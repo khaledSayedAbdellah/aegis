@@ -52,6 +52,9 @@ class ProbeRunner {
     final bootErr = await dev.bootEmulator(log: log, logPath: '$workDir/emulator.log');
     if (bootErr != null) return allInconclusive(bootErr, emulatorError: bootErr);
     await dev.adbRoot();
+    // A frida-server left over from an earlier run would be seen by a
+    // protection that looks for it, and blamed on the wrong check.
+    await dev.stopFridaServer();
 
     log('installing $package…');
     // Clear any build left by an earlier probe (a re-signed one would make
@@ -99,6 +102,8 @@ class ProbeRunner {
         await dev.fridaAttach(package);
         return true;
       }));
+      // Done with it: the following checks must run without frida-server.
+      await dev.stopFridaServer();
     }
     if (wanted('debugger')) {
       log('check: debugger…');

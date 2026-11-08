@@ -101,6 +101,7 @@ abstract interface class ProbeDevice {
   Future<void> clearLogcat();
   Future<String> logcat();
   Future<String?> startFridaServer();
+  Future<void> stopFridaServer();
   Future<String?> fridaAttach(String package);
   Future<String?> attachDebugger(String package);
   Future<void> clearDebugApp();
@@ -304,6 +305,13 @@ class Device implements ProbeDevice {
     if (pid == null) return 'app not running';
     final fwd = await _run(_adb(['forward', 'tcp:8700', 'jdwp:$pid']));
     return fwd != null && fwd.ok ? null : 'could not open a JDWP channel';
+  }
+
+  /// Stops a frida-server left running on the device (by this probe or an
+  /// earlier one), so it can't influence the checks that don't involve it.
+  @override
+  Future<void> stopFridaServer() async {
+    await _run(_adb(['shell', 'su', '0', 'pkill', '-f', 'frida-server']));
   }
 
   @override

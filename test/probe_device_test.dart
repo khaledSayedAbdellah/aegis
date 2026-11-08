@@ -87,6 +87,11 @@ void main() {
       expect(h.ran.any((c) => c.contains('frida-server >/dev/null 2>&1 &')), isTrue);
     });
 
+    test('stopFridaServer kills a running server', () async {
+      await d.stopFridaServer();
+      expect(h.ran, contains('/adb shell su 0 pkill -f frida-server'));
+    });
+
     test('fridaAttach runs a one-line session against the app', () async {
       expect(await d.fridaAttach('com.x'), isNull);
       expect(h.ran, contains('/venv/frida -U -n com.x -q -e true'));
