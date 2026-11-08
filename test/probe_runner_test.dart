@@ -59,6 +59,9 @@ class FakeDevice implements ProbeDevice {
   }
 
   @override
+  Future<void> stopFridaServer() async => calls.add('stop-frida');
+
+  @override
   Future<String?> fridaAttach(String package) async {
     calls.add('frida-attach');
     return null;
@@ -130,6 +133,17 @@ void main() {
     final r = await run(d, only: {'hooking'});
     expect(statusOfId(r, 'hooking'), ProbeStatus.blocked);
     expect(d.calls, contains('frida-server'));
+  });
+
+  test('frida-server is stopped before the baseline and right after the Frida check', () async {
+    final d = FakeDevice();
+    await run(d, only: {'hooking', 'debugger'});
+    final c = d.calls;
+    // Stopped before anything is launched…
+    expect(c.indexOf('stop-frida'), lessThan(c.indexOf('launch')));
+    // …and again after the Frida check, before the debugger check.
+    expect(c.lastIndexOf('stop-frida'), greaterThan(c.indexOf('frida-attach')));
+    expect(c.lastIndexOf('stop-frida'), lessThan(c.indexOf('debugger')));
   });
 
   test('frida-server failing to start → hooking inconclusive', () async {
