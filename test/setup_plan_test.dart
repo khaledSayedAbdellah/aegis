@@ -18,7 +18,7 @@ void main() {
   });
 
   test('a ready Mac installs only the new tools, in order', () async {
-    final all = await studioMac().checkAll();
+    final all = await Toolchain(studioMac()).checkAll();
     final plan = Setup(Toolchain(studioMac())).buildPlan(all);
     expect(plan.steps.map((s) => s.id),
         ['build-tools', 'emulator', 'system-image', 'avd', 'frida', 'frida-server']);
@@ -51,15 +51,15 @@ void main() {
   });
 
   test('bundletool only when --aab made it installable', () async {
-    final without = Setup(Toolchain(studioMac())).buildPlan(await studioMac().checkAll());
+    final without = Setup(Toolchain(studioMac())).buildPlan(await Toolchain(studioMac()).checkAll());
     expect(without.steps.map((s) => s.id), isNot(contains('bundletool')));
-    final withAab = Setup(Toolchain(studioMac())).buildPlan(await studioMac().checkAll(aab: true));
+    final withAab = Setup(Toolchain(studioMac())).buildPlan(await Toolchain(studioMac()).checkAll(aab: true));
     expect(withAab.steps.last.id, 'bundletool');
   });
 
   test('the SDK packages are gathered for one sdkmanager call', () async {
     final setup = Setup(Toolchain(studioMac()));
-    final plan = setup.buildPlan(await studioMac().checkAll());
+    final plan = setup.buildPlan(await Toolchain(studioMac()).checkAll());
     expect(setup.sdkmanagerPackages(plan),
         ['build-tools;36.0.0', 'emulator', 'system-images;android-34;google_apis;arm64-v8a']);
   });
