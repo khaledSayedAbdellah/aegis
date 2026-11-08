@@ -36,7 +36,10 @@ class FakeDevice implements ProbeDevice {
   @override
   Future<void> uninstall(String package) async {}
   @override
-  Future<void> launch(String package) async => calls.add('launch');
+  Future<String> launch(String package) async {
+    calls.add('launch');
+    return '';
+  }
   @override
   Future<int?> pidOf(String package) async => pidValue;
   @override
