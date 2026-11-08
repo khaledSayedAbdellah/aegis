@@ -10,7 +10,9 @@ import 'binary/apk.dart';
 import 'config.dart';
 import 'masvs.dart';
 import 'model.dart';
+import 'probe/probe_model.dart';
 import 'project.dart';
+import 'rules/probe_rules.dart';
 import 'rules/registry.dart';
 import 'rules/rule.dart';
 import 'scoring.dart';
@@ -30,6 +32,7 @@ class AuditReport {
     this.scannedPackages = const [],
     this.baselinePath,
     this.baselineResolved = const [],
+    this.probe,
   });
 
   final String projectName;
@@ -57,6 +60,10 @@ class AuditReport {
   final List<BaselineEntry> baselineResolved;
 
   bool get usesBaseline => baselinePath != null;
+
+  /// The resilience probe's outcome when this run tried it: its report (also
+  /// reflected in rules AEG-R01..R04) or why it was skipped.
+  final ProbeOutcome? probe;
 
   Iterable<RuleResult> get failed =>
       results.where((r) => r.status == RuleStatus.failed);
@@ -190,6 +197,7 @@ Future<AuditReport> runAudit(
   List<Rule>? rules,
   String? apkPath,
   Baseline? baseline,
+  ProbeOutcome? probe,
 }) async {
   final apk = apkPath == null ? null : ApkContext.load(apkPath);
   final hasPubspec = File(p.join(path, 'pubspec.yaml')).existsSync();
@@ -200,6 +208,7 @@ Future<AuditReport> runAudit(
     project = Project.load(path, config: config)..apk = apk;
   }
   project.offline = offline;
+  project.probe = probe;
   final cfg = project.config;
   final profile = cfg.profile;
   final results = <RuleResult>[];
@@ -234,6 +243,8 @@ Future<AuditReport> runAudit(
       [
         if (project.hasSource) ...allRules,
         if (project.apk != null) ...apkRules,
+        // Only in a run that tried the probe (aegis run --mode apk|aab|all).
+        if (project.apk != null && probe != null) ...probeRules,
       ];
   // Binary rules are written for APKs; for a bundle they say "AAB".
   final bundle = project.apk?.isBundle ?? false;
@@ -313,5 +324,6 @@ Future<AuditReport> runAudit(
     scannedPackages: project.scannedPackages,
     baselinePath: baseline == null ? null : (baseline.path ?? defaultBaselineFile),
     baselineResolved: resolved,
+    probe: probe,
   );
 }

@@ -12,6 +12,7 @@ import 'binary/apk.dart';
 import 'config.dart';
 import 'dart_scanner.dart';
 import 'plist.dart';
+import 'probe/probe_model.dart';
 import 'util.dart';
 
 const androidNs = 'http://schemas.android.com/apk/res/android';
@@ -47,6 +48,9 @@ class Project {
 
   /// The release APK to audit alongside the source, if any.
   ApkContext? apk;
+
+  /// The resilience probe's outcome when this run tried it (rules AEG-R01..R04).
+  ProbeOutcome? probe;
 
   late final String name;
   Map<dynamic, dynamic> pubspec = {};
