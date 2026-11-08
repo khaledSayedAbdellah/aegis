@@ -19,6 +19,8 @@ class Strings {
   String get control => _t('Control', 'البند');
   String get result => _t('Result', 'النتيجة');
   String get rules => _t('Rules', 'القواعد');
+  String get probeCheck => _t('Check', 'الفحص');
+  String get probeObserved => _t('Observed', 'اللي حصل');
   String get coverageLegend => _t(
       '✅ checked and passed · ❌ checked, has problems (in bold) · ❔ check it yourself · — not covered by aegis',
       '✅ اتفحص وسليم · ❌ اتفحص وفيه مشاكل (القواعد اللي بالـ bold) · ❔ لازم تتأكد منه بنفسك · — aegis مش بيغطيه');
