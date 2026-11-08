@@ -104,22 +104,56 @@ void main() {
       expect(r.stdout, contains('aegis init'), reason: 'no aegis.yaml yet');
     });
 
-    test('apk mode without a built APK explains how to build one', () async {
-      final r = await aegis(['run', project().path, '--mode', 'apk', '--offline']);
+    test('apk mode needs apk: in aegis.yaml, even when an APK is built', () async {
+      final dir = project();
+      put(dir, '$flutterApkDir/app-release.apk',
+          bytes: File('test/fixtures/apk/secure.apk').readAsBytesSync());
+      final r = await aegis(['run', dir.path, '--mode', 'apk', '--offline']);
       expect(r.exitCode, 2);
-      expect(r.stderr, contains('flutter build apk --release'));
+      expect(r.stderr, contains('apk: $flutterApkDir/app-release.apk'));
     });
 
-    test('all mode picks up the APK in build/', () async {
+    test('a path in aegis.yaml that does not exist says how to build it', () async {
+      final dir = project();
+      File(p.join(dir.path, 'aegis.yaml')).writeAsStringSync('profile: l1\napk: out/app.apk\n');
+      final r = await aegis(['run', dir.path, '--mode', 'apk', '--offline']);
+      expect(r.exitCode, 2);
+      expect(r.stderr, contains('flutter build apk --release'));
+      expect(r.stderr, contains('apk: out/app.apk'));
+    });
+
+    test('all mode audits the APK set in aegis.yaml, wherever it is', () async {
+      final dir = project();
+      put(dir, 'dist/my-app-1.2.3.apk', bytes: File('test/fixtures/apk/secure.apk').readAsBytesSync());
+      File(p.join(dir.path, 'aegis.yaml'))
+          .writeAsStringSync('profile: l2+r\nlang: en\napk: dist/my-app-1.2.3.apk\n');
+      final r = await aegis(['run', dir.path, '--offline', '--no-color', '--no-probe', '-f', 'console,json']);
+      expect(r.exitCode, isNot(2), reason: '${r.stdout}${r.stderr}');
+      expect(r.stdout, contains('auditing the code and dist/my-app-1.2.3.apk'));
+      expect(r.stdout, contains('APK: my-app-1.2.3.apk'));
+      expect(r.stdout, contains('resilience probe skipped (turned off with --no-probe)'));
+      expect(r.stdout, contains('Resilience probe'), reason: 'the report says the probe was skipped');
+      expect(r.stdout, isNot(contains('aegis init')), reason: 'aegis.yaml exists');
+      final json = File(p.join(dir.path, 'build', 'aegis-report.json')).readAsStringSync();
+      expect(json, contains('"skipped"'));
+    });
+
+    test('all mode without apk:/aab: audits the code only, even when an APK is built', () async {
       final dir = project();
       put(dir, '$flutterApkDir/app-release.apk',
           bytes: File('test/fixtures/apk/secure.apk').readAsBytesSync());
       File(p.join(dir.path, 'aegis.yaml')).writeAsStringSync('profile: l1\nlang: en\n');
       final r = await aegis(['run', dir.path, '--offline', '--no-color']);
       expect(r.exitCode, isNot(2), reason: '${r.stdout}${r.stderr}');
-      expect(r.stdout, contains('auditing the code and build/app/outputs/flutter-apk/app-release.apk'));
-      expect(r.stdout, contains('APK: app-release.apk'));
-      expect(r.stdout, isNot(contains('aegis init')), reason: 'aegis.yaml exists');
+      expect(r.stdout, contains('no apk:/aab: in aegis.yaml, auditing the code only'));
+      expect(r.stdout, isNot(contains('Resilience probe')));
+    });
+
+    test('aegis probe needs apk:/aab: or a path', () async {
+      final dir = project();
+      final r = await aegis(['probe', '--project', dir.path]);
+      expect(r.exitCode, 2);
+      expect(r.stderr, contains('apk: $flutterApkDir/app-release.apk'));
     });
 
     test('plain aegis keeps its CI defaults', () async {
@@ -128,6 +162,14 @@ void main() {
       expect(r.exitCode, isNot(2), reason: '${r.stdout}${r.stderr}');
       expect(File(p.join(dir.path, 'build', 'aegis-report.html')).existsSync(), isFalse,
           reason: 'only the console report by default');
+    });
+
+    test('plain aegis never runs the probe, even with --apk', () async {
+      final dir = project();
+      final r = await aegis([dir.path, '--apk', 'test/fixtures/apk/secure.apk', '--offline', '--no-color']);
+      expect(r.exitCode, isNot(2), reason: '${r.stdout}${r.stderr}');
+      expect(r.stdout, isNot(contains('Resilience probe')));
+      expect(r.stdout, isNot(contains('aegis-probe emulator')));
     });
   });
 }
