@@ -71,6 +71,10 @@ void main() {
     final err = await Setup(t).install('frida');
     expect(err, isNull);
     expect(h.ran.any((c) => c.contains('-m venv')), isTrue);
+    final pipUpgrade = h.ran.indexWhere((c) => c.endsWith('-m pip install --upgrade pip'));
+    final fridaInstall = h.ran.indexWhere((c) => c.contains('frida=='));
+    expect(pipUpgrade, greaterThanOrEqualTo(0));
+    expect(pipUpgrade, lessThan(fridaInstall), reason: 'pip is upgraded first');
     expect(h.ran.any((c) => c.contains('pip install') && c.contains('frida==${pins.fridaVersion}')), isTrue);
   });
 

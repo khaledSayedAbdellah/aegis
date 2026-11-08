@@ -266,6 +266,13 @@ class Setup {
       final code = await host.runAttached(py, ['-m', 'venv', toolchain.venvDir]);
       if (code != 0) return 'could not create the venv (exit $code)';
     }
+    // The venv's pip comes from the system Python and can be too old for the
+    // current Frida wheels (Xcode's Python 3.9 ships pip 21). Upgrade it inside
+    // the venv only.
+    log('pip install --upgrade pip');
+    final pipCode = await host.runAttached(
+        venvPython, ['-m', 'pip', 'install', '--upgrade', 'pip']);
+    if (pipCode != 0) return 'could not upgrade pip in the venv (exit $pipCode)';
     log('pip install frida==${pins.fridaVersion} frida-tools==${pins.fridaToolsVersion}');
     final code = await host.runAttached(venvPython, [
       '-m', 'pip', 'install', '--upgrade',
