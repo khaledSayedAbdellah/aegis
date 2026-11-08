@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:aegis/aegis.dart';
-import 'package:aegis/src/binary/apk.dart';
 import 'package:aegis/src/probe/device.dart';
 import 'package:aegis/src/probe/host.dart';
 import 'package:aegis/src/probe/messages.dart';
