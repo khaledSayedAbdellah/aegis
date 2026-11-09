@@ -15,6 +15,7 @@ import '../project.dart' show androidAttr, firstElement;
 import 'axml.dart';
 import 'proto_xml.dart';
 import 'signing.dart';
+import 'resources.dart';
 import 'zip.dart';
 
 const _abiPreference = ['arm64-v8a', 'armeabi-v7a', 'x86_64', 'x86'];
@@ -31,8 +32,8 @@ class ApkContext {
     }
     final archive = ZipReader.file(path);
     if (archive.contains('base/manifest/AndroidManifest.xml')) {
-      return ApkContext._(path, archive.renamed(bundleView(archive.entries.keys)), archive,
-          isBundle: true);
+      return _validated(ApkContext._(path, archive.renamed(bundleView(archive.entries.keys)), archive,
+          isBundle: true));
     }
     if (lower.endsWith('.aab')) {
       throw const FormatException(
@@ -41,7 +42,16 @@ class ApkContext {
     if (!archive.contains('AndroidManifest.xml')) {
       throw const FormatException('No AndroidManifest.xml: this is not an APK.');
     }
-    return ApkContext._(path, archive, archive);
+    return _validated(ApkContext._(path, archive, archive));
+  }
+
+  static ApkContext _validated(ApkContext apk) {
+    if (apk.manifest?.rootElement.name.local != 'manifest' ||
+        !RegExp(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*$')
+            .hasMatch(apk.packageName ?? '')) {
+      throw const FormatException('Could not read a valid AndroidManifest.xml.');
+    }
+    return apk;
   }
 
   /// Maps AAB entry names to the names they would have in an APK. The base
@@ -127,23 +137,47 @@ class ApkContext {
   int? get targetSdk => int.tryParse(
       (_usesSdk == null ? null : androidAttr(_usesSdk!, 'targetSdkVersion')) ?? '');
 
-  /// The network security config, found by decoding res/**/*.xml files and
-  /// looking for a `<network-security-config>` root (resource names may be
-  /// obfuscated, so the manifest reference cannot be followed by name).
-  late final (String, XmlDocument)? networkSecurityConfig = _findNsc();
+  String? get networkSecurityConfigReference =>
+      application == null ? null : androidAttr(application!, 'networkSecurityConfig');
 
-  (String, XmlDocument)? _findNsc() {
-    for (final e in zip.entries.values) {
-      if (!e.name.startsWith('res/') || !e.name.endsWith('.xml')) continue;
-      if (e.size > 64 * 1024) continue;
-      final text = _decode(e.name);
-      if (text == null || !text.contains('network-security-config')) continue;
-      final doc = _parse(text);
-      if (doc != null && doc.rootElement.name.local == 'network-security-config') {
-        return (e.name, doc);
+  /// First resolved variant, for callers that only need one document.
+  (String, XmlDocument)? get networkSecurityConfig => networkSecurityConfigs.firstOrNull;
+
+  /// All variants of the resource referenced by the manifest.
+  late final List<(String, XmlDocument)> networkSecurityConfigs = _findNsc();
+
+  List<(String, XmlDocument)> _findNsc() {
+    final reference = networkSecurityConfigReference;
+    if (reference == null || reference == '@null') return const [];
+    final numeric = RegExp(r'^@0x([0-9a-fA-F]+)$').firstMatch(reference);
+    final named = RegExp(r'^@(?:([\w.]+):)?xml/([\w.]+)$').firstMatch(reference);
+    final id = numeric == null ? null : int.tryParse(numeric[1]!, radix: 16);
+    final name = named?[2];
+    final resourcePackage = named?[1] ?? packageName;
+    final paths = <String>{};
+    if (id != null || name != null) {
+      if (isBundle && zip.contains('resources.pb')) {
+        paths.addAll(protoResourceFiles(zip.read('resources.pb')!, id: id, name: name, packageName: resourcePackage));
+      } else if (!isBundle && id != null && zip.contains('resources.arsc')) {
+        paths.addAll(androidResourceFiles(zip.read('resources.arsc')!, id));
+      } else if (name != null && resourcePackage == packageName) {
+        final path = RegExp('^res/xml(?:-[^/]+)?/${RegExp.escape(name)}\\.xml\$');
+        paths.addAll(zip.entries.keys.where(path.hasMatch));
       }
     }
-    return null;
+    if (paths.isEmpty) throw FormatException('Cannot resolve network security config $reference');
+    return [
+      for (final path in paths)
+        (path, _readNsc(path)),
+    ];
+  }
+
+  XmlDocument _readNsc(String path) {
+    final doc = _parse(isBundle ? _decode('base/$path', from: archive) : _decode(path));
+    if (doc == null || doc.rootElement.name.local != 'network-security-config') {
+      throw FormatException('Cannot decode network security config $path');
+    }
+    return doc;
   }
 
   bool get isFlutter =>
@@ -188,9 +222,9 @@ class ApkContext {
 
   int get sizeBytes => archive.bytes.length;
 
-  String? _decode(String entry) {
+  String? _decode(String entry, {ZipReader? from}) {
     try {
-      final bytes = zip.read(entry);
+      final bytes = (from ?? zip).read(entry);
       if (bytes == null) return null;
       if (isBinaryXml(bytes)) return decodeBinaryXml(bytes);
       if (isBundle && isProtoXml(bytes)) return decodeProtoXml(bytes);

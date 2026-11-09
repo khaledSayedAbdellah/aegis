@@ -54,8 +54,15 @@ String renderAzure(AuditReport r, {Severity? failOn, bool failing = false}) {
   if (skipped > 0) {
     b.writeln('##vso[task.logissue type=warning;]${_escapeData('aegis: $skipped more findings, see the report artifact.')}');
   }
-  if (r.newFindingCount > 0 && !failing) {
-    b.writeln('##vso[task.complete result=SucceededWithIssues;]aegis found new issues below the failure threshold');
+  if (!r.complete) {
+    final ids = r.incomplete.map((r) => r.meta.id).join(', ');
+    b.writeln('##vso[task.logissue type=warning;]${_escapeData(
+        ids.isNotEmpty ? 'aegis: incomplete checks ($ids)'
+            : r.probe?.incomplete == true ? 'aegis: resilience probe incomplete'
+            : 'aegis: no checks completed')}');
+  }
+  if ((r.newFindingCount > 0 || !r.complete) && !failing) {
+    b.writeln('##vso[task.complete result=SucceededWithIssues;]aegis reported findings or an incomplete audit');
   }
   return b.toString();
 }

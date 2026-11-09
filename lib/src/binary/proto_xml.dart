@@ -263,3 +263,57 @@ String _escape(String s) => s
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
+
+/// Resolves the file values of a compiled bundle resource.
+Set<String> protoResourceFiles(Uint8List bytes, {int? id, String? name, String? packageName}) {
+  Iterable<List<_Field>> messages(List<_Field> fields, int number) =>
+      fields.where((f) => f.number == number && f.bytes != null)
+          .map((f) => _fields(f.bytes!));
+  int? resourceId(List<_Field> fields) =>
+      messages(fields, 1).map((m) => _intField(m, 1) ?? 0).firstOrNull;
+
+  final packages = messages(_fields(bytes), 2).toList();
+  final visiting = <(int?, String?, String?)>{};
+  final resolved = <(int?, String?, String?), Set<String>>{};
+  Set<String> resolve(int? id, String? name, String? packageName) {
+    final key = (id, name, packageName);
+    final cached = resolved[key];
+    if (cached != null) return cached;
+    if (visiting.length >= 32 || !visiting.add(key)) {
+      throw const FormatException('Cyclic or excessive bundle resource aliases');
+    }
+
+    final paths = <String>{};
+    for (final package in packages) {
+      final packageLabel = _stringField(package, 2);
+      if (id != null ? resourceId(package) != id >> 24 : packageName != packageLabel) continue;
+      for (final type in messages(package, 3)) {
+        if (id != null ? resourceId(type) != (id >> 16 & 0xff) : _stringField(type, 2) != 'xml') continue;
+        for (final entry in messages(type, 3)) {
+          if (id != null ? resourceId(entry) != (id & 0xffff) : _stringField(entry, 2) != name) continue;
+          for (final config in messages(entry, 6)) {
+            final item = messages(config, 2).expand((v) => messages(v, 4)).firstOrNull;
+            final file = item == null ? null : messages(item, 5).firstOrNull;
+            if (file != null && _stringField(file, 1).isNotEmpty) {
+              paths.add(_stringField(file, 1));
+              continue;
+            }
+            final ref = item == null ? null : messages(item, 1).firstOrNull;
+            final refId = ref == null ? null : _intField(ref, 2);
+            final refName = RegExp(r'^(?:([\w.]+):)?xml/([\w.]+)$')
+                .firstMatch(ref == null ? '' : _stringField(ref, 3));
+            if ((refId == null || refId == 0) && refName == null) {
+              throw const FormatException('Expected a bundle resource file path or alias');
+            }
+            paths.addAll(resolve(refId == 0 ? null : refId, refName?[2], refName?[1] ?? packageLabel));
+          }
+        }
+      }
+    }
+    visiting.remove(key);
+    if (paths.isEmpty) throw const FormatException('Bundle resource has no file variants');
+    return resolved[key] = paths;
+  }
+
+  return resolve(id, name, packageName);
+}

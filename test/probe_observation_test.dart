@@ -3,33 +3,23 @@ import 'package:aegis/src/probe/probe_model.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('statusOf', () {
-    test('alive before and after, no crash → notBlocked', () {
-      expect(
-          statusOf(const Observation(setupOk: true, aliveBefore: true, aliveAfter: true)),
-          ProbeStatus.notBlocked);
-    });
+  test('matches app events by process and check and detects conflicts', () {
+    const event = '11-08 15:29:21.344  91  91 I AegisProbe: root blocked';
+    expect(appProbeVerdict(event, 'com.app', 'root', pid: 91), ProbeStatus.blocked);
+    expect(appProbeVerdict(event, 'com.app', 'root', pid: 92), isNull);
+    expect(appProbeVerdict(event, 'com.app', 'hooking', pid: 91), isNull);
+    expect(appProbeVerdict('$event\n${event.replaceAll('blocked', 'not-blocked')}',
+        'com.app', 'root', pid: 91), ProbeStatus.inconclusive);
+  });
 
-    test('gone after the condition → blocked', () {
-      expect(
-          statusOf(const Observation(setupOk: true, aliveBefore: true, aliveAfter: false)),
-          ProbeStatus.blocked);
-    });
-
-    test('still running but crash logged → blocked', () {
-      expect(
-          statusOf(const Observation(
-              setupOk: true, aliveBefore: true, aliveAfter: true, appDeathLogged: true)),
-          ProbeStatus.blocked);
-    });
-
-    test('setup failed or never alive → inconclusive', () {
-      expect(statusOf(const Observation(setupOk: false, aliveBefore: true, aliveAfter: true)),
-          ProbeStatus.inconclusive);
-      expect(statusOf(const Observation(setupOk: true, aliveBefore: false, aliveAfter: false)),
-          ProbeStatus.inconclusive);
-      expect(statusOf(const Observation.inconclusive()), ProbeStatus.inconclusive);
-    });
+  test('self-exit evidence requires a fresh record for the exact process', () {
+    const record = '  timestamp=2026-11-09 22:16:00.123 pid=91 realUid=10014\n'
+        '  process=com.app reason=1 (EXIT_SELF) subreason=0 (UNKNOWN) status=7';
+    expect(observedSelfExit('', record, 'com.app', 91), isTrue);
+    expect(observedSelfExit(record, record, 'com.app', 91), isFalse);
+    expect(observedSelfExit('', record, 'com.app', 92), isFalse);
+    expect(observedSelfExit('', record, 'com.app.other', 91), isFalse);
+    expect(observedSelfExit('', record.replaceFirst('reason=1', 'reason=4'), 'com.app', 91), isFalse);
   });
 
   group('logcatShowsAppDeath (app-scoped)', () {

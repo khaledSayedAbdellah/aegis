@@ -73,6 +73,11 @@ void main() {
         Baseline.fingerprint(finding('AEG-B03', 'allowBackup is on.', file: 'app-prod-release.apk!/AndroidManifest.xml')),
       );
     });
+
+    test('APK set probe findings match APK probe findings', () {
+      expect(Baseline.normalizeFile('release.apks!/runtime'), 'apk!/runtime');
+      expect(Baseline.normalizeFile('play-splits!/runtime'), 'apk!/runtime');
+    });
   });
 
   group('Matching', () {

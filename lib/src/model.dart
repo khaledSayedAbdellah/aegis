@@ -249,6 +249,9 @@ enum RuleStatus {
   /// The rule does not apply (e.g. no `ios/` folder).
   notApplicable,
 
+  /// The rule could not complete or reach a verdict.
+  incomplete,
+
   /// The rule is disabled in `aegis.yaml`.
   disabled,
 
@@ -263,11 +266,13 @@ class RuleResult {
     required this.severity,
     this.findings = const [],
     this.suppressed = 0,
+    this.incomplete = false,
     this.note,
   });
 
   final RuleMeta meta;
   final RuleStatus status;
+  final bool incomplete;
 
   /// Effective severity for the selected profile.
   final Severity severity;

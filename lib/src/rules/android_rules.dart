@@ -48,8 +48,9 @@ class DebuggableRule extends Rule {
   @override
   RuleCheck check(Project project, ProfileSet profile) {
     final m = project.androidManifest;
-    if (m == null || project.androidManifestXml == null) {
-      return RuleCheck.notApplicable('No AndroidManifest.xml');
+    if (m == null && !project.hasAndroid) return RuleCheck.notApplicable('No Android project');
+    if (m == null || project.androidManifestXml?.rootElement.name.local != 'manifest') {
+      return RuleCheck.incomplete('Could not read android/app/src/main/AndroidManifest.xml');
     }
     final out = <Finding>[];
     final app = firstElement(project.androidManifestXml!, 'application');
@@ -182,8 +183,11 @@ class NetworkSecurityConfigRule extends Rule {
   RuleCheck check(Project project, ProfileSet profile) {
     final f = project.networkSecurityConfig;
     final xml = project.networkSecurityConfigXml;
-    if (f == null || xml == null) {
-      return RuleCheck.notApplicable('No network security config');
+    if (f == null || xml == null || xml.rootElement.name.local != 'network-security-config') {
+      final ref = project.networkSecurityConfigReference;
+      return ref == null || ref == '@null'
+          ? RuleCheck.notApplicable('No network security config')
+          : RuleCheck.incomplete('Could not read the source network security config $ref');
     }
     final out = <Finding>[];
     for (final tag in const ['base-config', 'domain-config']) {

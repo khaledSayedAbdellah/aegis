@@ -146,7 +146,7 @@ class FakeHost implements Host {
 
   @override
   Future<Proc?> run(String exe, List<String> args,
-      {Map<String, String>? environment, String? input}) async {
+      {Map<String, String>? environment, String? input, Duration? timeout}) async {
     final line = [exe, ...args].join(' ');
     log.add('run: $line');
     envOf[line] = environment;

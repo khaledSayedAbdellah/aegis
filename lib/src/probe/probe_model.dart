@@ -3,14 +3,13 @@ library;
 
 /// The outcome of one resilience check.
 enum ProbeStatus {
-  /// The app detected the condition and reacted. Protection works.
+  /// The app blocked the tested operation or exited on its own under the condition.
   blocked,
 
-  /// The app ran normally under the condition. The expected protection is
-  /// absent or ineffective — a finding.
+  /// The process or the tested operation continued under the verified condition.
   notBlocked,
 
-  /// The check couldn't run (a tool or the baseline failed). Never a verdict.
+  /// The check did not establish a verdict.
   inconclusive,
 }
 
@@ -26,7 +25,7 @@ class ProbeCheck {
   /// e.g. `MASVS-RESILIENCE-1`. Null for the baseline gate.
   final String? masvs;
 
-  /// e.g. `MASTG-TEST-0048`.
+  /// A related reference, e.g. `MASTG-TEST-0325`.
   final String? mastg;
 }
 
@@ -34,28 +33,48 @@ class ProbeCheck {
 const probeChecks = <ProbeCheck>[
   ProbeCheck('baseline', 'Baseline launch'),
   ProbeCheck('root', 'Root detection',
-      masvs: 'MASVS-RESILIENCE-1', mastg: 'MASTG-TEST-0048'),
+      masvs: 'MASVS-RESILIENCE-1', mastg: 'MASTG-TEST-0325'),
   ProbeCheck('debugger', 'Debugger detection',
-      masvs: 'MASVS-RESILIENCE-4', mastg: 'MASTG-TEST-0045'),
+      masvs: 'MASVS-RESILIENCE-4', mastg: 'MASTG-TEST-0353'),
   ProbeCheck('hooking', 'Instrumentation (Frida) detection',
-      masvs: 'MASVS-RESILIENCE-4', mastg: 'MASTG-TEST-0046'),
+      masvs: 'MASVS-RESILIENCE-4', mastg: 'MASTG-TEST-0341'),
   ProbeCheck('repackage', 'Repackaging / integrity detection',
-      masvs: 'MASVS-RESILIENCE-2', mastg: 'MASTG-TEST-0047'),
+      masvs: 'MASVS-RESILIENCE-2'),
 ];
 
 ProbeCheck checkById(String id) => probeChecks.firstWhere((c) => c.id == id);
 
 /// The result of one check.
 class ProbeResult {
-  ProbeResult(this.check, this.status, {this.evidence = '', this.note});
+  ProbeResult(this.check, this.status, {this.evidence = '', this.note, this.applicable = true,
+      this.processOnly = false});
   final ProbeCheck check;
   final ProbeStatus status;
+  final bool applicable;
+
+  /// The verdict describes process behavior during the probe window.
+  final bool processOnly;
 
   /// What was observed, for the report ("process gone after 8s", ...).
   final String evidence;
 
   /// An extra caveat for this line (e.g. a report-only RASP note).
   final String? note;
+}
+
+/// Verified signer information for an AAB's companion APK.
+class ProbeApkIdentity {
+  const ProbeApkIdentity({
+    required this.signerSha256,
+    this.expectedSignerSha256,
+    this.controlApks = const [],
+    this.rootedApks = const [],
+  });
+
+  final List<String> signerSha256;
+  final String? expectedSignerSha256;
+  final List<String> controlApks;
+  final List<String> rootedApks;
 }
 
 /// The whole probe run.
@@ -66,10 +85,12 @@ class ProbeReport {
     required this.results,
     this.emulatorError,
     this.baselineNote,
+    this.apkIdentity,
   });
 
   /// The app that was probed (file name).
   final String app;
+  final ProbeApkIdentity? apkIdentity;
 
   /// Set when the emulator or install could not run at all (a tooling
   /// problem, not the app). Distinct from [baselineAlive] being false, which
@@ -97,9 +118,20 @@ class ProbeReport {
 /// What an audit knows about the probe: its report, or why it did not run
 /// (no emulator tools, --no-probe, ...). Rules AEG-R01..R04 read it.
 class ProbeOutcome {
-  const ProbeOutcome.ran(ProbeReport this.report) : skipped = null;
-  const ProbeOutcome.skipped(String this.skipped) : report = null;
+  const ProbeOutcome.ran(ProbeReport this.report) : skipped = null, requested = true;
+  const ProbeOutcome.skipped(String this.skipped, {this.requested = true}) : report = null;
 
   final ProbeReport? report;
   final String? skipped;
+  final bool requested;
+
+  /// Whether a requested probe was skipped or left an applicable check undecided.
+  bool get incomplete {
+    if (!requested) return false;
+    final run = report;
+    return run == null ||
+        run.emulatorError != null ||
+        !run.baselineAlive ||
+        run.inconclusive.any((check) => check.applicable);
+  }
 }

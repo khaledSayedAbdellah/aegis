@@ -38,6 +38,15 @@ void main() {
           0);
     });
 
+    test('automatic continued execution counts as a scoped MAS-R finding', () {
+      final observed = report({});
+      observed.results.add(ProbeResult(
+          checkById('root'), ProbeStatus.notBlocked, processOnly: true));
+      expect(probeExitCode(observed, resilienceProfile: true), 1);
+      expect(renderProbe(observed, resilienceProfile: true),
+          contains('No block observed: 1'));
+    });
+
     test('all reacted → 0', () {
       expect(
           probeExitCode(report({'root': ProbeStatus.blocked, 'hooking': ProbeStatus.blocked}),

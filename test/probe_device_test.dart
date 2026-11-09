@@ -1,8 +1,5 @@
-import 'dart:io';
-
 import 'package:aegis/src/probe/device.dart';
 import 'package:aegis/src/probe/toolchain.dart';
-import 'package:archive/archive.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_host.dart';
@@ -14,29 +11,21 @@ ProbeTools fakeTools() => ProbeTools(
       adb: '/adb',
       emulator: '/emu',
       apksigner: '/bt/apksigner',
-      zipalign: '/bt/zipalign',
+      javaHome: '/jdk',
       keytool: '/jdk/bin/keytool',
       frida: '/venv/frida',
       fridaServer: '/tools/frida-server',
-      bundletool: '/tools/bundletool.jar',
       avdName: 'aegis-probe',
     );
 
 void main() {
   group('ProbeTools', () {
-    test('java is derived beside keytool', () {
-      expect(ProbeTools(keytool: '/jdk/bin/keytool', avdName: 'x').java, '/jdk/bin/java');
-      expect(ProbeTools(avdName: 'x').java, isNull);
-    });
-
-    test('missing() lists the gaps; bundletool only with --aab', () {
+    test('missing() lists only tools needed for selected checks', () {
       final t = ProbeTools(adb: '/adb', avdName: 'x');
       expect(t.missing(), containsAll(['emulator', 'apksigner', 'frida', 'frida-server', 'keytool']));
       expect(t.missing(), isNot(contains('adb')));
       expect(fakeTools().missing(), isEmpty);
-      expect(ProbeTools(adb: '/adb', emulator: '/e', apksigner: '/a', frida: '/f',
-              fridaServer: '/fs', keytool: '/k', avdName: 'x')
-          .missing(needsBundletool: true), ['bundletool']);
+      expect(t.missing(only: {'debugger'}), ['emulator']);
     });
 
     test('resolve finds the tools the setup installed', () async {
@@ -66,35 +55,64 @@ void main() {
   group('Device command lines', () {
     late FakeHost h;
     late Device d;
-    setUp(() {
+    setUp(() async {
       h = FakeHost()
         ..installed.addAll(['/adb', '/venv/frida', '/jdk/bin/keytool', '/jdk/bin/java', '/bt/apksigner']);
+      h.answer('/adb', ['devices'], stdout: 'List of devices attached\n'
+          'physical-device\tdevice\nemulator-5554\tdevice\nemulator-5556\tdevice');
+      h.answer('/adb', ['-s', 'emulator-5554', 'emu', 'avd', 'name'], stdout: 'other-avd\nOK');
+      h.answer('/adb', ['-s', 'emulator-5556', 'emu', 'avd', 'name'], stdout: 'aegis-probe\nOK');
+      h.answer('/adb', ['-s', 'emulator-5556', 'shell', 'getprop', 'sys.boot_completed'], stdout: '1');
       d = Device(h, fakeTools());
+      expect(await d.bootEmulator(timeoutSeconds: 0), isNull);
     });
 
     test('install, launch, pidOf', () async {
-      h.answer('/adb', ['shell', 'pidof', 'com.x'], stdout: '9123\n');
+      h.answer('/adb', ['-s', 'emulator-5556', 'shell', 'pidof', 'com.x'], stdout: '9123\n');
       expect(await d.install('app.apk'), isNull);
       await d.launch('com.x');
       expect(await d.pidOf('com.x'), 9123);
-      expect(h.ran, contains('/adb install -r -t app.apk'));
-      expect(h.ran, contains('/adb shell monkey -p com.x 1'));
+      expect(h.ran, contains('/adb -s emulator-5556 install -r -t app.apk'));
+      expect(h.ran, contains('/adb -s emulator-5556 shell monkey -p com.x 1'));
+    });
+
+    test('install all splits together on the selected emulator', () async {
+      expect(await d.installApks(['base.apk', 'config.en.apk']), isNull);
+      expect(h.ran, contains(
+          '/adb -s emulator-5556 install-multiple -r -t base.apk config.en.apk'));
+    });
+
+    test('bundletool gets the spec for the selected emulator only', () async {
+      await d.extractApkSet('/bundletool.jar', '/app.apks', '/work/apks');
+      expect(h.ran, containsAllInOrder([
+        '/jdk/bin/java -jar /bundletool.jar get-device-spec --adb=/adb '
+            '--device-id=emulator-5556 --output=/work/apks/device.json',
+        '/jdk/bin/java -jar /bundletool.jar extract-apks --apks=/app.apks '
+            '--device-spec=/work/apks/device.json --output-dir=/work/apks',
+      ]));
     });
 
     test('startFridaServer pushes and backgrounds the server', () async {
+      h.answer('/adb', ['-s', 'emulator-5556', 'shell', 'pidof', 'frida-server'], stdout: '42');
       expect(await d.startFridaServer(), isNull);
-      expect(h.ran, contains('/adb push /tools/frida-server /data/local/tmp/frida-server'));
+      expect(h.ran, contains('/adb -s emulator-5556 push /tools/frida-server /data/local/tmp/frida-server'));
       expect(h.ran.any((c) => c.contains('frida-server >/dev/null 2>&1 &')), isTrue);
     });
 
     test('stopFridaServer kills a running server', () async {
       await d.stopFridaServer();
-      expect(h.ran, contains('/adb shell su 0 pkill -f frida-server'));
+      expect(h.ran, contains('/adb -s emulator-5556 shell pkill -x frida-server'));
     });
 
     test('fridaAttach runs a one-line session against the app', () async {
-      expect(await d.fridaAttach('com.x'), isNull);
-      expect(h.ran, contains('/venv/frida -U -n com.x -q -e true'));
+      h.answer('/adb', ['-s', 'emulator-5556', 'shell', 'pidof', 'com.x'], stdout: '9123');
+      h.answer('/adb', ['-s', 'emulator-5556', 'forward', 'tcp:0', 'tcp:27042'], stdout: '12345');
+      final args = ['-H', '127.0.0.1:12345', '-p', '9123', '-q', '-t', '1',
+        '-e', 'console.log("AEGIS_FRIDA_ATTACHED")'];
+      h.answer('/venv/frida', args, stderr: 'attachment failed', code: 1);
+      expect(await d.fridaAttach('com.x', Duration.zero), contains('attachment failed'));
+      h.answer('/venv/frida', args, stdout: 'AEGIS_FRIDA_ATTACHED');
+      expect(await d.fridaAttach('com.x', Duration.zero), isNull);
     });
 
     test('resignWithNewKey makes the key, copies and signs', () async {
@@ -113,48 +131,4 @@ void main() {
     });
   });
 
-  group('AAB to universal APK', () {
-    test('runs bundletool and extracts universal.apk from the .apks', () async {
-      final apk = File('test/fixtures/apk/secure.apk').readAsBytesSync();
-      final apks = ZipEncoder().encode(Archive()..addFile(ArchiveFile('universal.apk', apk.length, apk)));
-      final h = FakeHost()..installed.addAll(['/jdk/bin/java', '/jdk/bin/keytool']);
-      // What bundletool would have written.
-      h.writeBytes('/w/app.apks', apks);
-      final err = await Device(h, fakeTools()).aabToApk('/app.aab', '/w/app.apks', '/w/universal.apk');
-      expect(err, isNull);
-      expect(h.readBytes('/w/universal.apk'), apk);
-      expect(h.ran.first, contains('-genkeypair'));
-      expect(h.ran.first, contains('/w/aegis-aab.jks'));
-      expect(h.ran.last,
-          '/jdk/bin/java -jar /tools/bundletool.jar build-apks --mode=universal --overwrite --bundle=/app.aab --output=/w/app.apks '
-          '--ks=/w/aegis-aab.jks --ks-pass=pass:aegisprobe --ks-key-alias=aegis --key-pass=pass:aegisprobe');
-    });
-
-    test('signs with its own key, not the repackage check\'s key', () async {
-      // The repackage check signs with <work>/aegis-probe.jks; the AAB's key
-      // must be another file, or both copies would share a certificate.
-      final h = FakeHost()..installed.addAll(['/jdk/bin/java', '/jdk/bin/keytool']);
-      await Device(h, fakeTools()).aabToApk('/app.aab', '/w/app.apks', '/w/universal.apk');
-      expect(h.ran.join('\n'), isNot(contains('aegis-probe.jks')));
-    });
-
-    test('says what is missing', () async {
-      final noBundletool = ProbeTools(keytool: '/jdk/bin/keytool', avdName: 'x');
-      expect(await Device(FakeHost(), noBundletool).aabToApk('/a.aab', '/o.apks', '/o.apk'),
-          contains('aegis setup --aab'));
-    });
-
-    test('a bundletool failure is reported, not hidden', () async {
-      final h = FakeHost()
-        ..installed.add('/jdk/bin/keytool')
-        ..answer('/jdk/bin/java', [
-          '-jar', '/tools/bundletool.jar', 'build-apks', '--mode=universal', '--overwrite',
-          '--bundle=/a.aab', '--output=/o.apks',
-          '--ks=/aegis-aab.jks', '--ks-pass=pass:aegisprobe', '--ks-key-alias=aegis',
-          '--key-pass=pass:aegisprobe',
-        ], stderr: 'Invalid bundle', code: 1);
-      expect(await Device(h, fakeTools()).aabToApk('/a.aab', '/o.apks', '/o.apk'),
-          contains('Invalid bundle'));
-    });
-  });
 }

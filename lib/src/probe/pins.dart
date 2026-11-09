@@ -26,6 +26,7 @@ const bundletoolVersion = '1.18.3';
 
 /// The emulator aegis creates and uses.
 const avdName = 'aegis-probe';
+const controlAvdName = 'aegis-probe-control';
 
 /// Device profile for the AVD.
 const avdDevice = 'pixel_6';

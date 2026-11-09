@@ -138,7 +138,7 @@ class Baseline {
   List<BaselineEntry> apply(List<RuleResult> results) {
     final ran = {
       for (final r in results)
-        if (r.status == RuleStatus.passed || r.status == RuleStatus.failed) r.meta.id
+        if (r.counts && !r.incomplete) r.meta.id
     };
     final remaining = {for (final e in entries.values) e.fingerprint: e.count};
     for (final r in results) {
@@ -167,10 +167,10 @@ class Baseline {
 
   /// `app-prod-release.apk!/AndroidManifest.xml` -> `apk!/AndroidManifest.xml`,
   /// so renaming the APK does not turn known findings into new ones. App
-  /// bundles use the same APK-style entry names, so an AAB finding matches
-  /// the same APK finding.
-  static String? normalizeFile(String? file) =>
-      file?.replaceFirst(RegExp(r'^[^/]*\.(apk|aab)!/', caseSensitive: false), 'apk!/');
+  /// bundles and APK sets use the same APK-style entry names. Runtime
+  /// findings can also point to a preselected APK directory.
+  static String? normalizeFile(String? file) => file?.replaceFirst(
+      RegExp(r'^[^/]*(?:\.(?:apks?|aab)!/|!/(?=runtime$))', caseSensitive: false), 'apk!/');
 
   /// Rule + file + message, ignoring line numbers, numbers in the message
   /// (counts, versions), whitespace, and whether it says APK or AAB.

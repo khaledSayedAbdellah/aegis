@@ -25,6 +25,15 @@ aab: /abs/app.aab
       expect(AegisConfig.resolve('/proj', null), isNull);
     });
 
+    test('AAB probe settings survive CLI overrides of the audit profile', () {
+      final c = AegisConfig.parse('''
+probe_apk: dist/signed.apk
+probe_cert_sha256: " AB:CD "
+''').copyWith(profile: ProfileSet.tryParse('l2+r'));
+      expect(c.probeApk, 'dist/signed.apk');
+      expect(c.probeCertSha256, 'AB:CD');
+    });
+
     test('survive copyWith (e.g. a --profile override)', () {
       final c = AegisConfig.parse('apk: a.apk\naab: b.aab\n')
           .copyWith(profile: ProfileSet.tryParse('l2+r'));

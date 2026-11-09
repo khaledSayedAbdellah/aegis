@@ -9,7 +9,7 @@ import 'model.dart';
 const Map<String, Bilingual> passTitles = {
   // Protection correctness
   'AEG-P01': Bilingual('Runtime protection (RASP) is present', 'حماية وقت التشغيل (RASP) موجودة'),
-  'AEG-P02': Bilingual('freeRASP is started and listening', 'freeRASP شغال ومتربط بـ callback'),
+  'AEG-P02': Bilingual('freeRASP startup and listener calls found in main', 'استدعاءات freeRASP والـ listener موجودة في main'),
   'AEG-P03': Bilingual('freeRASP configuration matches the app', 'إعدادات freeRASP مطابقة للتطبيق'),
   'AEG-P04': Bilingual('Detected threats trigger a real reaction', 'التهديدات اللي بتتكشف ليها رد فعل حقيقي'),
   'AEG-P05': Bilingual('Firebase is protected by App Check', 'Firebase محمي بـ App Check'),

@@ -72,6 +72,12 @@ class AuditReport {
   Iterable<RuleResult> get notApplicable =>
       results.where((r) => r.status == RuleStatus.notApplicable);
 
+  Iterable<RuleResult> get incomplete =>
+      results.where((r) => r.status == RuleStatus.incomplete || r.incomplete);
+
+  bool get complete =>
+      probe?.incomplete != true && incomplete.isEmpty && results.any((r) => r.counts);
+
   int get suppressed => results.fold(0, (s, r) => s + r.suppressed);
 
   /// The most severe failing severity, if any.
@@ -176,13 +182,13 @@ class CertificateInfo {
       };
 }
 
-/// Runs one rule; a crashing rule is reported as not applicable instead of
+/// Runs one rule; a crashing rule is reported as incomplete instead of
 /// stopping the whole audit.
 Future<RuleCheck> _safeCheck(Rule rule, Project project, ProfileSet profile) async {
   try {
     return await rule.check(project, profile);
   } catch (e) {
-    return RuleCheck.notApplicable('Rule error: $e');
+    return RuleCheck.incomplete('Rule error: $e');
   }
 }
 
@@ -273,10 +279,10 @@ Future<AuditReport> runAudit(
       continue;
     }
     final check = await _safeCheck(rule, project, profile);
-    if (!check.applicable) {
+    if (!check.applicable && check.findings.isEmpty) {
       results.add(RuleResult(
           meta: meta,
-          status: RuleStatus.notApplicable,
+          status: check.isIncomplete ? RuleStatus.incomplete : RuleStatus.notApplicable,
           severity: severity,
           note: check.note));
       continue;
@@ -292,7 +298,11 @@ Future<AuditReport> runAudit(
     }
     results.add(RuleResult(
       meta: meta,
-      status: kept.isEmpty ? RuleStatus.passed : RuleStatus.failed,
+      status: kept.isNotEmpty
+          ? RuleStatus.failed
+          : check.isIncomplete ? RuleStatus.incomplete : RuleStatus.passed,
+      incomplete: check.isIncomplete,
+      note: check.note,
       severity: severity,
       findings: kept,
       suppressed: hidden,

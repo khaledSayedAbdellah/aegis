@@ -134,7 +134,7 @@ Score computeScore(List<RuleResult> results) {
   }
 
   final (value, worst, penalty) = _scoreOf(counted);
-  if (worst == null) return Score(value, cats);
+  if (worst == null) return Score(counted.isEmpty ? 0 : value, cats);
 
   final failed = counted.where((r) => r.status == RuleStatus.failed).toList();
   final gains = <String, int>{};
@@ -187,7 +187,7 @@ Coverage computeCoverage(List<RuleResult> results, ProfileSet profile) {
   for (final c in masvsControls) {
     if (c.resilienceOnly && !profile.resilience) continue;
     final ids = results
-        .where((r) => r.counts && r.meta.masvs.contains(c.id))
+        .where((r) => r.counts && !r.incomplete && r.meta.masvs.contains(c.id))
         .map((r) => r.meta.id)
         .toList();
     final ControlStatus status;

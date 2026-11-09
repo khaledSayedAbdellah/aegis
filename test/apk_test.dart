@@ -38,7 +38,7 @@ void main() {
 
       final nsc = apk.networkSecurityConfig;
       expect(nsc, isNotNull);
-      expect(nsc!.$1, 'res/xml/nsc.xml', reason: 'the UTF-8 layout file is skipped');
+      expect(nsc!.$1, 'res/a.xml', reason: 'the manifest resource ID resolves the renamed XML');
 
       // The v1 and v2 signatures carry the same certificate.
       expect(apk.certificates, hasLength(1));

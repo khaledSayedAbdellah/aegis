@@ -15,7 +15,7 @@ Security score: 49/100 (F)  ██████████░░░░░░░�
 MASVS coverage: 17 of 24 controls checked automatically (71%)
 
 ✗ Needs fixing (6)
-[1]  CRITICAL  freeRASP is installed but not running  AEG-P02 · MASVS-RESILIENCE-1
+[1]  CRITICAL  Missing freeRASP startup wiring  AEG-P02 · MASVS-RESILIENCE-1
     • lib/main.dart:42  No ThreatCallback is attached ...
     Why: freeRASP only protects the app after Talsec.instance.start(config) runs ...
     Fix: In main(): WidgetsFlutterBinding.ensureInitialized(); ...
@@ -29,7 +29,7 @@ MASVS coverage: 17 of 24 controls checked automatically (71%)
 | | Typical scanner | aegis |
 |---|---|---|
 | RASP present? | ✅ | ✅ |
-| RASP actually started / listener attached | ❌ | ✅ `AEG-P02` |
+| Direct startup and listener calls in Flutter entry point | ❌ | ✅ `AEG-P02` |
 | RASP config matches **your** applicationId, bundle id, signing hashes, `isProd` | ❌ | ✅ `AEG-P03` |
 | Callbacks do something other than `print` | ❌ | ✅ `AEG-P04` |
 | App Check debug provider leaking into release | ❌ | ✅ `AEG-P06` |
@@ -67,7 +67,7 @@ source ~/.zshrc
 **3. Check it.**
 
 ```bash
-aegis --version            # aegis 0.7.0
+aegis --version            # prints the installed version
 dart pub global list       # shows where it was activated from
 ```
 
@@ -85,11 +85,11 @@ In your Flutter project (after `flutter pub get`):
 
 ```bash
 aegis init                 # 1. once per project: asks what kind of app it is, writes aegis.yaml
-aegis setup                # 2. once per machine: installs the emulator and tools for the resilience probe
+aegis setup                # 2. once per machine: installs both emulators and the tools for the resilience probe
 aegis run                  # 3. audit: code + the APK/AAB set in aegis.yaml, if any
 ```
 
-**Don't skip `aegis setup`.** It prepares the emulator that `aegis run --mode apk|aab|all` uses to check whether your app's anti-tampering actually reacts (rules AEG-R01..R04). Without it, the APK/AAB gets the static checks only and the report says the probe was skipped. It installs only what's missing, so running it again is harmless; `aegis doctor` shows what's there. Details in [The resilience probe](#the-resilience-probe).
+**Don't skip `aegis setup`.** It prepares both emulators that `aegis run --mode apk|aab|all` uses to check whether your app's anti-tampering actually reacts (rules AEG-R01..R04). Without it, the APK/AAB gets the static checks only and the report says the probe was skipped. It installs only what's missing, so running it again is harmless; `aegis doctor` shows what's there. Details in [The resilience probe](#the-resilience-probe).
 
 `aegis run` prints the report, writes `build/aegis-report.html` and opens it in your browser (`--no-open` to skip; it never opens in CI). Choose what to audit with `--mode`:
 
@@ -98,7 +98,7 @@ aegis run                  # 3. audit: code + the APK/AAB set in aegis.yaml, if 
 | `aegis run` | `--mode all`: the code, plus the file at `apk:` (else `aab:`) in aegis.yaml with the resilience probe; the code only when neither is set |
 | `aegis run --mode code` | Dart code, your git/path packages, Android and iOS configuration |
 | `aegis run --mode apk` | the code + the APK at `apk:` in aegis.yaml + the resilience probe on it |
-| `aegis run --mode aab` | the code + the AAB at `aab:` in aegis.yaml + the resilience probe on it |
+| `aegis run --mode aab` | the code + the AAB at `aab:` in aegis.yaml, with a resilience probe when a matching signed APK is supplied |
 
 The APK/AAB path is yours to set, relative to the project, because build names change with flavors and versions; aegis never guesses one from `build/`:
 
@@ -114,16 +114,20 @@ The language follows `lang:` in aegis.yaml, else your system language. If `~/.pu
 
 ## The resilience probe
 
-With an APK or AAB, `aegis run` first checks on an emulator whether your app's own anti-tampering reacts, then runs the static audit, then writes one report with both. It runs the app on the `aegis-probe` emulator and, for each standard OWASP MASTG resilience condition, records whether the app's protection reacted (✅), did not (❌) or the check was inconclusive (⏸️). The probe tests your own build: it sets the standard condition and watches, it does not try to defeat any protection.
+With an APK, `aegis run` runs the resilience probe and includes its observations in the audit. The probe uses a dedicated Android emulator and first checks whether the original APK can launch and stay alive. Each check requires evidence that its condition was applied.
 
-| Id | Condition | MASVS · MASTG |
+| Id | Condition | MASVS · Related MASTG reference |
 |---|---|---|
-| AEG-R01 | Rooted device | RESILIENCE-1 · TEST-0048 |
-| AEG-R02 | Frida attached to the running app | RESILIENCE-4 · TEST-0046 |
-| AEG-R03 | Debugger attached (release builds are usually not debuggable, so often not applicable) | RESILIENCE-4 · TEST-0045 |
-| AEG-R04 | A copy re-signed with another key | RESILIENCE-2 · TEST-0047 |
+| AEG-R01 | Root available on a separate emulator | RESILIENCE-1 · TEST-0325 |
+| AEG-R02 | Frida attached to the app | RESILIENCE-4 · TEST-0341 |
+| AEG-R03 | JDWP debugger attached to a debuggable APK | RESILIENCE-4 · TEST-0353 |
+| AEG-R04 | APK installed with a different signing certificate | RESILIENCE-2 |
 
-These are ordinary rules: a ❌ is a finding that lowers the score, goes into the baseline and triggers `fail_on`, under a profile with MAS-R (`l1+r`, `l2+r`, `banking`, …); outside one they are out of profile. ⏸️ is not applicable, with the reason. aegis first checks that the app stays alive on a clean emulator; if it doesn't, nothing is judged and the report says so. Every report format (console, HTML, Markdown, JSON) has a probe section with what was observed for each check.
+The probe works with the APK as supplied. When the condition is verified and the same app process stays alive, the report records `notBlocked` with process scope. This is a finding under MAS-R and describes continued execution during the probe window. If Android records a fresh self-exit for the tested process after the condition, the probe records `blocked` with process scope. Optional app events extend the evidence to a particular operation. An unexplained process exit, conflicting events or a condition that could not be applied is inconclusive.
+
+For a result about a specific operation, a test build can optionally emit a logcat event from the audited app process with the tag `AegisProbe` and the message `<check> blocked` or `<check> not-blocked`. Emit it after the tested operation is blocked or allowed. The check names are `root`, `hooking`, `debugger` and `repackage`. Use test-only instrumentation and avoid logging secrets. An explicit `not-blocked` verdict triggers a finding under a MAS-R profile.
+
+By default, `aegis run` uses `aegis-probe-control` for the control launch, JDWP and re-signing. It compares both AVDs for root and uses `aegis-probe` for Frida, with a separate pre-attachment baseline on that device. Use `--control-avd` and `--root-avd` to override the defaults. Keep the two images and configurations comparable. The standalone `aegis probe` command accepts the same options.
 
 The probe needs a few tools. aegis finds them the way Flutter does and installs only what you don't already have:
 
@@ -132,14 +136,18 @@ aegis doctor               # lists each tool: present, aegis can install it, or 
 aegis setup                # installs the missing ones (asks once; --yes to skip the prompt)
 ```
 
-`aegis setup` uses the Android SDK and JDK your Flutter build already uses (it never installs Java, the SDK or Flutter — it tells you how if they're missing). What it does install goes under `~/.aegis`: the SDK's emulator and an Android 14 image, an AVD named `aegis-probe`, a Python venv with Frida, and the matching `frida-server`. The Android SDK tools ask you to accept their licenses yourself. Anything already present is skipped, so a second `aegis setup` installs nothing. Add `--aab` to also fetch bundletool (needed only to probe an `.aab`). Downloads are checked against a pinned SHA-256. To undo it all, `aegis setup --remove` deletes what aegis installed (never your Java or Android SDK).
+`aegis setup` uses the Android SDK and JDK from your Flutter setup. It installs the emulator and Android 14 Google APIs and Google Play images through the SDK, then creates `aegis-probe` and `aegis-probe-control`. It also installs Frida and its server under `~/.aegis`. The Android SDK tools prompt for any required licenses. Repeat setup to install missing items. Add `--aab` to install bundletool for probing a `.apks` archive. `aegis setup --remove` removes Aegis tools and AVDs it created while retaining SDK packages and a manually created control AVD.
 
 * Tools missing or the emulator unavailable: `aegis run` does the static checks only and the report says why the probe was skipped.
 * `--no-probe` skips it on purpose (static checks only).
 * Plain `aegis` (CI) never runs the probe, even with `--apk`.
-* An `.aab` is converted to a debug-signed universal APK with bundletool, so a protection that pins your release certificate treats it as tampered from the start.
+* For an AAB, supply a signed APK or a bundletool-format `.apks` archive from the same build using `--probe-apk` or `probe_apk` in `aegis.yaml`. Aegis selects the first-install APKs for each emulator and installs its base and splits together. It checks the package name and version code of each selected APK and verifies that all selected APKs have the same signers. The probe covers first-install modules. For a Play release, use Play-signed artifacts and set `probe_cert_sha256` or `--probe-cert-sha256` to the **App signing key certificate** fingerprint (plain or colon-separated SHA-256 hex). The report lists the verified signer and the split files selected for each emulator. YAML paths are relative to the project, and CLI flags override YAML. Without a companion artifact, the AAB receives static checks and the runtime probe is incomplete.
+
+For a device-specific download from Play Console, put the base APK and its splits from one device configuration in the same folder and pass that folder as `probe_apk`, for example `probe_apk: dist/play-splits`. Use a set compatible with both AVDs. Aegis verifies and installs the same preselected set on each emulator. [Play Console download instructions](https://support.google.com/googleplay/android-developer/answer/9844279)
 
 `aegis probe` runs only the probe, on the same `apk:`/`aab:` (or a path you pass), and prints its result without a report: a quick check while you work on the protection. It reads the profile from the project's aegis.yaml (`--project`/`--profile` to override) and ends with a static line saying whether the build is obfuscated.
+
+To exercise the real emulator with disposable test apps, set `ANDROID_SDK_ROOT` and `JAVA_HOME`, then run `bash tool/probe_smoke.sh`. Pass `debugger` or `hooking` to run one attachment check, or `paired` to exercise root and Frida on the two Aegis AVDs. Pass `run` to check the default APK and AAB audit paths. The `protected`, `protected-root` and `splits` modes exercise protection without AegisProbe events. The GitHub Actions `android-probe` job runs `protected-root` and `splits` on both AVDs.
 
 ## Full control (CI)
 
@@ -174,7 +182,7 @@ Run `aegis --help`, or `aegis <command> --help`, for every option.
 | `aegis --update-baseline` | Accept today's findings; later runs fail only on new ones. |
 | `aegis --list-rules` | Lists every rule with its MASVS control. |
 
-Exit codes: `0` passed, `1` findings at or above `fail_on` or a score below `min_score`, `2` usage error (bad option, missing file or path).
+Exit codes are `0` for success, `1` for findings at or above `fail_on` or a score below `min_score`, and `2` for invalid input or an incomplete audit in `--strict` mode. Reports list incomplete checks separately. An audit with zero completed rules cannot get a score of 100. Use `--strict` in CI when the audit must complete. A requested probe that was skipped or left an applicable check inconclusive fails strict mode under any MAS profile. Explicit opt-outs such as `--offline` and `--no-probe` remain available.
 
 ## Scan the release APK or App Bundle
 
@@ -271,6 +279,8 @@ scan_packages: true    # also scan git/path dependencies (default)
 baseline: aegis-baseline.json   # default; see "Baselines"
 apk: build/app/outputs/flutter-apk/app-release.apk          # for aegis run --mode apk|all
 aab: build/app/outputs/bundle/release/app-release.aab       # for aegis run --mode aab|all
+# probe_apk: dist/app-release.apks                        # signed .apk, .apks, or APK directory for an AAB
+# probe_cert_sha256: "<app signing certificate SHA-256>"
 ```
 
 **Your own packages are scanned too.** Many apps keep auth, networking and storage in internal packages pulled in as git or path dependencies. aegis reads `.dart_tool/package_config.json` (run `flutter pub get` first) and scans the Dart code of every git and path dependency, listing them under "Packages scanned"; findings point to `package:<name>/...`. pub.dev packages are not scanned. Turn this off with `scan_packages: false`.

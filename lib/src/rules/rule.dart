@@ -11,11 +11,19 @@ import '../project.dart';
 class RuleCheck {
   RuleCheck(this.findings)
       : applicable = true,
-        note = null;
+        note = null,
+        isIncomplete = false;
 
   RuleCheck.notApplicable([this.note])
       : applicable = false,
-        findings = const [];
+        findings = const [],
+        isIncomplete = false;
+
+  RuleCheck.incomplete(this.note, [this.findings = const []])
+      : applicable = false,
+        isIncomplete = true;
+
+  final bool isIncomplete;
 
   final bool applicable;
   final List<Finding> findings;

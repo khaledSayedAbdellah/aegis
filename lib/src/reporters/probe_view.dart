@@ -58,22 +58,12 @@ class ProbeView {
     if (o == null) return null;
     String t(String en, String ar) => lang == 'ar' ? ar : en;
     final caveats = [
-      t('A report-only RASP (one that silently tells a backend and keeps running) cannot be seen from the device; it shows as no reaction.',
-          'الحماية اللي بتبلّغ السيرفر بصمت وتفضل شغّالة مش بتبان من الجهاز؛ بتظهر كأنها مردتش.'),
+      t('Automatic observations cover process behavior. App events describe the tested operation.',
+          'الفحص التلقائي بيرصد حالة العملية، وإشارات التطبيق بتوضح نتيجة الإجراء المختبَر.'),
       t('This shows what happened on this emulator with this build, not a proof of security.',
           'ده اللي حصل على الإيموليتر ده بالنسخة دي، مش إثبات أمان.'),
     ];
     final report = o.report;
-    if (report != null && report.blocked.any((x) => x.check.id == 'repackage')) {
-      caveats.add(t(
-          "The re-signed copy failing can be the app's integrity check, or a service bound to the original signing key (Google Maps, Firebase) failing; the probe cannot tell them apart.",
-          'فشل النسخة المعاد توقيعها ممكن يكون فحص سلامة في التطبيق، أو خدمة مربوطة بالتوقيع الأصلي (Google Maps، Firebase) وقعت؛ الأداة مش بتفرّق بينهم.'));
-    }
-    if (report != null && report.app.toLowerCase().endsWith('.aab')) {
-      caveats.add(t(
-          'The AAB was converted to an APK signed with a debug key, so a protection that pins your release certificate treats it as tampered from the start.',
-          'الـ AAB اتحوّل لـ APK متوقّع بمفتاح debug، فحماية بتثبّت شهادة الـ release هتعتبره نسخة معدّلة من البداية.'));
-    }
     final heading = t('Resilience probe (emulator)', 'اختبار الحماية على الإيموليتر') +
         (report == null ? '' : ' — ${report.app.split(RegExp(r'[\\/]')).last}');
     if (report == null) {
@@ -88,6 +78,7 @@ class ProbeView {
           heading: heading,
           lines: const [],
           caveats: const [],
+          details: probeApkIdentityLines(report, lang),
           message: t('Could not run: ${report.emulatorError}',
               'مقدرش يشتغل: ${report.emulatorError}'));
     }
@@ -100,6 +91,7 @@ class ProbeView {
             'The app did not stay alive on a clean emulator, so no check could be judged (emulator detection, a crash or a slow first launch).',
             'التطبيق مكمّلش شغّال على إيموليتر نضيف، فمفيش فحص اتحكم عليه (كشف إيموليتر أو كراش أو تشغيل أول بطيء).'),
         details: [
+          ...probeApkIdentityLines(report, lang),
           for (final l in (report.baselineNote ?? '').split('\n'))
             if (l.trim().isNotEmpty) l.trimRight(),
         ],
@@ -112,9 +104,10 @@ class ProbeView {
     return ProbeView(
       heading: heading,
       caveats: caveats,
+      details: probeApkIdentityLines(report, lang),
       baseline: base == null
           ? null
-          : '✅ ${probeCheckTitle(base.check, lang)}: ${probeEvidence(base, lang)}',
+          : '✅ ${probeCheckTitle(base.check, lang)}: ${probeEvidence(base, lang)}${base.note == null ? '' : ' · ${base.note}'}',
       lines: [
         for (final x in report.scored)
           ProbeLine(

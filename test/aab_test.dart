@@ -51,7 +51,7 @@ void main() {
 
       final nsc = aab.networkSecurityConfig;
       expect(nsc, isNotNull);
-      expect(nsc!.$1, 'res/xml/nsc.xml');
+      expect(nsc!.$1, 'res/a.xml');
       expect(nsc.$2.findAllElements('certificates').map((e) => e.getAttribute('src')).toList(), ['system', 'user']);
 
       expect(aab.isFlutter, isTrue);

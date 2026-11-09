@@ -5,7 +5,28 @@ import 'probe_model.dart';
 
 String _t(String lang, String en, String ar) => lang == 'ar' ? ar : en;
 
-/// ✅ blocked · ❌ not blocked · ⏸️ inconclusive.
+List<String> probeApkIdentityLines(ProbeReport report, String lang) {
+  final identity = report.apkIdentity;
+  if (identity == null) return const [];
+  final signers = identity.signerSha256.join(', ');
+  return [
+    _t(lang, 'Verified APK signer SHA-256: $signers', 'بصمة SHA-256 لموقّع الـAPK المتحقق منه: $signers'),
+    if (identity.controlApks.isNotEmpty)
+      _t(lang, 'Control APKs: ${identity.controlApks.join(', ')}',
+          'ملفات APK للتحكّم: ${identity.controlApks.join(', ')}'),
+    if (identity.rootedApks.isNotEmpty)
+      _t(lang, 'Rooted APKs: ${identity.rootedApks.join(', ')}',
+          'ملفات APK للروت: ${identity.rootedApks.join(', ')}'),
+    if (identity.expectedSignerSha256 != null)
+      _t(lang, 'The signer matched the expected fingerprint.', 'بصمة الموقّع طابقت البصمة المتوقعة.')
+    else
+      _t(lang, 'No expected signer fingerprint was supplied.', 'لم يتم تحديد بصمة موقّع متوقعة.'),
+    _t(lang, 'The installable files were supplied for this AAB. Their build provenance is user-supplied.',
+        'ملفات التثبيت دي اتوفرت للفحص مع الـAAB. ارتباطهم بنفس الـbuild بيعتمد على مصدر الملفات.'),
+  ];
+}
+
+/// Marks for operation outcomes, process observations and inconclusive checks.
 String probeMark(ProbeStatus s) => switch (s) {
       ProbeStatus.blocked => '✅',
       ProbeStatus.notBlocked => '❌',
@@ -28,9 +49,14 @@ String probeCheckTitle(ProbeCheck c, String lang) {
 /// What was observed, in [lang].
 String probeEvidence(ProbeResult r, String lang) {
   if (lang != 'ar') return r.evidence;
+  if (r.processOnly) {
+    return r.status == ProbeStatus.blocked
+        ? 'Android سجّل إن عملية التطبيق خرجت بنفسها بعد تطبيق الشرط'
+        : 'نفس عملية التطبيق فضلت شغّالة بعد التحقق من الشرط';
+  }
   return switch (r.status) {
     ProbeStatus.blocked => 'التطبيق صدّ الحالة',
-    ProbeStatus.notBlocked => 'التطبيق فضل شغّال عادي',
+    ProbeStatus.notBlocked => r.check.id == 'baseline' ? 'التطبيق فضل شغّال' : 'التطبيق سجّل إن الإجراء كمل',
     ProbeStatus.inconclusive => 'مش قادر يحدد',
   };
 }
@@ -42,6 +68,9 @@ String renderProbe(ProbeReport r,
   final b = StringBuffer();
   final appName = r.app.split(RegExp(r'[\\/]')).last;
   b.writeln(_t(lang, 'Resilience probe — $appName', 'اختبار الحماية — $appName'));
+  for (final line in probeApkIdentityLines(r, lang)) {
+    b.writeln('  $line');
+  }
 
   if (r.emulatorError != null) {
     b.writeln('  ⏸️  ${_t(lang, 'The emulator or tools could not run.', 'الإيموليتر أو الأدوات مقدرتش تشتغل.')}');
@@ -74,11 +103,12 @@ String renderProbe(ProbeReport r,
   }
 
   b.writeln('  ✅ ${probeCheckTitle(baseline.check, lang)}  ${probeEvidence(baseline, lang)}');
+  if (baseline.note != null) b.writeln('       ${baseline.note}');
   final w = r.scored
       .map((x) => probeCheckTitle(x.check, lang).length)
       .fold(0, (a, b) => a > b ? a : b);
   for (final x in r.scored) {
-    final tag = '${x.check.masvs} · ${x.check.mastg}';
+    final tag = [x.check.masvs, x.check.mastg].whereType<String>().join(' · ');
     b.writeln('  ${probeMark(x.status)} ${probeCheckTitle(x.check, lang).padRight(w)}  ${probeEvidence(x, lang).padRight(26)}  $tag');
     if (x.note != null) b.writeln('       ${x.note}');
   }
@@ -88,41 +118,38 @@ String renderProbe(ProbeReport r,
   final gaps = r.notBlocked.length;
   final unknown = r.inconclusive.length;
   b.writeln(_t(lang,
-      'Reacted: $reacted   No reaction: $gaps   Inconclusive: $unknown',
+      'Reacted: $reacted   No block observed: $gaps   Inconclusive: $unknown',
       'صدّ: $reacted   مصدّش: $gaps   غير حاسم: $unknown'));
-
   if (gaps > 0) {
     b.writeln(resilienceProfile
         ? _t(lang,
-            '❌ The protection did not react to $gaps condition(s). For a resilience profile this is a finding.',
-            '❌ الحماية مردتش على $gaps حالة. ده يُعدّ مشكلة في profile المقاومة.')
+            '❌ The probe observed continued execution in $gaps condition(s). For a resilience profile this is a finding.',
+            '❌ الفحص رصد استمرار التشغيل في $gaps حالة. ده يُعدّ مشكلة في profile المقاومة.')
         : _t(lang,
-            'ℹ️  The protection did not react to $gaps condition(s). Informational: this profile does not require MAS-R.',
-            'ℹ️  الحماية مردتش على $gaps حالة. للعلم بس: الـ profile ده مش مطالب بـ MAS-R.'));
+            'ℹ️  The probe observed continued execution in $gaps condition(s). Informational outside MAS-R.',
+            'ℹ️  الفحص رصد استمرار التشغيل في $gaps حالة. النتيجة للعلم خارج MAS-R.'));
   }
 
   b.writeln('');
   b.writeln(_t(lang, 'Notes:', 'ملاحظات:'));
   b.writeln(_t(lang,
-      '• A report-only RASP (one that silently logs to a backend and keeps running) cannot be seen from the device; it shows as no reaction.',
-      '• الحماية اللي بتبلّغ السيرفر بصمت وتفضل شغّالة مش بتبان من الجهاز؛ بتظهر كأنها مردتش.'));
-  if (r.blocked.any((x) => x.check.id == 'repackage')) {
-    b.writeln(_t(lang,
-        '• The re-signed build crashing can be the app\'s integrity check, or a service bound to the original signing key (Google Maps, Firebase) failing — the probe cannot tell them apart.',
-        '• كراش النسخة المعاد توقيعها ممكن يكون فحص سلامة في التطبيق، أو خدمة مربوطة بالتوقيع الأصلي (Google Maps، Firebase) وقعت — الأداة مش بتفرّق بينهم.'));
-  }
+      '• Automatic observations cover process behavior. App events describe the tested operation.',
+      '• الفحص التلقائي بيرصد حالة العملية، وإشارات التطبيق بتوضح نتيجة الإجراء المختبَر.'));
   b.writeln(_t(lang,
       '• This shows what happened on this emulator and this build, not a proof of security.',
       '• ده بيوضّح اللي حصل على الإيموليتر ده والنسخة دي، مش إثبات أمان.'));
   return b.toString();
 }
 
-/// Exit code: 2 when nothing could be observed, 1 when a resilience profile
+/// Exit code 2 when an applicable check is incomplete, 1 when a resilience profile
 /// has a real gap, else 0.
 int probeExitCode(ProbeReport r, {required bool resilienceProfile}) {
   if (r.emulatorError != null) return 2;
   if (!r.baselineAlive) return 2;
-  if (r.scored.every((x) => x.status == ProbeStatus.inconclusive)) return 2;
+  if (r.scored.any((x) => x.applicable && x.status == ProbeStatus.inconclusive) ||
+      r.scored.every((x) => !x.applicable)) {
+    return 2;
+  }
   if (resilienceProfile && r.notBlocked.isNotEmpty) return 1;
   return 0;
 }

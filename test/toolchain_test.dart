@@ -47,7 +47,7 @@ void main() {
 
     test('what aegis will install is installable, bundletool optional', () async {
       final checks = await Toolchain(studioMac()).checkAll();
-      for (final id in ['build-tools', 'emulator', 'system-image', 'avd', 'frida', 'frida-server']) {
+      for (final id in ['build-tools', 'emulator', 'system-image', 'control-image', 'avd', 'control-avd', 'frida', 'frida-server']) {
         expect(pick(checks, id).state, ToolState.installable, reason: id);
       }
       expect(pick(checks, 'bundletool').state, ToolState.optional);

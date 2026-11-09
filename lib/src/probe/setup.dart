@@ -75,7 +75,9 @@ const installOrder = [
   'build-tools',
   'emulator',
   'system-image',
+  'control-image',
   'avd',
+  'control-avd',
   'frida',
   'frida-server',
   'bundletool',
@@ -125,6 +127,7 @@ class Setup {
         'build-tools' => 'build-tools;${pins.buildToolsVersion}',
         'emulator' => 'emulator',
         'system-image' => toolchain.systemImagePackage,
+        'control-image' => toolchain.controlImagePackage,
         _ => null,
       };
 
@@ -228,6 +231,7 @@ class Setup {
     try {
       return switch (id) {
         'avd' => await _createAvd(),
+        'control-avd' => await _createAvd(control: true),
         'frida' => await _installFrida(log),
         'frida-server' => await _installFridaServer(log),
         'bundletool' => await verifiedDownload(
@@ -235,7 +239,8 @@ class Setup {
         'platform-tools' ||
         'build-tools' ||
         'emulator' ||
-        'system-image' =>
+        'system-image' ||
+        'control-image' =>
           await installSdk([sdkmanagerPackage(id)!], log: log),
         _ => 'unknown step: $id',
       };
@@ -244,7 +249,9 @@ class Setup {
     }
   }
 
-  Future<String?> _createAvd() async {
+  Future<String?> _createAvd({bool control = false}) async {
+    final name = control ? pins.controlAvdName : pins.avdName;
+    final image = control ? toolchain.controlImagePackage : toolchain.systemImagePackage;
     final root = (await toolchain.findSdkRoot())?.path;
     final avdmanager = root == null ? null : toolchain.sdkTool(root, 'avdmanager');
     if (avdmanager == null) return 'avdmanager not found';
@@ -252,11 +259,16 @@ class Setup {
     // existing AVD of this name is never overwritten.
     final r = await host.run(
         avdmanager,
-        ['create', 'avd', '-n', pins.avdName, '-k', toolchain.systemImagePackage, '-d', pins.avdDevice],
+        ['create', 'avd', '-n', name, '-k', image, '-d', pins.avdDevice],
         environment: await _javaEnv(),
         input: 'no\n');
     if (r == null) return 'could not run avdmanager';
-    return r.ok ? null : 'avdmanager exited ${r.exitCode}: ${r.text.trim()}';
+    if (!r.ok) return 'avdmanager exited ${r.exitCode}: ${r.text.trim()}';
+    final home = toolchain.avdHome;
+    if (control && home != null) {
+      host.writeText(p.join(home, '$name.avd', '.aegis-created'), '');
+    }
+    return null;
   }
 
   Future<String?> _installFrida(void Function(String) log) async {
@@ -315,7 +327,8 @@ class Setup {
   }
 
   /// Deletes what aegis installed under `~/.aegis` (the Frida venv, the tools
-  /// folder, tools.json) and the `aegis-probe` AVD. Never touches Java, the
+  /// folder, tools.json), the `aegis-probe` AVD and a control AVD it created.
+  /// Never touches Java, the
   /// Android SDK or its packages — those are the user's, not aegis's. Returns
   /// the paths/items removed.
   Future<List<String>> remove() async {
@@ -327,18 +340,23 @@ class Setup {
       }
     }
     final avdHome = toolchain.avdHome;
-    final avdDir = avdHome == null ? null : p.join(avdHome, '${pins.avdName}.avd');
-    if (avdDir != null && host.dirExists(avdDir)) {
+    if (avdHome == null) return removed;
+    final controlDir = p.join(avdHome, '${pins.controlAvdName}.avd');
+    final ownsControl = host.fileExists(p.join(controlDir, '.aegis-created'));
+    for (final name in [pins.avdName, if (ownsControl) pins.controlAvdName]) {
+      final avdDir = p.join(avdHome, '$name.avd');
+      if (!host.dirExists(avdDir)) continue;
       final root = (await toolchain.findSdkRoot())?.path;
       final avdmanager = root == null ? null : toolchain.sdkTool(root, 'avdmanager');
       if (avdmanager != null) {
-        await host.run(avdmanager, ['delete', 'avd', '-n', pins.avdName],
+        final result = await host.run(avdmanager, ['delete', 'avd', '-n', name],
             environment: await _javaEnv());
+        if (result?.ok != true) continue;
       } else {
         host.deletePath(avdDir);
-        host.deleteFile(p.join(avdHome!, '${pins.avdName}.ini'));
+        host.deleteFile(p.join(avdHome, '$name.ini'));
       }
-      removed.add('AVD ${pins.avdName}');
+      removed.add('AVD $name');
     }
     return removed;
   }
