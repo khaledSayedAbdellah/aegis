@@ -117,14 +117,25 @@ void main() {
     test('runs bundletool and extracts universal.apk from the .apks', () async {
       final apk = File('test/fixtures/apk/secure.apk').readAsBytesSync();
       final apks = ZipEncoder().encode(Archive()..addFile(ArchiveFile('universal.apk', apk.length, apk)));
-      final h = FakeHost()..installed.add('/jdk/bin/java');
+      final h = FakeHost()..installed.addAll(['/jdk/bin/java', '/jdk/bin/keytool']);
       // What bundletool would have written.
       h.writeBytes('/w/app.apks', apks);
       final err = await Device(h, fakeTools()).aabToApk('/app.aab', '/w/app.apks', '/w/universal.apk');
       expect(err, isNull);
       expect(h.readBytes('/w/universal.apk'), apk);
-      expect(h.ran.single,
-          '/jdk/bin/java -jar /tools/bundletool.jar build-apks --mode=universal --overwrite --bundle=/app.aab --output=/w/app.apks');
+      expect(h.ran.first, contains('-genkeypair'));
+      expect(h.ran.first, contains('/w/aegis-aab.jks'));
+      expect(h.ran.last,
+          '/jdk/bin/java -jar /tools/bundletool.jar build-apks --mode=universal --overwrite --bundle=/app.aab --output=/w/app.apks '
+          '--ks=/w/aegis-aab.jks --ks-pass=pass:aegisprobe --ks-key-alias=aegis --key-pass=pass:aegisprobe');
+    });
+
+    test('signs with its own key, not the repackage check\'s key', () async {
+      // The repackage check signs with <work>/aegis-probe.jks; the AAB's key
+      // must be another file, or both copies would share a certificate.
+      final h = FakeHost()..installed.addAll(['/jdk/bin/java', '/jdk/bin/keytool']);
+      await Device(h, fakeTools()).aabToApk('/app.aab', '/w/app.apks', '/w/universal.apk');
+      expect(h.ran.join('\n'), isNot(contains('aegis-probe.jks')));
     });
 
     test('says what is missing', () async {
@@ -134,9 +145,13 @@ void main() {
     });
 
     test('a bundletool failure is reported, not hidden', () async {
-      final h = FakeHost()..answer('/jdk/bin/java', [
+      final h = FakeHost()
+        ..installed.add('/jdk/bin/keytool')
+        ..answer('/jdk/bin/java', [
           '-jar', '/tools/bundletool.jar', 'build-apks', '--mode=universal', '--overwrite',
           '--bundle=/a.aab', '--output=/o.apks',
+          '--ks=/aegis-aab.jks', '--ks-pass=pass:aegisprobe', '--ks-key-alias=aegis',
+          '--key-pass=pass:aegisprobe',
         ], stderr: 'Invalid bundle', code: 1);
       expect(await Device(h, fakeTools()).aabToApk('/a.aab', '/o.apks', '/o.apk'),
           contains('Invalid bundle'));

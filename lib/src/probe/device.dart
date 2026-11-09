@@ -328,15 +328,8 @@ class Device implements ProbeDevice {
     if (tools.keytool == null || tools.apksigner == null) {
       return 'keytool/apksigner not found';
     }
-    if (!host.fileExists(keystore)) {
-      final gen = await _run([
-        tools.keytool!, '-genkeypair', '-v',
-        '-keystore', keystore, '-storepass', 'aegisprobe', '-keypass', 'aegisprobe',
-        '-alias', 'aegis', '-keyalg', 'RSA', '-keysize', '2048', '-validity', '365',
-        '-dname', 'CN=aegis probe',
-      ]);
-      if (gen == null || !gen.ok) return 'keytool failed: ${gen?.text.trim()}';
-    }
+    final keyErr = await _ensureKeystore(keystore);
+    if (keyErr != null) return keyErr;
     // Copy, then sign in place with the different key.
     host.writeBytes(outApk, host.readBytes(apk));
     final sign = await _run([
@@ -348,17 +341,39 @@ class Device implements ProbeDevice {
     return null;
   }
 
+  /// A throwaway signing key at [keystore] (created when missing).
+  Future<String?> _ensureKeystore(String keystore) async {
+    if (tools.keytool == null) return 'keytool not found';
+    if (host.fileExists(keystore)) return null;
+    final gen = await _run([
+      tools.keytool!, '-genkeypair', '-v',
+      '-keystore', keystore, '-storepass', 'aegisprobe', '-keypass', 'aegisprobe',
+      '-alias', 'aegis', '-keyalg', 'RSA', '-keysize', '2048', '-validity', '365',
+      '-dname', 'CN=aegis probe',
+    ]);
+    if (gen == null || !gen.ok) return 'keytool failed: ${gen?.text.trim()}';
+    return null;
+  }
+
   /// Builds a universal APK from an `.aab` with bundletool into [outApk]
-  /// (via the [outApks] set). bundletool signs it with the debug keystore, so
-  /// it never carries the release signature. Returns null on success, else
-  /// the reason.
+  /// (via the [outApks] set), so it never carries the release signature.
+  /// It is signed with aegis's own throwaway key (`aegis-aab.jks` beside
+  /// [outApks]) rather than ~/.android/debug.keystore, which a machine that
+  /// never made a debug build doesn't have (bundletool would then write
+  /// unsigned APKs that don't install). The repackage check later re-signs
+  /// with another key, so the two certificates differ. Returns null on
+  /// success, else the reason.
   Future<String?> aabToApk(String aab, String outApks, String outApk) async {
     if (tools.bundletool == null) return 'bundletool not found (run "aegis setup --aab")';
     if (tools.java == null) return 'java not found';
+    final ks = p.join(p.dirname(outApks), 'aegis-aab.jks');
+    final keyErr = await _ensureKeystore(ks);
+    if (keyErr != null) return keyErr;
     final r = await _run([
       tools.java!, '-jar', tools.bundletool!,
       'build-apks', '--mode=universal', '--overwrite',
       '--bundle=$aab', '--output=$outApks',
+      '--ks=$ks', '--ks-pass=pass:aegisprobe', '--ks-key-alias=aegis', '--key-pass=pass:aegisprobe',
     ]);
     if (r == null) return 'could not run java';
     if (!r.ok) return 'bundletool failed: ${r.text.trim()}';
