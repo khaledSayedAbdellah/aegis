@@ -1,3 +1,10 @@
+## 0.8.0
+
+* `aegis setup` prepares separate rooted and unrooted Android 14 emulators. APK and AAB audits use both by default. The runtime probe verifies each test condition and reports continued execution under verified conditions as a process-level finding under MAS-R. Android self-exit records provide process-level blocking evidence. Optional app events provide a verdict on a specific operation.
+* AAB probes accept a signed companion APK, a bundletool `.apks` archive or a folder with one device-specific set of signed APKs. Aegis verifies the first-install APKs for each emulator and can require an expected app-signing certificate fingerprint. Set `probe_apk` and `probe_cert_sha256` in `aegis.yaml` or override them on the command line. `aegis init` includes both settings as commented examples.
+* `--strict` rejects an incomplete requested probe under any MAS profile. Reports distinguish incomplete checks from checks outside the profile or checks that do not apply.
+* The binary audit rejects unreadable Android manifests and resolves the network security configuration referenced by the manifest, including resource aliases and configuration variants.
+
 ## 0.7.0
 
 * **The resilience probe is part of `aegis run`.** `aegis run --mode apk|aab|all` runs the probe on the emulator first, then the static audit, and writes one report with both. Its results are new rules **AEG-R01** (root, RESILIENCE-1), **AEG-R02** (Frida, RESILIENCE-4), **AEG-R03** (debugger, RESILIENCE-4) and **AEG-R04** (re-signed copy, RESILIENCE-2), profile MAS-R: a gap is an ordinary finding that lowers the score, enters the baseline and triggers `fail_on`; an inconclusive check, a skipped probe or an app that does not stay alive on a clean emulator is not applicable, with the reason. Findings point to `<app>!/runtime`, so the baseline matches across builds.

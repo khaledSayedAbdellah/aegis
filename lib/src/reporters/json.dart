@@ -15,6 +15,7 @@ Map<String, Object?> reportToJson(AuditReport r) => {
       'generatedAt': r.generatedAt.toUtc().toIso8601String(),
       'project': r.projectName,
       'profile': r.profile.toString(),
+      'complete': r.complete,
       'scannedPackages': r.scannedPackages,
       if (r.binary != null) 'binary': r.binary!.toJson(),
       if (r.probe != null) 'probe': _probeJson(r.probe!),
@@ -60,6 +61,7 @@ Map<String, Object?> reportToJson(AuditReport r) => {
           s.name: r.failed.where((x) => x.severity == s).length,
         'passed': r.passed.length,
         'notApplicable': r.notApplicable.length,
+        'incomplete': r.incomplete.length,
         'suppressed': r.suppressed,
       },
       if (r.usesBaseline)
@@ -82,6 +84,7 @@ Map<String, Object?> reportToJson(AuditReport r) => {
             'masvs': res.meta.masvs,
             'maswe': res.meta.maswe,
             if (res.meta.cwe != null) 'cwe': res.meta.cwe,
+            if (res.incomplete) 'incomplete': true,
             if (res.note != null) 'note': res.note,
             'findings': [
               for (final f in res.findings)
@@ -160,6 +163,8 @@ String renderSarif(AuditReport r) {
               }
         ],
         'properties': {
+          'complete': r.complete,
+          'incompleteRules': r.incomplete.map((r) => r.meta.id).toList(),
           'score': r.score.value,
           'grade': r.score.grade,
           'profile': r.profile.toString(),
@@ -194,6 +199,16 @@ Map<String, Object?> _probeJson(ProbeOutcome o) {
     'ran': true,
     'app': r.app.split(RegExp(r'[\\/]')).last,
     if (r.emulatorError != null) 'emulatorError': r.emulatorError,
+    if (r.apkIdentity case final identity?)
+      'companionApk': {
+        'signatureVerified': true,
+        'signerSha256': identity.signerSha256,
+        if (identity.expectedSignerSha256 != null)
+          'expectedSignerSha256': identity.expectedSignerSha256,
+        'buildProvenance': 'userSupplied',
+        if (identity.controlApks.isNotEmpty) 'controlApks': identity.controlApks,
+        if (identity.rootedApks.isNotEmpty) 'rootedApks': identity.rootedApks,
+      },
     'baselineAlive': r.baselineAlive,
     if (r.baselineNote != null && r.baselineNote!.trim().isNotEmpty) 'baselineNote': r.baselineNote,
     'checks': [
@@ -202,6 +217,7 @@ Map<String, Object?> _probeJson(ProbeOutcome o) {
           'id': x.check.id,
           if (probeRuleIds[x.check.id] != null) 'rule': probeRuleIds[x.check.id],
           'status': x.status.name,
+          if (x.processOnly) 'scope': 'process',
           if (x.check.masvs != null) 'masvs': x.check.masvs,
           if (x.check.mastg != null) 'mastg': x.check.mastg,
           if (x.evidence.isNotEmpty) 'evidence': x.evidence,

@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          dart run aegis example/vulnerable_app --offline -f console,json,sarif,html -o build/aegis-example
+          dart run aegis example/vulnerable_app --strict --offline -f console,json,sarif,html -o build/aegis-example
           code=$?
           set -e
           echo "exit code: $code"
@@ -52,3 +52,39 @@ jobs:
         with:
           name: aegis-example-report
           path: build/aegis-example.*
+
+  android-probe:
+    name: Android resilience probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: 'true'
+      FLUTTER_SUPPRESS_ANALYTICS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/checkout@v4
+        with:
+          repository: flutter/flutter
+          ref: '3.41.9'
+          path: .dart_tool/ci-flutter
+          persist-credentials: false
+      - name: Prepare the Android toolchain
+        shell: bash
+        run: |
+          test -c /dev/kvm
+          sudo chmod a+rw /dev/kvm
+          echo "$GITHUB_WORKSPACE/.dart_tool/ci-flutter/bin" >> "$GITHUB_PATH"
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          (set +o pipefail; yes | "$sdkmanager" --sdk_root="$ANDROID_HOME" --licenses)
+          "$sdkmanager" --sdk_root="$ANDROID_HOME" 'platforms;android-35' 'build-tools;35.0.0'
+      - run: flutter --version
+      - run: dart pub get
+      - run: dart run aegis setup --yes --aab --lang en
+      - name: Run both emulators against a root-blocking APK
+        run: bash tool/probe_smoke.sh protected-root
+      - name: Run a protected Split APK set
+        run: bash tool/probe_smoke.sh splits

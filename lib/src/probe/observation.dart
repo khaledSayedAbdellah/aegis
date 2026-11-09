@@ -7,46 +7,6 @@ library;
 
 import 'probe_model.dart';
 
-/// What the runner observed around one probe condition.
-class Observation {
-  const Observation({
-    required this.setupOk,
-    required this.aliveBefore,
-    required this.aliveAfter,
-    this.appDeathLogged = false,
-  });
-
-  /// The condition was applied successfully (tool ran, device cooperated).
-  final bool setupOk;
-
-  /// The app's process was running just before the condition.
-  final bool aliveBefore;
-
-  /// The app's process was still running after the fixed wait.
-  final bool aliveAfter;
-
-  /// logcat showed the app's own process crash or being killed.
-  final bool appDeathLogged;
-
-  /// Nothing was set up / observed, so no verdict is possible.
-  const Observation.inconclusive()
-      : setupOk = false,
-        aliveBefore = false,
-        aliveAfter = false,
-        appDeathLogged = false;
-}
-
-/// Maps an observation to a status. Without a successful setup and a live
-/// starting point there is no verdict ([ProbeStatus.inconclusive]); the app
-/// going away or crashing is a reaction ([ProbeStatus.blocked]); the app
-/// still running normally means the protection didn't react
-/// ([ProbeStatus.notBlocked]).
-ProbeStatus statusOf(Observation o) {
-  if (!o.setupOk || !o.aliveBefore) return ProbeStatus.inconclusive;
-  if (!o.aliveAfter || o.appDeathLogged) return ProbeStatus.blocked;
-  return ProbeStatus.notBlocked;
-}
-
 /// The pid column of a logcat line in the default `threadtime` format
 /// (`11-08 15:29:21.344   951   951 I Tag: msg`), or null for other formats.
 final _threadtime = RegExp(r'^\S+\s+\S+\s+(\d+)\s+\d+\s+[VDIWEF]\s');
@@ -139,19 +99,18 @@ bool logcatShowsAppDeath(String logcat,
   return false;
 }
 
-/// The first crash/exception line the app itself logged, as evidence.
-String? appCrashLine(String logcat, String package, {int? pid}) {
-  final mine = appLines(logcat, package, pid: pid);
-  for (var i = 0; i < mine.length; i++) {
-    if (mine[i].contains('FATAL EXCEPTION')) {
-      final end = (i + 3) > mine.length ? mine.length : i + 3;
-      return mine.sublist(i, end).map((l) => l.trim()).join(' | ');
-    }
-  }
-  for (final l in mine) {
-    if (l.contains('Exception') || l.contains('Error')) return l.trim();
-  }
-  return null;
+final _exitRecord = RegExp(
+    r'\btimestamp=([^\r\n]+?)\s+pid=(\d+)[^\r\n]*\r?\n'
+    r'[^\S\r\n]*process=(\S+)\s+reason=(\d+)\b');
+
+/// Android's exit history distinguishes REASON_EXIT_SELF (1) from crashes
+/// and external kills. Match the observed process and a new record.
+bool observedSelfExit(String before, String after, String package, int pid) {
+  Iterable<RegExpMatch> records(String dump) => _exitRecord.allMatches(dump)
+      .where((record) => record[2] == '$pid' && record[3] == package);
+  final earlier = records(before).map((record) => record[1]).toSet();
+  final latest = records(after).firstOrNull;
+  return latest != null && latest[4] == '1' && !earlier.contains(latest[1]);
 }
 
 /// A best-effort guess at why a re-signed build died.
@@ -178,4 +137,21 @@ CrashCause classifyRepackageReaction(String logcat,
   if (isIntegrity && !isService) return CrashCause.integrityCheck;
   if (isService && !isIntegrity) return CrashCause.boundService;
   return CrashCause.unknown;
+}
+
+/// Reads the app's optional outcome. Null means absent; inconclusive means
+/// the app emitted conflicting outcomes for the same check.
+ProbeStatus? appProbeVerdict(String logcat, String package, String check, {int? pid}) {
+  final pids = pid == null ? appPids(logcat, package) : {pid};
+  final statuses = <ProbeStatus>{};
+  final event = RegExp(r'\sAegisProbe\s*:\s+' + RegExp.escape(check) +
+      r'\s+(blocked|not-blocked)\s*$');
+  for (final line in logcat.split('\n')) {
+    if (!pids.contains(_linePid(line))) continue;
+    final match = event.firstMatch(line);
+    if (match == null) continue;
+    statuses.add(match[1] == 'blocked' ? ProbeStatus.blocked : ProbeStatus.notBlocked);
+  }
+  if (statuses.isEmpty) return null;
+  return statuses.length == 1 ? statuses.single : ProbeStatus.inconclusive;
 }

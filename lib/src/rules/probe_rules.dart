@@ -20,6 +20,10 @@ const _fix = Bilingual(
     'Add runtime protection (RASP) that reacts to this condition — freeRASP or a commercial product — and set it to stop or restrict the app, not only to report. Then run aegis run --mode apk again to confirm it reacts.',
     'ضيف حماية وقت التشغيل (RASP) بترد على الحالة دي — freeRASP أو منتج تجاري — وخليها توقف التطبيق أو تقيّده، مش تبلّغ بس. وبعدين شغّل aegis run --mode apk تاني عشان تتأكد إنها بترد.');
 
+const _processFinding = Bilingual(
+    'No process-level block was observed under the verified condition.',
+    'الفحص ما رصدش إيقاف لعملية التطبيق بعد التحقق من الشرط.');
+
 /// One probe check as a rule.
 class ProbeRule extends Rule {
   const ProbeRule(this.checkId, this.meta, this.message);
@@ -42,14 +46,14 @@ class ProbeRule extends Rule {
     }
     final report = outcome.report;
     if (report == null) {
-      return RuleCheck.notApplicable('Probe skipped: ${outcome.skipped}');
+      final note = 'Probe skipped: ${outcome.skipped}';
+      return outcome.requested ? RuleCheck.incomplete(note) : RuleCheck.notApplicable(note);
     }
     if (report.emulatorError != null) {
-      return RuleCheck.notApplicable('The probe could not run: ${report.emulatorError}');
+      return RuleCheck.incomplete('The probe could not run: ${report.emulatorError}');
     }
     if (!report.baselineAlive) {
-      return RuleCheck.notApplicable(
-          'The app did not stay alive on a clean emulator, so this could not be judged.');
+      return RuleCheck.incomplete('The app did not stay alive during the control launch.');
     }
     ProbeResult? result;
     for (final r in report.results) {
@@ -59,15 +63,18 @@ class ProbeRule extends Rule {
       return RuleCheck.notApplicable('Not part of this probe run (--only).');
     }
     final r = result;
+    if (!r.applicable) return RuleCheck.notApplicable(r.note);
     return switch (r.status) {
       ProbeStatus.blocked => RuleCheck(const []),
-      ProbeStatus.inconclusive => RuleCheck.notApplicable(
+      ProbeStatus.inconclusive => RuleCheck.incomplete(
           'Inconclusive${r.note == null ? '' : ': ${r.note}'}'),
       // "<file>!/runtime": the baseline normalises the APK/AAB file name, so a
       // new build with another version in its name still matches.
       ProbeStatus.notBlocked => RuleCheck([
-          inFile('${p.basename(report.app)}!/runtime', null, message.en,
-              messageAr: message.ar, snippet: r.evidence),
+          inFile('${p.basename(report.app)}!/runtime', null,
+              r.processOnly ? _processFinding.en : message.en,
+              messageAr: r.processOnly ? _processFinding.ar : message.ar,
+              snippet: r.evidence),
         ]),
     };
   }
@@ -78,68 +85,68 @@ const probeRules = <Rule>[
     'root',
     RuleMeta(
       id: 'AEG-R01',
-      title: Bilingual('The app keeps running on a rooted device',
+      title: Bilingual('The app continues under root',
           'التطبيق بيكمّل شغله عادي على جهاز متعمله root'),
       passTitleText: Bilingual('The app reacted on a rooted device',
           'التطبيق ردّ على الجهاز اللي متعمله root'),
       description: Bilingual(
-          'aegis ran the app on its rooted emulator and the app kept working normally. On a rooted device an attacker can read the app\'s files and memory and change its behaviour; MASVS-RESILIENCE-1 expects the app to notice and react.',
-          'aegis شغّل التطبيق على الإيموليتر المتعمله root والتطبيق كمّل شغله عادي. على جهاز متعمله root أي حد يقدر يقرا ملفات التطبيق وذاكرته ويغيّر سلوكه، وMASVS-RESILIENCE-1 بيطلب إن التطبيق ياخد باله ويرد.'),
+          'aegis tested the app under verified root availability and observed continued execution. On a rooted device an attacker can read the app\'s files and memory and change its behaviour; MASVS-RESILIENCE-1 expects the app to notice and react.',
+          'aegis اختبر التطبيق بعد التحقق من توفر الـroot ورصد استمرار التشغيل. على جهاز متعمله root أي حد يقدر يقرا ملفات التطبيق وذاكرته ويغيّر سلوكه، وMASVS-RESILIENCE-1 بيطلب إن التطبيق ياخد باله ويرد.'),
       fix: _fix,
       severity: Severity.high,
       masvs: ['MASVS-RESILIENCE-1'],
       profiles: _r,
     ),
-    Bilingual('On a rooted emulator the app kept running normally: nothing detected root.',
-        'على إيموليتر متعمله root التطبيق كمّل شغله عادي: مفيش حاجة اكتشفت الـ root.'),
+    Bilingual('The app reported that the tested operation proceeded on the rooted emulator.',
+        'التطبيق سجّل إن الإجراء اللي اتفحص كمل على الإيموليتر المتعمله root.'),
   ),
   ProbeRule(
     'hooking',
     RuleMeta(
       id: 'AEG-R02',
-      title: Bilingual('The app does not react to Frida',
-          'التطبيق مبيردش على Frida'),
+      title: Bilingual('The app continues after Frida attaches',
+          'التطبيق بيستمر بعد اتصال Frida'),
       passTitleText: Bilingual('The app reacted to Frida', 'التطبيق ردّ على Frida'),
       description: Bilingual(
-          'aegis attached Frida to the running app and it kept working normally. Instrumentation lets an attacker read and change the app\'s logic while it runs; MASVS-RESILIENCE-4 expects the app to detect it.',
-          'aegis وصّل Frida بالتطبيق وهو شغّال والتطبيق كمّل عادي. الأدوات دي بتخلّي أي حد يقرا منطق التطبيق ويغيّره وهو شغّال، وMASVS-RESILIENCE-4 بيطلب إن التطبيق يكتشفها.'),
+          'aegis attached Frida to the running app and observed continued execution. Instrumentation lets an attacker read and change the app\'s logic while it runs; MASVS-RESILIENCE-4 expects the app to detect it.',
+          'aegis وصّل Frida بالتطبيق وهو شغّال ورصد استمرار التشغيل. الأدوات دي بتخلّي أي حد يقرا منطق التطبيق ويغيّره وهو شغّال، وMASVS-RESILIENCE-4 بيطلب إن التطبيق يكتشفها.'),
       fix: _fix,
       severity: Severity.high,
       masvs: ['MASVS-RESILIENCE-4'],
       profiles: _r,
     ),
-    Bilingual('With Frida attached the app kept running normally: nothing detected the instrumentation.',
-        'وFrida متوصّل بيه التطبيق كمّل شغله عادي: مفيش حاجة اكتشفت ده.'),
+    Bilingual('The app reported that the tested operation proceeded with Frida attached.',
+        'التطبيق سجّل إن الإجراء اللي اتفحص كمل وFrida متوصّل.'),
   ),
   ProbeRule(
     'debugger',
     RuleMeta(
       id: 'AEG-R03',
-      title: Bilingual('The app does not react to a debugger',
-          'التطبيق مبيردش على الـ debugger'),
+      title: Bilingual('The app continues with a debugger attached',
+          'التطبيق بيستمر بعد اتصال الـ debugger'),
       passTitleText: Bilingual('The app reacted to a debugger', 'التطبيق ردّ على الـ debugger'),
       description: Bilingual(
-          'aegis attached a debugger and the app kept working normally. MASVS-RESILIENCE-4 expects the app to notice a debugger. Release builds are usually not debuggable, so this check is often not applicable.',
-          'aegis وصّل debugger والتطبيق كمّل عادي. MASVS-RESILIENCE-4 بيطلب إن التطبيق ياخد باله من الـ debugger. نسخ الـ release غالبًا مش debuggable، فالفحص ده كتير بيطلع مش منطبق.'),
+          'aegis attached a debugger and observed continued execution. MASVS-RESILIENCE-4 expects the app to notice a debugger. Release builds are usually not debuggable, so this check is often not applicable.',
+          'aegis وصّل debugger ورصد استمرار التشغيل. MASVS-RESILIENCE-4 بيطلب إن التطبيق ياخد باله من الـ debugger. نسخ الـ release غالبًا مش debuggable، فالفحص ده كتير بيطلع مش منطبق.'),
       fix: _fix,
       severity: Severity.medium,
       masvs: ['MASVS-RESILIENCE-4'],
       profiles: _r,
     ),
-    Bilingual('With a debugger attached the app kept running normally.',
-        'والـ debugger متوصّل التطبيق كمّل شغله عادي.'),
+    Bilingual('The app reported that the tested operation proceeded with a debugger attached.',
+        'التطبيق سجّل إن الإجراء اللي اتفحص كمل والـ debugger متوصّل.'),
   ),
   ProbeRule(
     'repackage',
     RuleMeta(
       id: 'AEG-R04',
-      title: Bilingual('A re-signed copy of the app runs normally',
+      title: Bilingual('A re-signed copy of the app continues running',
           'نسخة من التطبيق معاد توقيعها بتشتغل عادي'),
       passTitleText: Bilingual('A re-signed copy of the app was rejected',
           'النسخة المعاد توقيعها من التطبيق اترفضت'),
       description: Bilingual(
-          'aegis signed the app with a different key, installed that copy and it ran normally. A modified, redistributed copy of the app would work the same way; MASVS-RESILIENCE-2 expects the app to check its own signature or integrity.',
-          'aegis وقّع التطبيق بمفتاح تاني وركّب النسخة دي واشتغلت عادي. يعني نسخة متعدّلة ومتوزّعة من التطبيق هتشتغل بنفس الشكل، وMASVS-RESILIENCE-2 بيطلب إن التطبيق يتأكد من توقيعه أو سلامته.'),
+          'aegis installed a copy signed with a different key and observed continued execution. MASVS-RESILIENCE-2 expects the app to check its own signature or integrity.',
+          'aegis ركّب نسخة متوقّعة بمفتاح تاني ورصد استمرار التشغيل، وMASVS-RESILIENCE-2 بيطلب إن التطبيق يتأكد من توقيعه أو سلامته.'),
       fix: _fix,
       severity: Severity.high,
       masvs: ['MASVS-RESILIENCE-2'],

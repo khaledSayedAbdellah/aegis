@@ -65,7 +65,7 @@ class _AxmlDecoder {
       if (size < 8 || p + size > b.length) break;
       switch (type) {
         case 0x0001:
-          strings = _readStringPool(p);
+          strings = readAndroidStringPool(b, p);
         case 0x0180:
           resIds = [
             for (var i = p + headerSize; i + 4 <= p + size; i += 4) u32(i)
@@ -173,9 +173,29 @@ class _AxmlDecoder {
     }
   }
 
-  List<String> _readStringPool(int p) {
+  static String _xmlName(String s) {
+    final cleaned = s.replaceAll(RegExp(r'[^A-Za-z0-9_.\-]'), '_');
+    if (cleaned.isEmpty) return '_';
+    return RegExp(r'^[A-Za-z_]').hasMatch(cleaned) ? cleaned : '_$cleaned';
+  }
+
+  static String _escape(String s) => s
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;');
+}
+
+/// Reads the string pool shared by binary XML and the Android resource table.
+List<String> readAndroidStringPool(Uint8List b, int p) {
+    final data = ByteData.sublistView(b);
+    int u16(int at) => data.getUint16(at, Endian.little);
+    int u32(int at) => data.getUint32(at, Endian.little);
     final headerSize = u16(p + 2);
     final count = u32(p + 8);
+    if (count > (u32(p + 4) - headerSize) ~/ 4) {
+      throw const FormatException('Invalid Android string pool');
+    }
     final flags = u32(p + 16);
     final stringsStart = u32(p + 20);
     final isUtf8 = (flags & 0x100) != 0;
@@ -212,16 +232,3 @@ class _AxmlDecoder {
     }
     return out;
   }
-
-  static String _xmlName(String s) {
-    final cleaned = s.replaceAll(RegExp(r'[^A-Za-z0-9_.\-]'), '_');
-    if (cleaned.isEmpty) return '_';
-    return RegExp(r'^[A-Za-z_]').hasMatch(cleaned) ? cleaned : '_$cleaned';
-  }
-
-  static String _escape(String s) => s
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;');
-}

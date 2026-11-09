@@ -34,10 +34,12 @@ class VulnerableDependencyRule extends Rule {
     if (project.offline) {
       return RuleCheck.notApplicable('Skipped (--offline)');
     }
+    final lockIssue = project.lockIssue;
+    if (lockIssue != null) return RuleCheck.incomplete(lockIssue);
     final pkgs = project.locked.values
         .where((p) => p.source == 'hosted' && p.version.isNotEmpty)
         .toList();
-    if (pkgs.isEmpty) return RuleCheck.notApplicable('No pubspec.lock');
+    if (pkgs.isEmpty) return RuleCheck.notApplicable('No locked hosted dependencies');
 
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 10);
     final out = <Finding>[];
@@ -59,21 +61,27 @@ class VulnerableDependencyRule extends Rule {
         req.headers.contentType = ContentType.json;
         req.write(body);
         final res = await req.close().timeout(const Duration(seconds: 20));
-        final text = await res.transform(utf8.decoder).join();
+        final text = await res.transform(utf8.decoder).join().timeout(const Duration(seconds: 20));
         if (res.statusCode != 200) {
-          return RuleCheck.notApplicable('osv.dev returned ${res.statusCode}');
+          return RuleCheck.incomplete('osv.dev returned ${res.statusCode}', out);
         }
         final json = jsonDecode(text);
         final results = json is Map ? json['results'] : null;
-        if (results is! List) continue;
+        if (results is! List || results.length != batch.length) {
+          return RuleCheck.incomplete('Invalid OSV batch response', out);
+        }
         for (var k = 0; k < results.length && k < batch.length; k++) {
           final r = results[k];
-          final vulns = r is Map ? r['vulns'] : null;
-          if (vulns is! List || vulns.isEmpty) continue;
+          if (r is! Map || r['vulns'] != null && r['vulns'] is! List) {
+            return RuleCheck.incomplete('Invalid OSV package response', out);
+          }
+          final vulns = r['vulns'] as List?;
+          if (vulns == null || vulns.isEmpty) continue;
           final ids = vulns
               .map((v) => v is Map ? v['id']?.toString() : null)
               .whereType<String>()
               .toList();
+          if (ids.isEmpty) return RuleCheck.incomplete('Invalid OSV advisory response', out);
           final p = batch[k];
           out.add(inFile('pubspec.lock', null,
               '${p.name} ${p.version}: ${ids.join(', ')} (https://osv.dev/vulnerability/${ids.first})',
@@ -81,7 +89,7 @@ class VulnerableDependencyRule extends Rule {
         }
       }
     } on Object catch (e) {
-      return RuleCheck.notApplicable('Could not reach osv.dev ($e)');
+      return RuleCheck.incomplete('Could not complete OSV lookup ($e)', out);
     } finally {
       client.close(force: true);
     }

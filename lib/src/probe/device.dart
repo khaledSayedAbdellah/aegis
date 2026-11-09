@@ -8,13 +8,10 @@
 /// particular protection — it observes whether the app reacts.
 library;
 
-import 'dart:typed_data';
-
 import 'package:path/path.dart' as p;
 
-import '../binary/zip.dart';
-
 import 'host.dart';
+import 'jdwp.dart';
 import 'pins.dart' as pins;
 import 'toolchain.dart';
 
@@ -24,41 +21,30 @@ class ProbeTools {
     this.adb,
     this.emulator,
     this.apksigner,
-    this.zipalign,
+    this.javaHome,
     this.keytool,
     this.frida,
     this.fridaServer,
-    this.bundletool,
     required this.avdName,
   });
 
   final String? adb;
   final String? emulator;
   final String? apksigner;
-  final String? zipalign;
+  final String? javaHome;
   final String? keytool;
   final String? frida;
   final String? fridaServer;
-  final String? bundletool;
   final String avdName;
 
-  /// The `java` launcher beside [keytool] (`<jdk>/bin/keytool` → `.../java`).
-  String? get java {
-    if (keytool == null) return null;
-    final ctx = keytool!.contains('\\') ? p.windows : p.posix;
-    final name = keytool!.endsWith('.exe') ? 'java.exe' : 'java';
-    return ctx.join(ctx.dirname(keytool!), name);
-  }
-
-  /// Tools missing for a working probe (bundletool only matters for `.aab`).
-  List<String> missing({bool needsBundletool = false}) => [
+  /// Tools needed by the selected checks.
+  List<String> missing({Set<String>? only}) => [
         if (adb == null) 'adb',
         if (emulator == null) 'emulator',
-        if (apksigner == null) 'apksigner',
-        if (frida == null) 'frida',
-        if (fridaServer == null) 'frida-server',
-        if (keytool == null) 'keytool',
-        if (needsBundletool && bundletool == null) 'bundletool',
+        if ((only == null || only.contains('repackage')) && apksigner == null) 'apksigner',
+        if ((only == null || only.contains('hooking')) && frida == null) 'frida',
+        if ((only == null || only.contains('hooking')) && fridaServer == null) 'frida-server',
+        if ((only == null || only.contains('repackage')) && keytool == null) 'keytool',
       ];
 
   static Future<ProbeTools> resolve(Host host, Toolchain t) async {
@@ -77,11 +63,10 @@ class ProbeTools {
       adb: ifExists(under(root, ['platform-tools', exe('adb')])),
       emulator: ifExists(under(root, ['emulator', exe('emulator')])),
       apksigner: ifExists(buildTools == null ? null : ctx.join(buildTools, bat('apksigner'))),
-      zipalign: ifExists(buildTools == null ? null : ctx.join(buildTools, exe('zipalign'))),
+      javaHome: java,
       keytool: ifExists(under(java, ['bin', exe('keytool')])),
       frida: ifExists(t.venvExe('frida')),
       fridaServer: ifExists(t.fridaServerPath),
-      bundletool: ifExists(t.bundletoolPath),
       avdName: pins.avdName,
     );
   }
@@ -91,18 +76,22 @@ class ProbeTools {
 abstract interface class ProbeDevice {
   Future<String?> bootEmulator(
       {int timeoutSeconds, void Function(String)? log, String? logPath});
-  Future<void> adbRoot();
+  Future<String?> setAdbRoot(bool enabled);
+  Future<bool> rootAvailable();
   Future<String?> install(String apk);
+  Future<String?> installApks(List<String> apks);
   Future<void> uninstall(String package);
+  Future<void> forceStop(String package);
   Future<String> launch(String package);
   Future<int?> pidOf(String package);
   Future<bool> isAlive(String package);
   Future<int?> waitForProcess(String package, {int timeoutSeconds});
   Future<void> clearLogcat();
   Future<String> logcat();
+  Future<String?> exitInfo(String package);
   Future<String?> startFridaServer();
   Future<void> stopFridaServer();
-  Future<String?> fridaAttach(String package);
+  Future<String?> fridaAttach(String package, Duration wait);
   Future<String?> attachDebugger(String package);
   Future<void> clearDebugApp();
   Future<String?> resignWithNewKey(String apk, String outApk, String keystore);
@@ -110,15 +99,41 @@ abstract interface class ProbeDevice {
 
 /// A finished adb/emulator/frida action. Thin wrapper over [Proc].
 class Device implements ProbeDevice {
-  Device(this.host, this.tools);
+  Device(this.host, this.tools, {String? avdName}) : avdName = avdName ?? tools.avdName;
+  final String avdName;
   final Host host;
   final ProbeTools tools;
 
-  List<String> _adb(List<String> args) => [tools.adb!, ...args];
+  String? _serial;
+  JdwpSession? _debugger;
+  int? _debuggerPort;
+
+  List<String> _adb(List<String> args) {
+    final serial = _serial;
+    if (serial == null) throw StateError('No verified probe emulator is selected');
+    return [tools.adb!, '-s', serial, ...args];
+  }
+
+  Future<void> _selectEmulator() async {
+    final devices = await _run([tools.adb!, 'devices']);
+    if (devices == null || !devices.ok) return;
+    final matches = <String>[];
+    for (final line in devices.stdout.split('\n')) {
+      final match = RegExp(r'^(emulator-\d+)\s+device\s*$').firstMatch(line);
+      if (match == null) continue;
+      final serial = match[1]!;
+      final name = await _run([tools.adb!, '-s', serial, 'emu', 'avd', 'name']);
+      if (name?.ok == true && name!.out.split('\n').first.trim() == avdName) {
+        matches.add(serial);
+      }
+    }
+    if (matches.length > 1) throw StateError('Multiple $avdName emulators are connected');
+    _serial = matches.firstOrNull;
+  }
 
   Future<Proc?> _run(List<String> cmd,
-          {Map<String, String>? env, String? input}) =>
-      host.run(cmd.first, cmd.sublist(1), environment: env, input: input);
+          {Duration timeout = const Duration(seconds: 30)}) =>
+      host.run(cmd.first, cmd.sublist(1), timeout: timeout);
 
   // --- emulator -----------------------------------------------------------
 
@@ -128,22 +143,30 @@ class Device implements ProbeDevice {
   @override
   Future<String?> bootEmulator(
       {int timeoutSeconds = 420, void Function(String)? log, String? logPath}) async {
-    if (tools.emulator == null) return 'emulator not found';
+    if (tools.emulator == null || tools.adb == null) return 'emulator or adb not found';
+    await _selectEmulator();
     if (await _bootCompleted()) {
       log?.call('emulator already running');
       return null;
     }
     log?.call('starting the emulator…');
-    await host.spawn(
+    if (_serial == null) {
+      final available = await _run([tools.emulator!, '-list-avds']);
+      if (available?.ok != true || !available!.out.split(RegExp(r'\s+')).contains(avdName)) {
+        return 'AVD $avdName is unavailable';
+      }
+      await host.spawn(
         tools.emulator!,
         [
-          '-avd', tools.avdName,
+          '-avd', avdName,
           '-no-window', '-no-snapshot', '-no-boot-anim',
           '-gpu', 'swiftshader_indirect', '-netdelay', 'none', '-no-audio',
         ],
         logPath: logPath);
+    }
     for (var i = 0; i * 3 < timeoutSeconds; i++) {
       await Future<void>.delayed(const Duration(seconds: 3));
+      if (_serial == null) await _selectEmulator();
       if (await _bootCompleted()) {
         log?.call('emulator booted');
         return null;
@@ -151,7 +174,7 @@ class Device implements ProbeDevice {
       if (i > 0 && i % 10 == 0) log?.call('still booting… (${i * 3}s)');
     }
     // Timed out: say what adb sees and the tail of the emulator's own output.
-    final devices = await _run(_adb(['devices']));
+    final devices = await _run([tools.adb!, 'devices']);
     final buf = StringBuffer('emulator did not finish booting in ${timeoutSeconds}s');
     if (devices != null) buf.write('\n  adb devices: ${devices.out.replaceAll('\n', ' ')}');
     if (logPath != null && host.fileExists(logPath)) {
@@ -165,29 +188,91 @@ class Device implements ProbeDevice {
   /// True once `sys.boot_completed` is 1 (adb returns non-zero while there is
   /// no device, so this stays false until the emulator is up).
   Future<bool> _bootCompleted() async {
+    if (_serial == null) return false;
     final r = await _run(_adb(['shell', 'getprop', 'sys.boot_completed']));
     return r != null && r.ok && r.out.trim() == '1';
   }
 
-  /// Puts the dev emulator in a rooted state (google_apis images allow it).
+  /// Switches adbd privileges and verifies the effective shell UID.
   @override
-  Future<void> adbRoot() async {
-    await _run(_adb(['root']));
-    await _run(_adb(['wait-for-device']));
+  Future<String?> setAdbRoot(bool enabled) async {
+    final action = enabled ? 'root' : 'unroot';
+    final command = await _run(_adb([action]));
+    if (command?.ok != true) return 'adb $action failed: ${command?.text ?? 'adb unavailable'}';
+    for (var i = 0; i < 10; i++) {
+      final uid = await _run(_adb(['shell', 'id', '-u']));
+      final number = int.tryParse(uid?.out ?? '');
+      if (uid?.ok == true && number != null && (number == 0) == enabled) return null;
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
+    return 'Could not verify adb $action';
+  }
+
+  @override
+  Future<bool> rootAvailable() async {
+    final result = await _run(_adb(['shell',
+      r'if [ "$(id -u)" = 0 ] || [ "$(su 0 id -u 2>/dev/null)" = 0 ]; '
+      'then echo root; else echo shell; fi']));
+    if (result?.ok != true || !{'root', 'shell'}.contains(result!.out)) {
+      throw StateError('Could not verify root availability');
+    }
+    return result.out == 'root';
   }
 
   // --- app lifecycle ------------------------------------------------------
 
   @override
-  Future<String?> install(String apk) async {
-    final r = await _run(_adb(['install', '-r', '-t', apk]));
+  Future<String?> install(String apk) => installApks([apk]);
+
+  @override
+  Future<String?> installApks(List<String> apks) async {
+    final command = apks.length == 1 ? 'install' : 'install-multiple';
+    final r = await _run(_adb([command, '-r', '-t', ...apks]),
+        timeout: const Duration(minutes: 2));
     if (r == null) return 'could not run adb';
-    return r.ok ? null : 'adb install failed: ${r.text.trim()}';
+    return r.ok ? null : 'adb $command failed: ${r.text.trim()}';
+  }
+
+  Future<int> sdkVersion() async {
+    final result = await _run(_adb(['shell', 'getprop', 'ro.build.version.sdk']));
+    final version = int.tryParse(result?.out ?? '');
+    if (result?.ok != true || version == null || version < 1) {
+      throw const FormatException('Could not read the emulator SDK version.');
+    }
+    return version;
+  }
+
+  Future<void> extractApkSet(String bundletool, String archive, String directory) async {
+    final serial = _serial;
+    final javaHome = tools.javaHome;
+    if (serial == null || javaHome == null) {
+      throw StateError('A verified emulator and Java are required to extract an APK set');
+    }
+    final path = host.os == 'windows' ? p.windows : p.posix;
+    final java = path.join(javaHome, 'bin', host.os == 'windows' ? 'java.exe' : 'java');
+    final spec = path.join(directory, 'device.json');
+    host.mkdirs(directory);
+    Future<void> bundle(List<String> args) async {
+      final result = await _run([java, '-jar', bundletool, ...args],
+          timeout: const Duration(minutes: 2));
+      if (result?.ok != true) {
+        throw FormatException('bundletool ${args.first} failed: ${result?.text ?? 'could not run Java'}');
+      }
+    }
+
+    await bundle(['get-device-spec', '--adb=${tools.adb}', '--device-id=$serial', '--output=$spec']);
+    await bundle(['extract-apks', '--apks=$archive', '--device-spec=$spec', '--output-dir=$directory']);
   }
 
   @override
   Future<void> uninstall(String package) async =>
       _run(_adb(['uninstall', package]));
+
+  @override
+  Future<void> forceStop(String package) async {
+    final result = await _run(_adb(['shell', 'am', 'force-stop', package]));
+    if (result?.ok != true) throw StateError('Could not stop $package');
+  }
 
   /// Launches the app's main activity. Resolves the LAUNCHER activity and
   /// starts it with `am start -W` (which prints `Status: ok` or `Error:`),
@@ -203,7 +288,7 @@ class Device implements ProbeDevice {
     if (resolve != null && resolve.ok) {
       for (final line in resolve.out.split('\n')) {
         final t = line.trim();
-        if (t.startsWith('$package/')) {
+        if (t.startsWith('$package/') && RegExp(r'^[A-Za-z0-9_.$/]+$').hasMatch(t)) {
           component = t;
           break;
         }
@@ -213,7 +298,7 @@ class Device implements ProbeDevice {
       final m = await _run(_adb(['shell', 'monkey', '-p', package, '1']));
       return 'monkey: ${m?.text.trim() ?? 'failed'}';
     }
-    final start = await _run(_adb(['shell', 'am', 'start', '-W', '-n', component]));
+    final start = await _run(_adb(['shell', 'am', 'start', '-W', '-n', "'$component'"]));
     return 'am start $component → ${start?.text.trim() ?? 'failed'}';
   }
 
@@ -236,6 +321,7 @@ class Device implements ProbeDevice {
         }
       }
     }
+    if (ps?.ok != true) throw StateError('Could not query the process for $package');
     return null;
   }
 
@@ -255,13 +341,17 @@ class Device implements ProbeDevice {
   }
 
   @override
-  Future<void> clearLogcat() async => _run(_adb(['logcat', '-c']));
+  Future<void> clearLogcat() async {
+    final result = await _run(_adb(['logcat', '-c']));
+    if (result?.ok != true) throw StateError('Could not clear logcat');
+  }
 
   /// The current logcat buffer (`-d` dumps and exits).
   @override
   Future<String> logcat() async {
-    final r = await _run(_adb(['logcat', '-d']));
-    return r?.stdout ?? '';
+    final r = await _run(_adb(['logcat', '-d', '-v', 'threadtime']));
+    if (r?.ok != true) throw StateError('Could not read logcat');
+    return r!.stdout;
   }
 
   // --- conditions ---------------------------------------------------------
@@ -274,49 +364,91 @@ class Device implements ProbeDevice {
     const remote = '/data/local/tmp/frida-server';
     final push = await _run(_adb(['push', tools.fridaServer!, remote]));
     if (push == null || !push.ok) return 'adb push failed: ${push?.text.trim()}';
-    await _run(_adb(['shell', 'chmod', '755', remote]));
-    // Background it so adb returns; su is available on the rooted dev image.
-    await _run(_adb(['shell', 'su', '0', 'sh', '-c', 'nohup $remote >/dev/null 2>&1 &']));
-    return null;
+    final chmod = await _run(_adb(['shell', 'chmod', '755', remote]));
+    if (chmod?.ok != true) return 'Could not make frida-server executable';
+    final start = await _run(_adb(['shell', 'nohup $remote >/dev/null 2>&1 &']));
+    if (start?.ok != true) return 'Could not start frida-server';
+    for (var i = 0; i < 10; i++) {
+      final server = await _run(_adb(['shell', 'pidof', 'frida-server']));
+      if (server?.ok == true && server!.out.isNotEmpty) return null;
+      await Future<void>.delayed(const Duration(milliseconds: 500));
+    }
+    return 'frida-server did not start';
   }
 
-  /// Attaches a Frida session to the running app, to see whether the app
-  /// detects instrumentation. Returns null when a session was established.
   @override
-  Future<String?> fridaAttach(String package) async {
-    if (tools.frida == null) return 'frida not found';
-    // -U USB/emulator, attach by name, run a one-line script and detach.
-    final r = await host.run(tools.frida!,
-        ['-U', '-n', package, '-q', '-e', 'true'],
-        environment: null);
-    if (r == null) return 'could not run frida';
-    // A non-zero exit here usually means the app refused/killed the session,
-    // which is itself a reaction; the runner judges by the app's state.
-    return null;
+  Future<String?> exitInfo(String package) async {
+    final result = await _run(_adb(['shell', 'dumpsys', 'activity', 'exit-info', package]));
+    return result?.ok == true ? result!.stdout : null;
   }
 
-  /// Marks the app to wait for a debugger and opens a JDWP channel, to see
-  /// whether the app detects the debugger.
+  @override
+  Future<String?> fridaAttach(String package, Duration wait) async {
+    if (tools.frida == null || _serial == null) return 'Frida or the selected emulator is unavailable';
+    final pid = await pidOf(package);
+    if (pid == null) return 'App process is unavailable for Frida';
+    final forward = await _run(_adb(['forward', 'tcp:0', 'tcp:27042']));
+    final port = int.tryParse(forward?.out ?? '');
+    if (forward?.ok != true || port == null) return 'Could not forward the Frida server port';
+    try {
+      const marker = 'AEGIS_FRIDA_ATTACHED';
+      final seconds = wait.inSeconds.clamp(1, 60).toString();
+      final result = await host.run(tools.frida!, [
+        '-H', '127.0.0.1:$port', '-p', '$pid', '-q', '-t', seconds,
+        '-e', 'console.log("$marker")',
+      ], timeout: wait + const Duration(seconds: 30));
+      if (result?.stdout.split('\n').any((line) => line.trim() == marker) == true) return null;
+      return 'Frida attachment could not be verified: ${result?.text ?? 'Frida unavailable'}';
+    } finally {
+      await _run(_adb(['forward', '--remove', 'tcp:$port']));
+    }
+  }
+
   @override
   Future<String?> attachDebugger(String package) async {
-    await _run(_adb(['shell', 'am', 'set-debug-app', '-w', package]));
-    await launch(package);
     final pid = await pidOf(package);
-    if (pid == null) return 'app not running';
-    final fwd = await _run(_adb(['forward', 'tcp:8700', 'jdwp:$pid']));
-    return fwd != null && fwd.ok ? null : 'could not open a JDWP channel';
+    if (pid == null) return 'App process is unavailable for JDWP';
+    var error = 'Could not forward the app JDWP port';
+    // ADB can allocate the forward before ART has registered its transport.
+    // Reopen it on a failed handshake instead of keeping a stale connection.
+    for (var attempt = 0; attempt < 3; attempt++) {
+      await Future<void>.delayed(const Duration(seconds: 1));
+      if (await pidOf(package) != pid) return 'App process changed before JDWP attached';
+      final forward = await _run(_adb(['forward', 'tcp:0', 'jdwp:$pid']));
+      final port = int.tryParse(forward?.out ?? '');
+      if (forward?.ok != true || port == null) continue;
+      _debuggerPort = port;
+      try {
+        _debugger = await JdwpSession.connect(port);
+        return null;
+      } catch (e) {
+        error = 'JDWP attachment could not be verified: $e';
+        await clearDebugApp();
+      }
+    }
+    return error;
   }
 
-  /// Stops a frida-server left running on the device (by this probe or an
-  /// earlier one), so it can't influence the checks that don't involve it.
   @override
   Future<void> stopFridaServer() async {
-    await _run(_adb(['shell', 'su', '0', 'pkill', '-f', 'frida-server']));
+    final pid = await _run(_adb(['shell', 'pidof', 'frida-server']));
+    if (pid?.exitCode == 1 && pid!.text.isEmpty) return;
+    if (pid?.ok != true) throw StateError('Could not check for a running frida-server');
+    final result = await _run(_adb(['shell', 'pkill', '-x', 'frida-server']));
+    if (result?.ok != true) throw StateError('Could not stop frida-server');
   }
 
   @override
-  Future<void> clearDebugApp() async =>
-      _run(_adb(['shell', 'am', 'clear-debug-app']));
+  Future<void> clearDebugApp() async {
+    try {
+      await _debugger?.close();
+    } finally {
+      final port = _debuggerPort;
+      _debugger = null;
+      _debuggerPort = null;
+      if (port != null) await _run(_adb(['forward', '--remove', 'tcp:$port']));
+    }
+  }
 
   // --- repackaging (integrity condition) ----------------------------------
 
@@ -355,33 +487,4 @@ class Device implements ProbeDevice {
     return null;
   }
 
-  /// Builds a universal APK from an `.aab` with bundletool into [outApk]
-  /// (via the [outApks] set), so it never carries the release signature.
-  /// It is signed with aegis's own throwaway key (`aegis-aab.jks` beside
-  /// [outApks]) rather than ~/.android/debug.keystore, which a machine that
-  /// never made a debug build doesn't have (bundletool would then write
-  /// unsigned APKs that don't install). The repackage check later re-signs
-  /// with another key, so the two certificates differ. Returns null on
-  /// success, else the reason.
-  Future<String?> aabToApk(String aab, String outApks, String outApk) async {
-    if (tools.bundletool == null) return 'bundletool not found (run "aegis setup --aab")';
-    if (tools.java == null) return 'java not found';
-    final ks = p.join(p.dirname(outApks), 'aegis-aab.jks');
-    final keyErr = await _ensureKeystore(ks);
-    if (keyErr != null) return keyErr;
-    final r = await _run([
-      tools.java!, '-jar', tools.bundletool!,
-      'build-apks', '--mode=universal', '--overwrite',
-      '--bundle=$aab', '--output=$outApks',
-      '--ks=$ks', '--ks-pass=pass:aegisprobe', '--ks-key-alias=aegis', '--key-pass=pass:aegisprobe',
-    ]);
-    if (r == null) return 'could not run java';
-    if (!r.ok) return 'bundletool failed: ${r.text.trim()}';
-    if (!host.fileExists(outApks)) return 'bundletool wrote nothing';
-    final universal =
-        ZipReader(Uint8List.fromList(host.readBytes(outApks))).read('universal.apk');
-    if (universal == null) return 'no universal.apk in the bundletool output';
-    host.writeBytes(outApk, universal);
-    return null;
-  }
 }

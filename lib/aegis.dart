@@ -15,7 +15,7 @@ export 'src/engine.dart' show AuditReport, BinaryInfo, CertificateInfo, runAudit
 export 'src/masvs.dart' show MasvsControl, ManualCheck, masvsControls, manualChecks;
 export 'src/model.dart';
 export 'src/probe/probe_model.dart'
-    show ProbeCheck, ProbeOutcome, ProbeReport, ProbeResult, ProbeStatus, probeChecks;
+    show ProbeApkIdentity, ProbeCheck, ProbeOutcome, ProbeReport, ProbeResult, ProbeStatus, probeChecks;
 export 'src/reporters/azure.dart' show renderAzure;
 export 'src/reporters/console.dart' show ConsoleReporter;
 export 'src/reporters/html.dart' show renderHtml;

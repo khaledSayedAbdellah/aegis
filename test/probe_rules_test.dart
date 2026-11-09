@@ -46,7 +46,7 @@ void main() {
     expect(r.probe, isNull);
   });
 
-  test('blocked → passed, not blocked → finding, inconclusive → not applicable', () async {
+  test('blocked → passed, not blocked → finding, inconclusive → incomplete', () async {
     final r = await audit(ProbeOutcome.ran(report({
       'root': ProbeStatus.notBlocked,
       'hooking': ProbeStatus.blocked,
@@ -55,7 +55,7 @@ void main() {
     })));
     expect(rule(r, 'AEG-R01')!.status, RuleStatus.failed);
     expect(rule(r, 'AEG-R02')!.status, RuleStatus.passed);
-    expect(rule(r, 'AEG-R03')!.status, RuleStatus.notApplicable);
+    expect(rule(r, 'AEG-R03')!.status, RuleStatus.incomplete);
     expect(rule(r, 'AEG-R03')!.note, contains('not debuggable'));
     expect(rule(r, 'AEG-R04')!.status, RuleStatus.failed);
 
@@ -81,9 +81,45 @@ void main() {
     expect(rule(r, 'AEG-R01')!.status, RuleStatus.outOfProfile);
   });
 
-  test('skipped / emulator error / dead baseline → not applicable with the reason', () async {
+  test('probe completion is independent of MAS-R and ignores inapplicable checks', () async {
+    final undecided = await audit(
+        ProbeOutcome.ran(report({'root': ProbeStatus.inconclusive})),
+        profile: 'l1');
+    expect(rule(undecided, 'AEG-R01')!.status, RuleStatus.outOfProfile);
+    expect(undecided.complete, isFalse);
+
+    final completed = report({'root': ProbeStatus.blocked});
+    completed.results.add(ProbeResult(
+        probeChecks.firstWhere((check) => check.id == 'debugger'),
+        ProbeStatus.inconclusive,
+        applicable: false));
+    final r = await audit(ProbeOutcome.ran(completed), profile: 'l1');
+    expect(r.complete, isTrue);
+  });
+
+  test('an automatic process verdict produces a scoped MAS-R finding', () async {
+    final runtime = report({});
+    runtime.results.add(ProbeResult(
+        probeChecks.firstWhere((check) => check.id == 'root'),
+        ProbeStatus.notBlocked,
+        evidence: 'The same app process stayed alive after the condition was verified.',
+        processOnly: true));
+    final r = await audit(ProbeOutcome.ran(runtime));
+    expect(r.complete, isTrue);
+    final root = rule(r, 'AEG-R01')!;
+    expect(root.status, RuleStatus.failed);
+    expect(root.findings.single.message, contains('No process-level block'));
+    expect(r.countAtLeast(Severity.high), greaterThan(0));
+    expect(renderHtml(r, lang: 'ar'), contains('نفس عملية التطبيق فضلت شغّالة'));
+    final probe = reportToJson(r)['probe'] as Map<String, Object?>;
+    final checks = probe['checks'] as List;
+    expect(checks.single['status'], 'notBlocked');
+    expect(checks.single['scope'], 'process');
+  });
+
+  test('skipped / emulator error / dead baseline → incomplete with the reason', () async {
     final skipped = await audit(const ProbeOutcome.skipped('no emulator tools (run aegis setup)'));
-    expect(rule(skipped, 'AEG-R01')!.status, RuleStatus.notApplicable);
+    expect(rule(skipped, 'AEG-R01')!.status, RuleStatus.incomplete);
     expect(rule(skipped, 'AEG-R01')!.note, contains('aegis setup'));
 
     final broken = await audit(ProbeOutcome.ran(
@@ -91,7 +127,7 @@ void main() {
     expect(rule(broken, 'AEG-R01')!.note, contains('did not boot'));
 
     final dead = await audit(ProbeOutcome.ran(report({}, baselineAlive: false)));
-    expect(rule(dead, 'AEG-R04')!.note, contains('clean emulator'));
+    expect(rule(dead, 'AEG-R04')!.note, contains('control launch'));
   });
 
   test('the same gap in a build with another version still matches the baseline', () async {

@@ -24,6 +24,8 @@ class AegisConfig {
     this.file,
     this.apk,
     this.aab,
+    this.probeApk,
+    this.probeCertSha256,
   });
 
   final ProfileSet profile;
@@ -61,7 +63,13 @@ class AegisConfig {
   /// The release App Bundle, for `--mode aab|all`. Same rules as [apk].
   final String? aab;
 
-  /// [apk] or [aab] made absolute against [projectRoot], or null when unset.
+  /// Companion APK for the AAB probe, relative to the project or absolute.
+  final String? probeApk;
+
+  /// Expected SHA-256 fingerprint of the companion APK's signing certificate.
+  final String? probeCertSha256;
+
+  /// An artifact path made absolute against [projectRoot], or null when unset.
   static String? resolve(String projectRoot, String? path) {
     if (path == null || path.trim().isEmpty) return null;
     final v = path.trim();
@@ -132,6 +140,8 @@ class AegisConfig {
       file: file,
       apk: _path(doc['apk']),
       aab: _path(doc['aab']),
+      probeApk: _path(doc['probe_apk']),
+      probeCertSha256: _path(doc['probe_cert_sha256']),
     );
   }
 
@@ -168,5 +178,7 @@ class AegisConfig {
         file: file,
         apk: apk,
         aab: aab,
+        probeApk: probeApk,
+        probeCertSha256: probeCertSha256,
       );
 }

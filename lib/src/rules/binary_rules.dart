@@ -172,10 +172,14 @@ class BinaryManifestNetworkRule extends Rule {
       }
     }
 
-    final nsc = apk.networkSecurityConfig;
-    if (nsc != null &&
-        !await reportedBySource(const NetworkSecurityConfigRule(), project, profile)) {
-      final (entry, doc) = nsc;
+    final List<(String, XmlDocument)> configs;
+    try {
+      configs = apk.networkSecurityConfigs;
+    } catch (e) {
+      return RuleCheck.incomplete('Could not inspect the shipped network security config: $e', out);
+    }
+    // Each packaged variant may differ from the source and from the other variants.
+    for (final (entry, doc) in configs) {
       final loc = apk.location(entry);
       for (final tag in const ['base-config', 'domain-config']) {
         for (final e in doc.findAllElements(tag)) {

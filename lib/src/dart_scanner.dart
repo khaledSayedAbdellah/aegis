@@ -357,9 +357,14 @@ class DartFile {
 
   /// Finds the body of a function or method declared as `name(...) {` or
   /// `name(...) =>` in this file. Returns the token range of the body.
-  ({int start, int end})? functionBody(String name) {
+  ({int start, int end})? functionBody(String name, {bool topLevel = false}) {
     for (var i = 0; i < tokens.length; i++) {
       final t = tokens[i];
+      if (topLevel && (t.isPunct('{') || t.isPunct('(') || t.isPunct('['))) {
+        final end = matchOf(i);
+        if (end != null) i = end;
+        continue;
+      }
       if (!t.isIdent || t.text != name) continue;
       final open = at(i + 1);
       if (open == null || !open.isPunct('(')) continue;

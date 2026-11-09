@@ -60,6 +60,7 @@ class Project {
   final Map<String, Object?> devDependencies = {};
   final Map<String, Object?> dependencyOverrides = {};
   final Map<String, LockedPackage> locked = {};
+  String? lockIssue;
   final List<String> assets = [];
 
   final List<DartFile> dartFiles = [];
@@ -72,6 +73,7 @@ class Project {
   ProjectFile? androidManifest;
   XmlDocument? androidManifestXml;
   ProjectFile? appGradle;
+  String? networkSecurityConfigReference;
   ProjectFile? networkSecurityConfig;
   XmlDocument? networkSecurityConfigXml;
   final List<ProjectFile> androidNativeSources = [];
@@ -139,8 +141,14 @@ class Project {
   }
 
   void _loadPubspec(String text) {
-    final doc = loadYaml(text);
-    if (doc is Map) pubspec = doc;
+    final Object? doc;
+    try {
+      doc = loadYaml(text);
+    } on YamlException catch (e) {
+      throw FormatException('Invalid pubspec.yaml: ${e.message}');
+    }
+    if (doc is! Map) throw const FormatException('pubspec.yaml must be a map.');
+    pubspec = doc;
     name = (pubspec['name'] ?? p.basename(root)).toString();
     void fill(Object? section, Map<String, Object?> into) {
       if (section is Map) {
@@ -185,7 +193,10 @@ class Project {
     try {
       final doc = loadYaml(f.readAsStringSync());
       final pkgs = doc is Map ? doc['packages'] : null;
-      if (pkgs is! Map) return;
+      if (pkgs is! Map) {
+        lockIssue = 'pubspec.lock does not contain a packages map';
+        return;
+      }
       pkgs.forEach((k, v) {
         if (v is Map) {
           locked[k.toString()] = LockedPackage(
@@ -194,7 +205,7 @@ class Project {
         }
       });
     } catch (_) {
-      // A broken lock file should not stop the audit.
+      lockIssue = 'Could not read pubspec.lock';
     }
   }
 
@@ -297,6 +308,7 @@ class Project {
         ? null
         : firstElement(androidManifestXml!, 'application');
     final nsc = app == null ? null : androidAttr(app, 'networkSecurityConfig');
+    networkSecurityConfigReference = nsc;
     if (nsc != null && nsc.startsWith('@xml/')) {
       networkSecurityConfig =
           _read('android/app/src/main/res/xml/${nsc.substring(5)}.xml');

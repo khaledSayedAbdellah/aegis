@@ -185,7 +185,7 @@ class FreeRaspWiringRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P02',
-        title: Bilingual('freeRASP is installed but not running', 'freeRASP متثبت بس مش شغال'),
+        title: Bilingual('Missing freeRASP startup wiring', 'استدعاءات تشغيل freeRASP ناقصة'),
         description: Bilingual(
             'freeRASP only protects the app after Talsec.instance.start(config) runs and a ThreatCallback is attached. Otherwise it is dead weight that gives a false sense of security.',
             'freeRASP مش بيحمي غير بعد ما Talsec.instance.start(config) يتنادى ويتربط ThreatCallback. غير كده هو مجرد مكتبة زيادة بتدي إحساس كاذب بالأمان.'),
@@ -204,22 +204,84 @@ class FreeRaspWiringRule extends Rule {
     if (!project.usesPackage('freerasp')) {
       return RuleCheck.notApplicable('freerasp not used');
     }
-    final out = <Finding>[];
-    final starts = findCalls(project, {'start'}, receivers: ['instance', 'Talsec']);
-    if (starts.isEmpty) {
-      out.add(inFile('pubspec.yaml', null,
-          'freerasp is a dependency but Talsec.instance.start() is never called.',
-          messageAr: 'freerasp موجود في الـ dependencies بس Talsec.instance.start() مش بيتنادى خالص.'));
+    const methods = {'start', 'attachListener'};
+    final candidates = findCalls(project, methods, receivers: ['instance', 'Talsec']);
+    final entry = project.dartFiles.where((f) => f.path == 'lib/main.dart').firstOrNull;
+    final body = entry?.functionBody('main', topLevel: true);
+    final direct = <String, int>{};
+    if (entry != null && body != null) {
+      // Only direct statements in the conventional entry point qualify.
+      // Helpers, conditional code and alternate entry points need review.
+      final imports = <String>{};
+      final tokens = entry.tokens;
+      for (var i = 0; i + 1 < body.start; i++) {
+        if (tokens[i].text != 'import' ||
+            !(tokens[i + 1].value ?? '').startsWith('package:freerasp/')) {
+          continue;
+        }
+        final end = tokens.indexWhere((t) => t.isPunct(';'), i + 2);
+        if (end == i + 2) imports.add('Talsec');
+        if (end == i + 4 && tokens[i + 2].text == 'as') {
+          imports.add('${tokens[i + 3].text}.Talsec');
+        }
+      }
+      // A local declaration with the same identifier makes the binding ambiguous.
+      imports.removeWhere((name) {
+        final identifier = name.split('.').first;
+        for (var i = 1; i < tokens.length - 1; i++) {
+          if (tokens[i].text != identifier) continue;
+          final previous = tokens[i - 1];
+          final next = tokens[i + 1];
+          if ({'class', 'enum', 'mixin', 'typedef', 'type', 'final', 'var', 'const'}.contains(previous.text) ||
+              previous.isIdent && next.isPunct('=')) {
+            return true;
+          }
+        }
+        return false;
+      });
+      var statementStart = body.start + 1;
+      final calls = {for (final c in entry.calls(methods)) c.nameIndex: c};
+      for (var i = statementStart; i < body.end; i++) {
+        if (tokens[i].isPunct(';')) {
+          statementStart = i + 1;
+          continue;
+        }
+        if (tokens[i].isPunct('{') || tokens[i].text == 'return' || tokens[i].text == 'throw') break;
+        final c = calls[i];
+        if (c != null && c.close + 1 < tokens.length && tokens[c.close + 1].isPunct(';') &&
+            entry.args(c.open).isNotEmpty) {
+          final first = tokens[statementStart].text == 'await' ? statementStart + 1 : statementStart;
+          final receiver = tokens.sublist(first, i).map((t) => t.text).join();
+          if (imports.any((name) => receiver == '$name.instance.')) {
+            direct.putIfAbsent(c.name, () => i);
+          }
+        }
+        final end = entry.matchOf(i);
+        if (end != null && end > i) i = end;
+      }
     }
-    final listeners = findCalls(project, {'attachListener'}, receivers: ['instance', 'Talsec']);
-    if (listeners.isEmpty) {
-      out.add(inFile(
-          starts.isEmpty ? 'pubspec.yaml' : starts.first.$1.path,
-          starts.isEmpty ? null : starts.first.$1.lineOfToken(starts.first.$2.nameIndex),
-          'No ThreatCallback is attached (Talsec.instance.attachListener is never called), so detected threats are ignored.',
-          messageAr: 'مفيش ThreatCallback متربط (Talsec.instance.attachListener مش بيتنادى)، يعني أي تهديد هيتكشف وهيتجاهل.'));
+    if (direct.length == methods.length && direct['attachListener']! < direct['start']!) {
+      return RuleCheck([]);
     }
-    return RuleCheck(out);
+    final found = candidates.map((c) => c.$2.name).toSet();
+    final findings = [
+      if (!found.contains('start'))
+        inFile('pubspec.yaml', null, 'No freeRASP start call was found in the scanned source.',
+            messageAr: 'ملقيناش استدعاء لتشغيل freeRASP في الكود اللي اتفحص.'),
+      if (!found.contains('attachListener'))
+        inFile('pubspec.yaml', null, 'No freeRASP listener registration was found in the scanned source.',
+            messageAr: 'ملقيناش تسجيل للـ listener في الكود اللي اتفحص.'),
+    ];
+    final indirect = candidates.isEmpty &&
+        project.dartFiles.any((f) => f.tokens.any((t) => t.isIdent && t.text == 'Talsec'));
+    if (indirect) {
+      return RuleCheck.incomplete('Could not resolve the indirect freeRASP startup calls.');
+    }
+    if (body == null || direct.length != found.length || findings.isEmpty) {
+      return RuleCheck.incomplete(
+          'Could not verify the freeRASP listener and startup order in lib/main.dart.', findings);
+    }
+    return RuleCheck(findings);
   }
 }
 

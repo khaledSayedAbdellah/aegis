@@ -37,6 +37,20 @@ void main() {
     expect(h.inputOf[line], 'no\n');
   });
 
+  test('setup plans both image downloads and creates the control with Google Play', () async {
+    final h = studioMac()..addFile(avdmanager)..installed.add(avdmanager);
+    final toolchain = Toolchain(h);
+    final setup = Setup(toolchain);
+    final plan = setup.buildPlan(await toolchain.checkAll());
+    expect(setup.sdkmanagerPackages(plan), containsAllInOrder([
+      'system-images;android-34;google_apis;arm64-v8a',
+      'system-images;android-34;google_apis_playstore;arm64-v8a',
+    ]));
+    expect(await setup.install('control-avd'), isNull);
+    expect(h.ran, contains('$avdmanager create avd -n aegis-probe-control '
+        '-k system-images;android-34;google_apis_playstore;arm64-v8a -d pixel_6'));
+  });
+
   test('verifiedDownload accepts a file whose SHA-256 matches the pin', () async {
     final h = studioMac();
     h.downloads['https://x/f.xz'] = xzBytes;

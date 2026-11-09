@@ -127,6 +127,8 @@ String renderHtml(AuditReport r, {String lang = 'en'}) {
   final passed = r.passed.map((x) => '<li>✓ ${_e(x.meta.passTitle.of(lang))} <code>${x.meta.id}</code></li>').join();
   final manual = r.manual.map((m) => '<li>${_e(m.text.of(lang))} <code>${m.masvs}</code></li>').join();
 
+  final incomplete = r.incomplete.isEmpty ? '' : '<h2>${lang == 'ar' ? 'فحوصات غير مكتملة' : 'Incomplete checks'}</h2><ul>'
+      '${r.incomplete.map((res) => '<li>${_e(res.meta.id)} · ${_e(res.note ?? res.meta.title.of(lang))}</li>').join()}</ul>';
   return '''<!doctype html>
 <html lang="$lang" dir="$dir">
 <head>
@@ -167,6 +169,7 @@ ${cats.toString()}
 </div>
 </section>
 ${probe.toString()}
+$incomplete
 <h2>✗ ${_e(failedTitle)} (${newFailed.length})</h2>
 ${newFailed.isEmpty ? '<p>${_e(emptyText)}</p>' : ''}${failed.toString()}
 $resolved

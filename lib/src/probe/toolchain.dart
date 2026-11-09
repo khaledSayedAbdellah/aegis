@@ -82,7 +82,9 @@ const toolIds = [
   'build-tools',
   'emulator',
   'system-image',
+  'control-image',
   'avd',
+  'control-avd',
   'python',
   'frida',
   'frida-server',
@@ -96,7 +98,9 @@ const toolNeeds = <String, List<String>>{
   'build-tools': ['android-sdk', 'cmdline-tools', 'java'],
   'emulator': ['android-sdk', 'cmdline-tools', 'java'],
   'system-image': ['android-sdk', 'cmdline-tools', 'java'],
+  'control-image': ['android-sdk', 'cmdline-tools', 'java'],
   'avd': ['system-image', 'emulator', 'cmdline-tools', 'java'],
+  'control-avd': ['control-image', 'emulator', 'cmdline-tools', 'java'],
   'frida': ['python'],
 };
 
@@ -119,8 +123,12 @@ class Toolchain {
   /// Frida's name for the same architecture.
   String get fridaArch => host.arch == 'arm64' ? 'arm64' : 'x86_64';
 
-  String get systemImagePackage =>
-      'system-images;android-${pins.systemImageApi};google_apis;$abi';
+  String get systemImagePackage => _systemImagePackage(false);
+  String get controlImagePackage => _systemImagePackage(true);
+
+  String _systemImagePackage(bool control) =>
+      'system-images;android-${pins.systemImageApi};'
+      '${control ? 'google_apis_playstore' : 'google_apis'};$abi';
 
   String get fridaServerPath =>
       _p.join(toolsDir, pins.fridaServerName(fridaArch));
@@ -459,16 +467,16 @@ class Toolchain {
     return ToolCheck('emulator', ToolState.installable, issue: Issue.missing);
   }
 
-  Future<ToolCheck> checkSystemImage(String? sdkRoot) async {
-    if (sdkRoot == null) {
-      return ToolCheck('system-image', ToolState.installable, issue: Issue.missing);
+  Future<ToolCheck> checkSystemImage(String? sdkRoot, {bool control = false}) async {
+    final id = control ? 'control-image' : 'system-image';
+    if (sdkRoot != null) {
+      final dir = _p.joinAll([sdkRoot, ..._systemImagePackage(control).split(';')]);
+      if (host.fileExists(_p.join(dir, 'system.img')) &&
+          host.fileExists(_p.join(dir, 'source.properties'))) {
+        return ToolCheck(id, ToolState.present, path: dir);
+      }
     }
-    final dir = _p.joinAll(
-        [sdkRoot, 'system-images', 'android-${pins.systemImageApi}', 'google_apis', abi]);
-    if (host.dirExists(dir)) {
-      return ToolCheck('system-image', ToolState.present, path: dir);
-    }
-    return ToolCheck('system-image', ToolState.installable, issue: Issue.missing);
+    return ToolCheck(id, ToolState.installable, issue: Issue.missing);
   }
 
   /// `$ANDROID_AVD_HOME`, else `~/.android/avd`.
@@ -479,14 +487,16 @@ class Toolchain {
     return h == null ? null : _p.join(h, '.android', 'avd');
   }
 
-  Future<ToolCheck> checkAvd() async {
+  Future<ToolCheck> checkAvd({bool control = false}) async {
+    final id = control ? 'control-avd' : 'avd';
+    final name = control ? pins.controlAvdName : pins.avdName;
     final home = avdHome;
-    final dir = home == null ? null : _p.join(home, '${pins.avdName}.avd');
-    final ini = home == null ? null : _p.join(home, '${pins.avdName}.ini');
+    final dir = home == null ? null : _p.join(home, '$name.avd');
+    final ini = home == null ? null : _p.join(home, '$name.ini');
     if (dir != null && host.dirExists(dir) && host.fileExists(ini!)) {
-      return ToolCheck('avd', ToolState.present, path: dir);
+      return ToolCheck(id, ToolState.present, path: dir);
     }
-    return ToolCheck('avd', ToolState.installable, issue: Issue.missing);
+    return ToolCheck(id, ToolState.installable, issue: Issue.missing);
   }
 
   // --- Python + Frida -----------------------------------------------------
@@ -570,7 +580,9 @@ class Toolchain {
       'build-tools': await checkBuildTools(root),
       'emulator': await checkEmulator(root),
       'system-image': await checkSystemImage(root),
+      'control-image': await checkSystemImage(root, control: true),
       'avd': await checkAvd(),
+      'control-avd': await checkAvd(control: true),
       'python': await checkPython(),
       'frida': await checkFrida(),
       'frida-server': await checkFridaServer(),

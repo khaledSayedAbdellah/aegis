@@ -1,6 +1,8 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:aegis/aegis.dart';
+import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -30,6 +32,89 @@ File put(Directory root, String rel, {List<int>? bytes, DateTime? modified}) {
 }
 
 void main() {
+  test('a corrupt APK manifest fails before scoring', () async {
+    final dir = project();
+    final manifest = 'broken'.codeUnits;
+    final zip = ZipEncoder().encode(Archive()
+      ..addFile(ArchiveFile('AndroidManifest.xml', manifest.length, manifest)));
+    final apk = put(dir, 'invalid.apk', bytes: zip);
+    final r = await aegis([dir.path, '--apk', apk.path, '--offline', '--min-score', '90']);
+    expect(r.exitCode, 2);
+    expect(r.stderr, contains('AndroidManifest.xml'));
+    expect(r.stdout, isNot(contains('100/100')));
+  });
+
+  test('strict mode fails when freeRASP calls do not prove startup wiring', () async {
+    final dir = project();
+    File(p.join(dir.path, 'pubspec.yaml')).writeAsStringSync(
+        'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n  freerasp: any\n');
+    File(p.join(dir.path, 'lib', 'main.dart')).writeAsStringSync(
+        'void main() {}\n'
+        'class Talsec { static final instance = Talsec(); '
+        'void start(Object value) {} void attachListener(Object value) {} }\n'
+        'void neverCalled() { Talsec.instance.attachListener(1); Talsec.instance.start(1); }');
+    final report = p.join(dir.path, 'report');
+    final r = await aegis([dir.path, '--offline', '--strict', '-f', 'json', '-o', report]);
+    expect(r.exitCode, 2);
+    expect(r.stderr, contains('AEG-P02'));
+    final json = jsonDecode(File('$report.json').readAsStringSync()) as Map;
+    final rule = (json['rules'] as List).cast<Map>().singleWhere((r) => r['id'] == 'AEG-P02');
+    expect(rule['status'], 'incomplete');
+  });
+
+  test('AAB runtime probe requires a matching signed APK', () async {
+    final bundle = p.absolute('test/fixtures/aab/vulnerable.aab');
+    final missing = await aegis(['probe', bundle, '--lang', 'en']);
+    expect(missing.exitCode, 2);
+    expect(missing.stderr, contains('--probe-apk'));
+    final mismatch = await aegis(['probe', bundle, '--lang', 'en',
+      '--probe-apk', p.absolute('test/fixtures/apk/secure.apk')]);
+    expect(mismatch.exitCode, 2);
+    expect(mismatch.stderr, contains('same package name and version code'));
+  });
+
+  test('strict mode catches skipped AAB probes outside MAS-R', () async {
+    final dir = project();
+    put(dir, 'app.aab', bytes: File('test/fixtures/aab/secure.aab').readAsBytesSync());
+    File(p.join(dir.path, 'aegis.yaml')).writeAsStringSync(
+        'profile: l1\nlang: en\naab: app.aab\n'
+        'probe_apk: dist/signed.apk\nprobe_cert_sha256: invalid\n');
+    final report = p.join(dir.path, 'report');
+    final args = ['run', dir.path, '--mode', 'aab', '--offline', '--strict',
+      '--no-open', '-f', 'json', '-o', report];
+    Map readReport() => jsonDecode(File('$report.json').readAsStringSync()) as Map;
+    final result = await aegis(args);
+    expect(result.exitCode, 2, reason: '${result.stdout}${result.stderr}');
+    expect(result.stdout, contains('probe_cert_sha256 must be a SHA-256'));
+    expect(result.stderr, contains('audit incomplete (--strict)'));
+    expect(readReport()['complete'], isFalse);
+
+    final optedOut = await aegis([...args, '--no-probe']);
+    expect(optedOut.exitCode, 0, reason: '${optedOut.stdout}${optedOut.stderr}');
+    expect(readReport()['complete'], isTrue);
+  });
+
+  test('AAB probe resolves the YAML companion path and accepts CLI overrides', () async {
+    final dir = project();
+    put(dir, 'app.aab', bytes: File('test/fixtures/aab/vulnerable.aab').readAsBytesSync());
+    final wrong = put(dir, 'dist/other.apk',
+        bytes: File('test/fixtures/apk/secure.apk').readAsBytesSync());
+    final config = File(p.join(dir.path, 'aegis.yaml'));
+    final hex = List.filled(64, 'a').join();
+    config.writeAsStringSync('aab: app.aab\nprobe_apk: dist/other.apk\nprobe_cert_sha256: "$hex"\n');
+    final args = ['probe', '--project', dir.path, '--lang', 'en'];
+    final configured = await aegis(args);
+    expect(configured.exitCode, 2);
+    expect(configured.stderr, contains('same package name and version code'));
+
+    final pinOverride = await aegis([...args, '--probe-cert-sha256', 'invalid']);
+    expect(pinOverride.stderr, contains('must be a SHA-256'));
+
+    config.writeAsStringSync('aab: app.aab\nprobe_apk: absent.apk\nprobe_cert_sha256: "$hex"\n');
+    final pathOverride = await aegis([...args, '--probe-apk', wrong.path]);
+    expect(pathOverride.stderr, contains('same package name and version code'));
+  });
+
   group('Finding the built APK/AAB', () {
     test('newest release file wins, debug builds are ignored', () {
       final dir = project();
@@ -83,6 +168,11 @@ void main() {
       expect(config.profile.toString(), 'L2');
       expect(config.lang, 'ar');
       expect(config.failOn, Severity.high);
+      final yaml = File(p.join(dir.path, 'aegis.yaml')).readAsStringSync();
+      expect(yaml, contains('# probe_apk:'));
+      expect(yaml, contains('# probe_cert_sha256:'));
+      expect(config.probeApk, isNull);
+      expect(config.probeCertSha256, isNull);
 
       final again = await aegis(['init', dir.path, '--profile', 'l1']);
       expect(again.exitCode, 2);

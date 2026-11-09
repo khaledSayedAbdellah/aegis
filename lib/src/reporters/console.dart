@@ -203,6 +203,14 @@ class ConsoleReporter {
     }
     b.writeln();
 
+    if (r.incomplete.isNotEmpty) {
+      b.writeln(_bold(lang == 'ar' ? 'فحوصات غير مكتملة' : 'Incomplete checks'));
+      for (final res in r.incomplete) {
+        b.writeln('  ? ${res.meta.id} · ${res.note ?? res.meta.title.of(lang)}');
+      }
+      b.writeln();
+    }
+
     if (verbose) {
       final na = r.notApplicable.toList();
       b.writeln(_bold('– ${t.notApplicable} (${na.length})'));

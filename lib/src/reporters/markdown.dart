@@ -37,6 +37,15 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
   }
   b.writeln();
 
+  if (r.incomplete.isNotEmpty) {
+    b.writeln(lang == 'ar' ? '## فحوصات غير مكتملة' : '## Incomplete checks');
+    b.writeln();
+    for (final res in r.incomplete) {
+      b.writeln('- ${res.meta.id} · ${res.note ?? res.meta.title.of(lang)}');
+    }
+    b.writeln();
+  }
+
   if (r.score.categories.isNotEmpty) {
     b.writeln('## ${t.categories}');
     b.writeln();

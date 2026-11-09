@@ -21,7 +21,7 @@ void main() {
     final all = await Toolchain(studioMac()).checkAll();
     final plan = Setup(Toolchain(studioMac())).buildPlan(all);
     expect(plan.steps.map((s) => s.id),
-        ['build-tools', 'emulator', 'system-image', 'avd', 'frida', 'frida-server']);
+        ['build-tools', 'emulator', 'system-image', 'control-image', 'avd', 'control-avd', 'frida', 'frida-server']);
     expect(plan.present.map((c) => c.id),
         containsAll(['flutter', 'java', 'android-sdk', 'cmdline-tools', 'platform-tools', 'python']));
     expect(plan.optional.single.id, 'bundletool');
@@ -61,7 +61,8 @@ void main() {
     final setup = Setup(Toolchain(studioMac()));
     final plan = setup.buildPlan(await Toolchain(studioMac()).checkAll());
     expect(setup.sdkmanagerPackages(plan),
-        ['build-tools;36.0.0', 'emulator', 'system-images;android-34;google_apis;arm64-v8a']);
+        ['build-tools;36.0.0', 'emulator', 'system-images;android-34;google_apis;arm64-v8a',
+         'system-images;android-34;google_apis_playstore;arm64-v8a']);
   });
 
   test('tools.json lists only present tools with paths', () {
