@@ -1,5 +1,11 @@
 ## 0.9.0
 
+* Keep terminal messages, menus and console summaries in English regardless of `--lang`, YAML or system locale. HTML and Markdown report files retain the selected language.
+
+* Ask IPA runtime audits to choose iOS Simulator or a physical iPhone/iPad. Add `--ios-target simulator|device` for explicit/CI selection, isolate the chosen environment from the other YAML settings, reject conflicting CLI options and never fall back to another target. Static-only `--no-probe` runs need no target.
+
+* Remove `run --mode all` and automatic artifact selection. `run` now asks for `code`, `apk`, `aab` or `ipa` when no mode is supplied; non-interactive runs must pass `--mode`. Explicit artifact overrides must match the chosen mode.
+
 * Make `setup` ask for Android, iOS or Both. `--android` prepares both Android AVDs and bundletool; `--ios` stays iOS-only; `--both` runs independent stages in Android-first order and reports unsupported iOS on non-Mac hosts without undoing Android setup. Keep `--aab` as an Android alias; CI must select a platform explicitly.
 
 * Honor explicit Simulator flavor/target changes for automatically discovered products, and retain verified build inputs for reuse. Correct release installation references and declare synthetic credential fixtures for Pub validation.

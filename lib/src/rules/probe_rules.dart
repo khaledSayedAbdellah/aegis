@@ -1,7 +1,7 @@
 /// AEG-R01..R04: the resilience probe's results as ordinary rules, so they
 /// count in the score, the baseline and fail_on like any other finding.
 ///
-/// These rules do not inspect files. `aegis run --mode apk|aab|all` runs the
+/// These rules do not inspect files. `aegis run --mode apk|aab` runs the
 /// probe on the emulator first and hands its outcome to the audit
 /// ([Project.probe]); each rule reads its own check from it. They only exist
 /// in a run that tried the probe, and only count under a profile with MAS-R.

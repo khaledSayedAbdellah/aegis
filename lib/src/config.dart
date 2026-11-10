@@ -62,13 +62,13 @@ class AegisConfig {
   /// The aegis.yaml this was read from, if any.
   final String? file;
 
-  /// The release APK to audit with `aegis run --mode apk|all` and `aegis
+  /// The release APK to audit with `aegis run --mode apk` and `aegis
   /// probe`, as written in aegis.yaml (relative to the project or absolute).
   /// Build paths change with flavors and versions, so the developer keeps it
   /// up to date; aegis does not search build/ for it.
   final String? apk;
 
-  /// The release App Bundle, for `--mode aab|all`. Same rules as [apk].
+  /// The release App Bundle, for `--mode aab`. Same rules as [apk].
   final String? aab;
   final String? ipa;
   final String? iosControlDevice;

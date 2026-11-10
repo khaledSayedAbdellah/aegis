@@ -168,7 +168,7 @@ void main() {
     }
   });
 
-  test('probe --lang ar uses the localized missing-target reason', () async {
+  test('probe --lang ar keeps the terminal missing-target reason in English', () async {
     final work = Directory.systemTemp.createTempSync('aegis-l10n-cli-');
     addTearDown(() => work.deleteSync(recursive: true));
     final ipa = fixture(work);
@@ -186,12 +186,12 @@ void main() {
     expect(
         result.stderr,
         contains(
-            Platform.isMacOS ? Ar.iosControlMissing : Ar.iosRequiresXcode));
-    expect(result.stderr, isNot(contains(En.iosControlMissing)));
-    expect(result.stderr, isNot(contains(En.iosRequiresXcode)));
+            Platform.isMacOS ? En.iosControlMissing : En.iosRequiresXcode));
+    expect(result.stderr, isNot(contains(Ar.iosControlMissing)));
+    expect(result.stderr, isNot(contains(Ar.iosRequiresXcode)));
   });
 
-  test('probe --lang ar explains the missing AAB companion in Arabic',
+  test('probe --lang ar explains the missing AAB companion in English',
       () async {
     final work = Directory.systemTemp.createTempSync('aegis-l10n-aab-cli-');
     addTearDown(() => work.deleteSync(recursive: true));
@@ -208,8 +208,8 @@ void main() {
         ],
         workingDirectory: work.path);
     expect(result.exitCode, 2);
-    expect(result.stderr, contains(Ar.aabCompanionRequired));
-    expect(result.stderr, isNot(contains(En.aabCompanionRequired)));
+    expect(result.stderr, contains(En.aabCompanionRequired));
+    expect(result.stderr, isNot(contains(Ar.aabCompanionRequired)));
   });
 
   test(

@@ -3207,5 +3207,75 @@
   "setupHelpConfirmation": "Existing tools are reused. Confirms each platform installation unless --yes is supplied.",
   "@setupHelpConfirmation": {
     "description": "Setup platform selection and stage result."
+  },
+  "runChooseMode": "Which mode do you want to audit?",
+  "@runChooseMode": {
+    "description": "Explicit audit mode selection."
+  },
+  "runModePrompt": "Choose code, apk, aab or ipa [1-4] (q to cancel): ",
+  "@runModePrompt": {
+    "description": "Explicit audit mode selection."
+  },
+  "runInvalidMode": "Invalid mode. Choose code, apk, aab or ipa.",
+  "@runInvalidMode": {
+    "description": "Explicit audit mode selection."
+  },
+  "runModeRequired": "Select a mode explicitly in non-interactive use: --mode code, --mode apk, --mode aab or --mode ipa.",
+  "@runModeRequired": {
+    "description": "Explicit audit mode selection."
+  },
+  "runModeConflict": "The artifact option does not match --mode {mode}. Use code without an artifact, --apk for apk/aab, or --ipa for ipa.",
+  "@runModeConflict": {
+    "description": "Explicit audit mode selection.",
+    "placeholders": {
+      "mode": {
+        "type": "Object"
+      }
+    }
+  },
+  "runModeHelp": "Without --mode, asks you to choose code, apk, aab or ipa. Non-interactive runs require --mode.",
+  "@runModeHelp": {
+    "description": "Explicit audit mode selection."
+  },
+  "iosChooseTarget": "Where do you want to run the IPA runtime tests?",
+  "@iosChooseTarget": {
+    "description": "Explicit Simulator versus physical iOS test target."
+  },
+  "iosTargetPrompt": "Choose simulator or device [1-2] (q to cancel): ",
+  "@iosTargetPrompt": {
+    "description": "Explicit Simulator versus physical iOS test target."
+  },
+  "iosDeviceLabel": "Physical iPhone / iPad",
+  "@iosDeviceLabel": {
+    "description": "Explicit Simulator versus physical iOS test target."
+  },
+  "iosInvalidTarget": "Invalid target. Choose simulator or device.",
+  "@iosInvalidTarget": {
+    "description": "Explicit Simulator versus physical iOS test target."
+  },
+  "iosTargetRequired": "Select the IPA runtime target explicitly: --ios-target simulator or --ios-target device. Use --no-probe for static checks only.",
+  "@iosTargetRequired": {
+    "description": "Explicit Simulator versus physical iOS test target."
+  },
+  "iosTargetConflict": "iOS options conflict with the selected target. Use Simulator options with simulator, and physical-device options with device.",
+  "@iosTargetConflict": {
+    "description": "Explicit Simulator versus physical iOS test target."
+  },
+  "iosTargetIpaOnly": "--ios-target requires --mode ipa.",
+  "@iosTargetIpaOnly": {
+    "description": "Explicit Simulator versus physical iOS test target."
+  },
+  "iosTargetSelected": "iOS runtime target: {target}",
+  "@iosTargetSelected": {
+    "description": "Explicit Simulator versus physical iOS test target.",
+    "placeholders": {
+      "target": {
+        "type": "Object"
+      }
+    }
+  },
+  "iosSimulatorMissing": "Set ios_simulator in aegis.yaml or pass --ios-simulator with the UDID of a booted iOS Simulator.",
+  "@iosSimulatorMissing": {
+    "description": "Explicit Simulator versus physical iOS test target."
   }
 }

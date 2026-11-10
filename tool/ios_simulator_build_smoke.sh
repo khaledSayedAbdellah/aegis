@@ -33,7 +33,7 @@ PLIST
 run_check() {
   local name=$1
   local code=0
-  CI=true "$dart_bin" "$repo/bin/aegis.dart" run "$work/project" --mode ipa --offline --strict --lang en -f json -o "$work/$name" >"$work/$name.log" 2>&1 || code=$?
+  CI=true "$dart_bin" "$repo/bin/aegis.dart" run "$work/project" --mode ipa --ios-target simulator --offline --strict --lang en -f json -o "$work/$name" >"$work/$name.log" 2>&1 || code=$?
   cat "$work/$name.log"
   test "$code" -eq 2 # the synthetic signature and device-only checks remain incomplete
   python3 - "$work/$name.json" <<'PY'

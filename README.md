@@ -86,20 +86,48 @@ In your Flutter project (after `flutter pub get`):
 ```bash
 aegis init                 # 1. once per project: asks what kind of app it is, writes aegis.yaml
 aegis setup                # 2. choose Android, iOS or Both for this machine
-aegis run                  # 3. audit: code + the APK/AAB set in aegis.yaml, if any
+aegis run                  # 3. choose code, apk, aab or ipa, then audit
 ```
 
-**Don't skip environment setup.** Choose Android in `aegis setup`, or run `aegis setup --android`, to prepare both Android emulators that `aegis run --mode apk|aab|all` uses to check whether your app's anti-tampering actually reacts (rules AEG-R01..R04). Without it, the APK/AAB gets the static checks only and the report says the probe was skipped. It installs only what's missing, so running it again is harmless; `aegis doctor` shows what's there. Details in [The resilience probe](#the-resilience-probe).
+**Don't skip environment setup.** Choose Android in `aegis setup`, or run `aegis setup --android`, to prepare both Android emulators that `aegis run --mode apk|aab` uses to check whether your app's anti-tampering actually reacts (rules AEG-R01..R04). Without it, the APK/AAB gets the static checks only and the report says the probe was skipped. It installs only what's missing, so running it again is harmless; `aegis doctor` shows what's there. Details in [The resilience probe](#the-resilience-probe).
 
 `aegis run` prints the report, writes `build/aegis-report.html` and opens it in your browser (`--no-open` to skip; it never opens in CI). Choose what to audit with `--mode`:
 
 | Command | Audits |
 |---|---|
-| `aegis run` | `--mode all` audits the code and the first configured artifact in `apk:`, `aab:`, `ipa:` order, with its resilience probe |
+| `aegis run` | Asks which mode to audit: `code`, `apk`, `aab` or `ipa` |
 | `aegis run --mode code` | Dart code, your git/path packages, Android and iOS configuration |
 | `aegis run --mode apk` | the code + the APK at `apk:` in aegis.yaml + the resilience probe on it |
 | `aegis run --mode aab` | the code + the AAB at `aab:` in aegis.yaml, with a resilience probe when a matching signed APK is supplied |
 | `aegis run --mode ipa` | the code + the IPA at `ipa:` in aegis.yaml, with the iOS resilience probe |
+
+There is no `all` mode and no automatic artifact-priority selection. Without
+`--mode`, an interactive terminal offers the four choices (names or numbers).
+In CI/non-interactive use, specify a mode, for example
+`aegis run --mode apk --strict --no-open`; omitting it exits with code `2`
+before any audit or probe. `--apk`/`--ipa` path overrides also require an explicit
+mode and must match its platform; `code` does not accept a binary override.
+`aegis run --help` and `--version` do not ask for a mode. The plain `aegis`
+command retains its existing CI behavior.
+
+For `ipa`, runtime tests require a second explicit choice: **iOS Simulator** or
+**a physical iPhone/iPad**. `aegis run --mode ipa` asks even if target settings are
+already in YAML. To skip the question or run in CI, use:
+
+```bash
+aegis run --mode ipa --ios-target simulator
+aegis run --mode ipa --ios-target device
+```
+
+The selected environment uses only its own YAML settings. Simulator needs
+`ios_simulator` (and optionally the Simulator app/build settings); a physical
+device needs `ios_control_device` and any relevant jailbreak/re-signing options.
+Both groups may be configured, but only one is used per run. Missing settings
+produce an incomplete probe instead of falling back to the other environment.
+Conflicting command-line target options are rejected. `--no-probe` runs static
+IPA checks only and does not ask for a runtime target. The standalone `probe`
+command also accepts `--ios-target`; existing unambiguous target selection there
+is retained for compatibility.
 
 The APK/AAB path is yours to set, relative to the project, because build names change with flavors and versions; aegis never guesses one from `build/`:
 
@@ -111,7 +139,7 @@ aab: build/app/outputs/bundle/prodRelease/app-prod-release.aab
 
 `--mode apk` or `aab` without that line, or with a file that isn't there, stops with the line to add or the build command to run.
 
-The language follows `lang:` in aegis.yaml, else your system language. If `~/.pub-cache/bin` is not on your PATH, add `export PATH="$PATH:$HOME/.pub-cache/bin"` to your shell profile.
+Terminal messages, menus and console summaries are always in English. HTML and Markdown report files follow `lang:` in aegis.yaml (or `--lang`), else your system language. If `~/.pub-cache/bin` is not on your PATH, add `export PATH="$PATH:$HOME/.pub-cache/bin"` to your shell profile.
 
 ### Selecting the setup platform
 
@@ -199,7 +227,7 @@ Run `aegis --help`, or `aegis <command> --help`, for every option.
 | `aegis setup` | Choose Android, iOS or Both. Use `--android`, `--ios` or `--both` to select directly; `--yes` confirms installation, `--remove` uninstalls Aegis tools. |
 | `aegis doctor` | Lists the tools the probe needs and whether each is present. Changes nothing. |
 | `aegis run` | Audits with the settings in `aegis.yaml`, prints the report, writes `build/aegis-report.html` and opens it. |
-| `aegis run --mode code\|apk\|aab\|all` | What to audit (see Quick start). `apk`/`aab` need `apk:`/`aab:` in aegis.yaml. |
+| `aegis run --mode code\|apk\|aab\|ipa` | What to audit (see Quick start). `apk`/`aab`/`ipa` select their respective YAML artifact paths. |
 | `aegis run --no-probe` | Audit the APK/AAB without running the resilience probe. |
 | `aegis run --no-open` | Don't open the HTML report in the browser. |
 | `aegis run --lang ar` / `--profile banking` | Override aegis.yaml for this run. |
@@ -263,7 +291,7 @@ ios_jailbreak_device: <jailbroken-device-udid>
 ios_resigned_ipa: build/ios/ipa/app-resigned.ipa
 ```
 
-Run `aegis run --mode ipa --strict` for the combined report or `aegis probe path/to/app.ipa --only debugger` for one runtime check. CLI flags `--ios-control-device`, `--ios-jailbreak-device` and `--ios-resigned-ipa` override YAML. Use `xcrun devicectl list devices` to find the device identifier. The devices must be available to Xcode, unlocked, and provisioned for the test app. Use dedicated devices. Aegis refuses to replace an existing installation of the same bundle ID and removes the test installation afterward. [Xcode device setup](https://developer.apple.com/documentation/Xcode/running-your-app-on-simulated-or-physical-devices)
+Run `aegis run --mode ipa --ios-target device --strict` for the combined report or `aegis probe path/to/app.ipa --only debugger` for one runtime check. CLI flags `--ios-control-device`, `--ios-jailbreak-device` and `--ios-resigned-ipa` override YAML. Use `xcrun devicectl list devices` to find the device identifier. The devices must be available to Xcode, unlocked, and provisioned for the test app. Use dedicated devices. Aegis refuses to replace an existing installation of the same bundle ID and removes the test installation afterward. [Xcode device setup](https://developer.apple.com/documentation/Xcode/running-your-app-on-simulated-or-physical-devices)
 
 For Frida on a regular iPhone or iPad, configure `ios_control_device` alone and connect it over USB with Developer Mode enabled. Export a Development IPA for that device with `get-task-allow` enabled. Flutter supports `flutter build ipa --export-method development`. Run `aegis doctor --ios` to check the Mac tools and `aegis setup --ios` to install the pinned Frida client and iOS Gadget. Run `aegis probe path/to/app.ipa --only hooking` for Frida alone. Aegis uses Frida's injection through the iOS debugger service and verifies that a script runs inside the observed PID. The verdict applies to that Development build. [Flutter export options](https://docs.flutter.dev/deployment/ios#add-an-app-bundle) · [Frida iOS setup](https://frida.re/docs/ios/)
 
@@ -293,7 +321,7 @@ inputs and full product-content fingerprint match. Otherwise it is rebuilt and t
 later reuse. An explicitly supplied, matching `ios_simulator_app` remains the
 artifact selected by the user; build options apply when a build is needed.
 
-`aegis run --mode ipa` audits the IPA statically and runs LLDB and Frida on the Simulator build. `--ios-simulator` and `--ios-simulator-app` override the YAML fields. Explicit physical-device options select the device path instead. For just Frida, run `aegis probe path/to/app.ipa --only hooking` with the Simulator configured. The Simulator uses a separately pinned Frida Gadget `16.5.9`, loaded at app launch. Aegis verifies a fresh script response from the observed PID. `run` also executes two partial Simulator experiments automatically:
+`aegis run --mode ipa --ios-target simulator` audits the IPA statically and runs LLDB and Frida on the Simulator build. `--ios-simulator` and `--ios-simulator-app` override the YAML fields. Use `--ios-target device` to choose the physical-device environment; conflicting CLI options are rejected. For just Frida, run `aegis probe path/to/app.ipa --only hooking` with the Simulator configured. The Simulator uses a separately pinned Frida Gadget `16.5.9`, loaded at app launch. Aegis verifies a fresh script response from the observed PID. `run` also executes two partial Simulator experiments automatically:
 
 * **Jailbreak file indicators:** a temporary native helper simulates Cydia/MobileSubstrate and `/var/jb` paths through `NSFileManager.fileExistsAtPath` and libc `access/stat/lstat`. It first runs a control with the same helper and indicators disabled, then verifies helper self-tests in the observed PID and records queried paths and process behavior. Direct syscalls, URL schemes, kernel state and sandbox escape are outside this test. A normal exit after querying an indicator can establish a partial process reaction; unexplained crashes remain inconclusive. Zero recorded queries is explicitly reported and does not establish that the IPA has no jailbreak protection.
 * **Ad-hoc signing metadata:** a disposable copy of the matching Simulator `.app` receives a different CodeDirectory identifier. Aegis verifies the signature/hash change, unchanged unsigned payload and the installed signature before observing the app. The original `.app` and IPA are left intact. This tests neither a different Apple certificate/Team ID nor provisioning or App Store validation.
@@ -363,8 +391,8 @@ rules:
   AEG-C02: medium      # change a severity
 scan_packages: true    # also scan git/path dependencies (default)
 baseline: aegis-baseline.json   # default; see "Baselines"
-apk: build/app/outputs/flutter-apk/app-release.apk          # for aegis run --mode apk|all
-aab: build/app/outputs/bundle/release/app-release.aab       # for aegis run --mode aab|all
+apk: build/app/outputs/flutter-apk/app-release.apk          # for aegis run --mode apk
+aab: build/app/outputs/bundle/release/app-release.aab       # for aegis run --mode aab
 # probe_apk: dist/app-release.apks                        # signed .apk, .apks, or APK directory for an AAB
 # probe_cert_sha256: "<app signing certificate SHA-256>"
 ```
@@ -533,7 +561,10 @@ MIT
 Human-facing report text, rule descriptions and findings, and setup/doctor messages
 are maintained in [`app_en.arb`](lib/src/l10n/app_en.arb) and
 [`app_ar.arb`](lib/src/l10n/app_ar.arb). Use `--lang ar` or `lang: ar` in
-`aegis.yaml` for Arabic. iOS probe evidence, partial-test limitations and incomplete
+`aegis.yaml` for Arabic HTML and Markdown report files. Terminal output stays in
+English, including `init`, `setup`, `doctor`, `run`, `probe` and `--list-rules`.
+The legacy `--lang` option on `setup`, `doctor` and `probe` is accepted but does
+not change terminal output. iOS probe evidence, partial-test limitations and incomplete
 reasons have explicit Arabic translations; JSON retains English fields and adds
 Arabic counterparts. Tool names, paths, code excerpts and original external-tool
 logs remain unchanged. Keep technical product/tool names (including full tool display names), symbols,
