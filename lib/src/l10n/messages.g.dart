@@ -270,6 +270,7 @@ class L10n {
   String get iosAttachPidMissing => isArabic ? Ar.iosAttachPidMissing : En.iosAttachPidMissing;
   String iosAttachmentFailed({required Object? error}) => isArabic ? Ar.iosAttachmentFailed(error: error) : En.iosAttachmentFailed(error: error);
   String get iosCertificateChanged => isArabic ? Ar.iosCertificateChanged : En.iosCertificateChanged;
+  String get iosChooseTarget => isArabic ? Ar.iosChooseTarget : En.iosChooseTarget;
   String get iosConflictingOutcomes => isArabic ? Ar.iosConflictingOutcomes : En.iosConflictingOutcomes;
   String iosContinued({required Object? condition}) => isArabic ? Ar.iosContinued(condition: condition) : En.iosContinued(condition: condition);
   String get iosControlMissing => isArabic ? Ar.iosControlMissing : En.iosControlMissing;
@@ -277,6 +278,7 @@ class L10n {
   String get iosControlStopped => isArabic ? Ar.iosControlStopped : En.iosControlStopped;
   String get iosDebuggerNeedsDevelopment => isArabic ? Ar.iosDebuggerNeedsDevelopment : En.iosDebuggerNeedsDevelopment;
   String get iosDebuggerVerified => isArabic ? Ar.iosDebuggerVerified : En.iosDebuggerVerified;
+  String get iosDeviceLabel => isArabic ? Ar.iosDeviceLabel : En.iosDeviceLabel;
   String get iosFridaNeedsDevelopment => isArabic ? Ar.iosFridaNeedsDevelopment : En.iosFridaNeedsDevelopment;
   String get iosFridaVerified => isArabic ? Ar.iosFridaVerified : En.iosFridaVerified;
   String get iosGadgetProofMissing => isArabic ? Ar.iosGadgetProofMissing : En.iosGadgetProofMissing;
@@ -288,6 +290,7 @@ class L10n {
   String iosIndicatorsVerified({required Object? count, required Object? pid, required Object? queries}) => isArabic ? Ar.iosIndicatorsVerified(count: count, pid: pid, queries: queries) : En.iosIndicatorsVerified(count: count, pid: pid, queries: queries);
   String get iosInstallFrida => isArabic ? Ar.iosInstallFrida : En.iosInstallFrida;
   String get iosInstallSimulatorGadget => isArabic ? Ar.iosInstallSimulatorGadget : En.iosInstallSimulatorGadget;
+  String get iosInvalidTarget => isArabic ? Ar.iosInvalidTarget : En.iosInvalidTarget;
   String get iosJailbreakDeviceMissing => isArabic ? Ar.iosJailbreakDeviceMissing : En.iosJailbreakDeviceMissing;
   String get iosNoIndicatorQuery => isArabic ? Ar.iosNoIndicatorQuery : En.iosNoIndicatorQuery;
   String iosNoOutcome({required Object? condition}) => isArabic ? Ar.iosNoOutcome(condition: condition) : En.iosNoOutcome(condition: condition);
@@ -321,8 +324,14 @@ class L10n {
   String get iosSignatureRequired => isArabic ? Ar.iosSignatureRequired : En.iosSignatureRequired;
   String get iosSimulatorBuild => isArabic ? Ar.iosSimulatorBuild : En.iosSimulatorBuild;
   String get iosSimulatorConfig => isArabic ? Ar.iosSimulatorConfig : En.iosSimulatorConfig;
+  String get iosSimulatorMissing => isArabic ? Ar.iosSimulatorMissing : En.iosSimulatorMissing;
   String get iosStockDevice => isArabic ? Ar.iosStockDevice : En.iosStockDevice;
   String get iosStockFridaVerified => isArabic ? Ar.iosStockFridaVerified : En.iosStockFridaVerified;
+  String get iosTargetConflict => isArabic ? Ar.iosTargetConflict : En.iosTargetConflict;
+  String get iosTargetIpaOnly => isArabic ? Ar.iosTargetIpaOnly : En.iosTargetIpaOnly;
+  String get iosTargetPrompt => isArabic ? Ar.iosTargetPrompt : En.iosTargetPrompt;
+  String get iosTargetRequired => isArabic ? Ar.iosTargetRequired : En.iosTargetRequired;
+  String iosTargetSelected({required Object? target}) => isArabic ? Ar.iosTargetSelected(target: target) : En.iosTargetSelected(target: target);
   String get ipaEntitlementSlicesUnreadable => isArabic ? Ar.ipaEntitlementSlicesUnreadable : En.ipaEntitlementSlicesUnreadable;
   String get ipaEntitlementsUnreadable => isArabic ? Ar.ipaEntitlementsUnreadable : En.ipaEntitlementsUnreadable;
   String get ipaRulesAnyoneWithTheIpaCanReadItsPackaged => isArabic ? Ar.ipaRulesAnyoneWithTheIpaCanReadItsPackaged : En.ipaRulesAnyoneWithTheIpaCanReadItsPackaged;
@@ -595,6 +604,12 @@ class L10n {
   String get raspIndirectUnresolved => isArabic ? Ar.raspIndirectUnresolved : En.raspIndirectUnresolved;
   String get raspOrderUnverified => isArabic ? Ar.raspOrderUnverified : En.raspOrderUnverified;
   String ruleError({required Object? error}) => isArabic ? Ar.ruleError(error: error) : En.ruleError(error: error);
+  String get runChooseMode => isArabic ? Ar.runChooseMode : En.runChooseMode;
+  String get runInvalidMode => isArabic ? Ar.runInvalidMode : En.runInvalidMode;
+  String runModeConflict({required Object? mode}) => isArabic ? Ar.runModeConflict(mode: mode) : En.runModeConflict(mode: mode);
+  String get runModeHelp => isArabic ? Ar.runModeHelp : En.runModeHelp;
+  String get runModePrompt => isArabic ? Ar.runModePrompt : En.runModePrompt;
+  String get runModeRequired => isArabic ? Ar.runModeRequired : En.runModeRequired;
   String scoreBand({required Object? after, required Object? range, required Object? rules, required Object? severity}) => isArabic ? Ar.scoreBand(after: after, range: range, rules: rules, severity: severity) : En.scoreBand(after: after, range: range, rules: rules, severity: severity);
   String get setupChoosePlatform => isArabic ? Ar.setupChoosePlatform : En.setupChoosePlatform;
   String get setupHelpConfirmation => isArabic ? Ar.setupHelpConfirmation : En.setupHelpConfirmation;
@@ -901,6 +916,7 @@ abstract final class En {
   static const iosAttachPidMissing = "Could not observe the process before attachment.";
   static String iosAttachmentFailed({required Object? error}) => "Could not verify attachment to the target process." + error.toString() + "";
   static const iosCertificateChanged = "The same payload was installed with a different verified Apple signing certificate.";
+  static const iosChooseTarget = "Where do you want to run the IPA runtime tests?";
   static const iosConflictingOutcomes = "The app emitted conflicting outcomes.";
   static String iosContinued({required Object? condition}) => "" + condition.toString() + " The same process stayed alive.";
   static const iosControlMissing = "Set ios_control_device in aegis.yaml or pass --ios-control-device with a dedicated stock iPhone or iPad UDID.";
@@ -908,6 +924,7 @@ abstract final class En {
   static const iosControlStopped = "The control launch did not stay alive.";
   static const iosDebuggerNeedsDevelopment = "The IPA lacks get-task-allow. Use an installable Development IPA to test LLDB attachment.";
   static const iosDebuggerVerified = "LLDB confirmed it attached to the target PID.";
+  static const iosDeviceLabel = "Physical iPhone / iPad";
   static const iosFridaNeedsDevelopment = "Frida on stock iOS requires an installable Development IPA with get-task-allow enabled.";
   static const iosFridaVerified = "Frida executed its verification script inside the target PID.";
   static const iosGadgetProofMissing = "Could not verify Frida Gadget script execution in the Simulator app process.";
@@ -919,6 +936,7 @@ abstract final class En {
   static String iosIndicatorsVerified({required Object? count, required Object? pid, required Object? queries}) => "Synthetic Cydia/MobileSubstrate and /var/jb file indicators were verified by self-tests in PID " + pid.toString() + ". Observed indicator queries: " + count.toString() + "" + queries.toString() + ". ";
   static const iosInstallFrida = "Run aegis setup --ios to install the matching Frida client and iOS Gadget.";
   static const iosInstallSimulatorGadget = "Run aegis setup --ios to install Frida Gadget for iOS Simulator.";
+  static const iosInvalidTarget = "Invalid target. Choose simulator or device.";
   static const iosJailbreakDeviceMissing = "Select a dedicated jailbroken device with --ios-jailbreak-device.";
   static const iosNoIndicatorQuery = "No use of the intercepted indicator checks was observed.";
   static String iosNoOutcome({required Object? condition}) => "" + condition.toString() + " No verified app outcome for this condition.";
@@ -952,8 +970,14 @@ abstract final class En {
   static const iosSignatureRequired = "The device IPA needs a valid Apple code signature.";
   static const iosSimulatorBuild = "iOS Simulator build.";
   static const iosSimulatorConfig = "Set ios_simulator and run from the Flutter project (or supply ios_simulator_app). Use physical-device options separately.";
+  static const iosSimulatorMissing = "Set ios_simulator in aegis.yaml or pass --ios-simulator with the UDID of a booted iOS Simulator.";
   static const iosStockDevice = "The operator designated this device as stock iOS.";
   static const iosStockFridaVerified = "Frida executed its verification script inside the target PID using the stock iOS debugger service.";
+  static const iosTargetConflict = "iOS options conflict with the selected target. Use Simulator options with simulator, and physical-device options with device.";
+  static const iosTargetIpaOnly = "--ios-target requires --mode ipa.";
+  static const iosTargetPrompt = "Choose simulator or device [1-2] (q to cancel): ";
+  static const iosTargetRequired = "Select the IPA runtime target explicitly: --ios-target simulator or --ios-target device. Use --no-probe for static checks only.";
+  static String iosTargetSelected({required Object? target}) => "iOS runtime target: " + target.toString() + "";
   static const ipaEntitlementSlicesUnreadable = "Some executable slices did not expose readable entitlements.";
   static const ipaEntitlementsUnreadable = "Could not read the packaged executable entitlements.";
   static const ipaRulesAnyoneWithTheIpaCanReadItsPackaged = "Anyone with the IPA can read its packaged resource files.";
@@ -1226,6 +1250,12 @@ abstract final class En {
   static const raspIndirectUnresolved = "Could not resolve the indirect freeRASP startup calls.";
   static const raspOrderUnverified = "Could not verify the freeRASP listener and startup order in lib/main.dart.";
   static String ruleError({required Object? error}) => "Rule error: " + error.toString() + "";
+  static const runChooseMode = "Which mode do you want to audit?";
+  static const runInvalidMode = "Invalid mode. Choose code, apk, aab or ipa.";
+  static String runModeConflict({required Object? mode}) => "The artifact option does not match --mode " + mode.toString() + ". Use code without an artifact, --apk for apk/aab, or --ipa for ipa.";
+  static const runModeHelp = "Without --mode, asks you to choose code, apk, aab or ipa. Non-interactive runs require --mode.";
+  static const runModePrompt = "Choose code, apk, aab or ipa [1-4] (q to cancel): ";
+  static const runModeRequired = "Select a mode explicitly in non-interactive use: --mode code, --mode apk, --mode aab or --mode ipa.";
   static String scoreBand({required Object? after, required Object? range, required Object? rules, required Object? severity}) => "" + range.toString() + " while a " + severity.toString() + " problem is open (" + rules.toString() + "); fixing the blocking issues gives " + after.toString() + "";
   static const setupChoosePlatform = "Which test environment do you want to prepare?";
   static const setupHelpConfirmation = "Existing tools are reused. Confirms each platform installation unless --yes is supplied.";
@@ -1532,6 +1562,7 @@ abstract final class Ar {
   static const iosAttachPidMissing = "تعذّر رصد عملية التطبيق قبل محاولة الاتصال بيها.";
   static String iosAttachmentFailed({required Object? error}) => "تعذّر التحقق من الاتصال بعملية التطبيق المستهدفة." + error.toString() + "";
   static const iosCertificateChanged = "تم تثبيت نفس محتوى التطبيق بشهادة توقيع Apple مختلفة ومتحقق منها.";
+  static const iosChooseTarget = "عاوز تعمل الاختبارات الديناميكية للـIPA على المحاكي ولا جهاز iPhone حقيقي؟";
   static const iosConflictingOutcomes = "التطبيق أصدر نتائج متعارضة.";
   static String iosContinued({required Object? condition}) => "" + condition.toString() + " نفس عملية التطبيق فضلت شغالة.";
   static const iosControlMissing = "حدّد ios_control_device في aegis.yaml أو مرّر --ios-control-device برقم UDID لجهاز iPhone أو iPad مخصص للاختبار ومن غير jailbreak.";
@@ -1539,6 +1570,7 @@ abstract final class Ar {
   static const iosControlStopped = "التطبيق مكملش تشغيل في التجربة المرجعية.";
   static const iosDebuggerNeedsDevelopment = "الـIPA لا يحتوي على get-task-allow. استخدم نسخة Development قابلة للتثبيت لاختبار اتصال LLDB.";
   static const iosDebuggerVerified = "تم التحقق من اتصال LLDB بعملية التطبيق المستهدفة.";
+  static const iosDeviceLabel = "جهاز iPhone / iPad حقيقي";
   static const iosFridaNeedsDevelopment = "Frida على iOS من غير jailbreak يحتاج نسخة Development IPA قابلة للتثبيت وبصلاحية get-task-allow مفعّلة.";
   static const iosFridaVerified = "Frida نفّذ سكريبت التحقق داخل عملية التطبيق المستهدفة.";
   static const iosGadgetProofMissing = "تعذّر التحقق من تشغيل سكريبت Frida Gadget داخل عملية التطبيق على المحاكي.";
@@ -1550,6 +1582,7 @@ abstract final class Ar {
   static String iosIndicatorsVerified({required Object? count, required Object? pid, required Object? queries}) => "تم التحقق من محاكاة مؤشرات ملفات Cydia/MobileSubstrate و/var/jb داخل العملية PID " + pid.toString() + ". عدد الاستعلامات المرصودة عن المؤشرات: " + count.toString() + "" + queries.toString() + ". ";
   static const iosInstallFrida = "شغّل aegis setup --ios لتثبيت نسخة Frida وGadget المتوافقتين مع iOS.";
   static const iosInstallSimulatorGadget = "شغّل aegis setup --ios لتثبيت Frida Gadget الخاص بمحاكي iOS.";
+  static const iosInvalidTarget = "الاختيار غير صحيح. اختار simulator أو device.";
   static const iosJailbreakDeviceMissing = "حدّد جهازًا مخصصًا متعمله jailbreak باستخدام --ios-jailbreak-device.";
   static const iosNoIndicatorQuery = "لم نرصد استخدام التطبيق لفحوصات المؤشرات اللي بنحاكيها.";
   static String iosNoOutcome({required Object? condition}) => "" + condition.toString() + " لم يتم التحقق من استجابة التطبيق للحالة دي.";
@@ -1583,8 +1616,14 @@ abstract final class Ar {
   static const iosSignatureRequired = "نسخة IPA المخصصة للجهاز تحتاج توقيع Apple صالح.";
   static const iosSimulatorBuild = "نسخة محاكي iOS.";
   static const iosSimulatorConfig = "حدّد ios_simulator وشغّل من مشروع Flutter أو حدّد ios_simulator_app. استخدم خيارات الجهاز الحقيقي بشكل منفصل.";
+  static const iosSimulatorMissing = "حدّد ios_simulator في aegis.yaml أو مرّر --ios-simulator برقم UDID لمحاكي iOS شغّال.";
   static const iosStockDevice = "المستخدم حدّد الجهاز ده كجهاز iOS من غير jailbreak.";
   static const iosStockFridaVerified = "Frida نفّذ سكريبت التحقق داخل عملية التطبيق باستخدام خدمة تصحيح الأخطاء على iOS من غير jailbreak.";
+  static const iosTargetConflict = "خيارات iOS متعارضة مع الهدف المختار. استخدم إعدادات المحاكي مع simulator وإعدادات الجهاز الحقيقي مع device.";
+  static const iosTargetIpaOnly = "الخيار --ios-target يحتاج --mode ipa.";
+  static const iosTargetPrompt = "اختار simulator أو device [1-2] (q للإلغاء): ";
+  static const iosTargetRequired = "حدّد هدف الاختبار صراحةً: --ios-target simulator أو --ios-target device. استخدم --no-probe للفحص الثابت فقط.";
+  static String iosTargetSelected({required Object? target}) => "هدف الاختبار الديناميكي لـiOS: " + target.toString() + "";
   static const ipaEntitlementSlicesUnreadable = "بعض شرائح الملف التنفيذي لا تحتوي على entitlements قابلة للقراءة.";
   static const ipaEntitlementsUnreadable = "تعذّر قراءة entitlements الخاصة بالملف التنفيذي داخل الحزمة.";
   static const ipaRulesAnyoneWithTheIpaCanReadItsPackaged = "أي حد معاه الـIPA يقدر يقرا ملفات الموارد اللي جواه.";
@@ -1857,6 +1896,12 @@ abstract final class Ar {
   static const raspIndirectUnresolved = "تعذّر تتبّع استدعاءات تشغيل freeRASP غير المباشرة.";
   static const raspOrderUnverified = "تعذّر التحقق من ترتيب listener وتشغيل freeRASP في lib/main.dart.";
   static String ruleError({required Object? error}) => "حدث خطأ أثناء الفحص: " + error.toString() + "";
+  static const runChooseMode = "عاوز تعمل الفحص بأي مود؟";
+  static const runInvalidMode = "المود غير صحيح. اختار code أو apk أو aab أو ipa.";
+  static String runModeConflict({required Object? mode}) => "خيار ملف التطبيق مش متوافق مع --mode " + mode.toString() + ". استخدم code من غير ملف تطبيق، أو --apk مع apk/aab، أو --ipa مع ipa.";
+  static const runModeHelp = "من غير --mode هيسألك تختار code أو apk أو aab أو ipa. التشغيل غير التفاعلي يحتاج --mode.";
+  static const runModePrompt = "اختار code أو apk أو aab أو ipa [1-4] (q للإلغاء): ";
+  static const runModeRequired = "في التشغيل غير التفاعلي لازم تحدد المود: --mode code أو --mode apk أو --mode aab أو --mode ipa.";
   static String scoreBand({required Object? after, required Object? range, required Object? rules, required Object? severity}) => "بين " + range.toString() + " طول ما فيه مشكلة " + severity.toString() + " مفتوحة (" + rules.toString() + ")، ولو اتصلحت يبقى " + after.toString() + "";
   static const setupChoosePlatform = "عاوز تجهّز بيئة الاختبار لأي منصة؟";
   static const setupHelpConfirmation = "الأدوات الموجودة بيتم إعادة استخدامها. بيطلب تأكيد تثبيت كل منصة إلا مع --yes.";

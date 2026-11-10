@@ -161,7 +161,7 @@ original_hash=$(shasum -a 256 "$work/simulator/Probe.app/Probe")
 printf 'ipa: test.ipa\nprofile: l1+r\nios_simulator: %s\nios_simulator_app: simulator/Probe.app\n' \
     "$simulator" >"$work/aegis.yaml"
 code=0
-CI=true "$dart_bin" bin/aegis.dart run "$work" --mode ipa --strict --offline --lang en \
+CI=true "$dart_bin" bin/aegis.dart run "$work" --mode ipa --ios-target simulator --strict --offline --lang en \
     -f json -o "$work/combined" || code=$?
 test "$code" -eq 2
 test "$original_hash" = "$(shasum -a 256 "$work/simulator/Probe.app/Probe")"

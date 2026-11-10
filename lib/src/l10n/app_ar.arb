@@ -627,5 +627,20 @@
   "setupPlatformReady": "{platform}: جاهز",
   "setupPlatformIncomplete": "{platform}: التجهيز غير مكتمل أو اتلغى؛ راجع التفاصيل فوق",
   "setupHelpScope": "من غير تحديد منصة، بيسأل عن Android أو iOS أو Both. تجهيز Android يشمل bundletool، وBoth بيبدأ بـAndroid ثم iOS على macOS.",
-  "setupHelpConfirmation": "الأدوات الموجودة بيتم إعادة استخدامها. بيطلب تأكيد تثبيت كل منصة إلا مع --yes."
+  "setupHelpConfirmation": "الأدوات الموجودة بيتم إعادة استخدامها. بيطلب تأكيد تثبيت كل منصة إلا مع --yes.",
+  "runChooseMode": "عاوز تعمل الفحص بأي مود؟",
+  "runModePrompt": "اختار code أو apk أو aab أو ipa [1-4] (q للإلغاء): ",
+  "runInvalidMode": "المود غير صحيح. اختار code أو apk أو aab أو ipa.",
+  "runModeRequired": "في التشغيل غير التفاعلي لازم تحدد المود: --mode code أو --mode apk أو --mode aab أو --mode ipa.",
+  "runModeConflict": "خيار ملف التطبيق مش متوافق مع --mode {mode}. استخدم code من غير ملف تطبيق، أو --apk مع apk/aab، أو --ipa مع ipa.",
+  "runModeHelp": "من غير --mode هيسألك تختار code أو apk أو aab أو ipa. التشغيل غير التفاعلي يحتاج --mode.",
+  "iosChooseTarget": "عاوز تعمل الاختبارات الديناميكية للـIPA على المحاكي ولا جهاز iPhone حقيقي؟",
+  "iosTargetPrompt": "اختار simulator أو device [1-2] (q للإلغاء): ",
+  "iosDeviceLabel": "جهاز iPhone / iPad حقيقي",
+  "iosInvalidTarget": "الاختيار غير صحيح. اختار simulator أو device.",
+  "iosTargetRequired": "حدّد هدف الاختبار صراحةً: --ios-target simulator أو --ios-target device. استخدم --no-probe للفحص الثابت فقط.",
+  "iosTargetConflict": "خيارات iOS متعارضة مع الهدف المختار. استخدم إعدادات المحاكي مع simulator وإعدادات الجهاز الحقيقي مع device.",
+  "iosTargetIpaOnly": "الخيار --ios-target يحتاج --mode ipa.",
+  "iosTargetSelected": "هدف الاختبار الديناميكي لـiOS: {target}",
+  "iosSimulatorMissing": "حدّد ios_simulator في aegis.yaml أو مرّر --ios-simulator برقم UDID لمحاكي iOS شغّال."
 }

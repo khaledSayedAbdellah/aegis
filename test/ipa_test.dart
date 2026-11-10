@@ -117,6 +117,8 @@ ios_simulator_target: lib/main_prod.dart
       directory.path,
       '--mode',
       'ipa',
+      '--ios-target',
+      'device',
       '--strict',
       '--offline',
       '--lang',

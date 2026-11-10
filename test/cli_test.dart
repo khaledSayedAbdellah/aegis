@@ -204,9 +204,9 @@ void main() {
     test('unfilled init placeholders allow source audits and request missing IPA paths', () async {
       final dir = project();
       expect((await aegis(['init', dir.path, '--profile', 'l1', '--lang', 'en'])).exitCode, 0);
-      final run = await aegis(['run', dir.path, '--mode', 'all', '--offline', '-f', 'json', '-o', p.join(dir.path, 'report')]);
+      final run = await aegis(['run', dir.path, '--mode', 'code', '--offline', '-f', 'json', '-o', p.join(dir.path, 'report')]);
       expect(run.exitCode, 0, reason: '${run.stdout}${run.stderr}');
-      expect(run.stdout, contains('auditing the code only'));
+      expect(jsonDecode(File(p.join(dir.path, 'report.json')).readAsStringSync())['binary'], isNull);
       final ipa = await aegis(['run', dir.path, '--mode', 'ipa']);
       expect(ipa.exitCode, 2);
       expect(ipa.stderr, contains("needs the file's path in aegis.yaml"));
@@ -220,6 +220,45 @@ void main() {
   });
 
   group('aegis run', () {
+    test('run requires an explicit mode without a terminal, even with a file', () async {
+      final dir = project();
+      File(p.join(dir.path, 'aegis.yaml')).writeAsStringSync('apk: missing.apk\n');
+      for (final extra in [<String>[], ['--apk', 'test/fixtures/apk/secure.apk']]) {
+        final r = await aegis(['run', dir.path, ...extra, '--lang', 'en', '--offline']);
+        expect(r.exitCode, 2);
+        expect(r.stderr, contains('Select a mode explicitly'));
+        expect(r.stderr, contains('--mode code'));
+        expect(r.stderr, contains('--mode ipa'));
+        expect(File(p.join(dir.path, 'build', 'aegis-report.html')).existsSync(), isFalse);
+        expect(r.stdout, isNot(contains('Resilience probe')));
+      }
+    });
+
+    test('all is rejected and run help lists only the four supported modes', () async {
+      final r = await aegis(['run', project().path, '--mode', 'all']);
+      expect(r.exitCode, 2);
+      expect(r.stderr, contains('all'));
+      final help = await aegis(['run', '--help']);
+      expect(help.exitCode, 0);
+      expect(help.stdout, contains('--mode code|apk|aab|ipa'));
+      expect(help.stdout, isNot(contains('--mode all')));
+      expect(help.stdout, contains('Without --mode'));
+    });
+
+    test('run rejects explicit artifact options conflicting with the chosen mode', () async {
+      final dir = project();
+      for (final options in [
+        ['--mode', 'code', '--apk', 'test/fixtures/apk/secure.apk'],
+        ['--mode', 'ipa', '--apk', 'test/fixtures/apk/secure.apk'],
+        ['--mode', 'apk', '--ipa', 'missing.ipa'],
+      ]) {
+        final r = await aegis(['run', dir.path, ...options, '--lang', 'en', '--offline']);
+        expect(r.exitCode, 2);
+        expect(r.stderr, contains('does not match --mode'));
+        expect(File(p.join(dir.path, 'build', 'aegis-report.html')).existsSync(), isFalse);
+      }
+    });
+
     test('code mode writes the HTML report into the project build folder', () async {
       final dir = project();
       final r = await aegis(['run', dir.path, '--mode', 'code', '--offline', '--no-color']);
@@ -246,12 +285,12 @@ void main() {
       expect(r.stderr, contains('apk: out/app.apk'));
     });
 
-    test('all mode audits the APK set in aegis.yaml, wherever it is', () async {
+    test('apk mode audits the selected APK set in aegis.yaml, wherever it is', () async {
       final dir = project();
       put(dir, 'dist/my-app-1.2.3.apk', bytes: File('test/fixtures/apk/secure.apk').readAsBytesSync());
       File(p.join(dir.path, 'aegis.yaml'))
           .writeAsStringSync('profile: l2+r\nlang: en\napk: dist/my-app-1.2.3.apk\n');
-      final r = await aegis(['run', dir.path, '--offline', '--no-color', '--no-probe', '-f', 'console,json']);
+      final r = await aegis(['run', dir.path, '--mode', 'apk', '--offline', '--no-color', '--no-probe', '-f', 'console,json']);
       expect(r.exitCode, isNot(2), reason: '${r.stdout}${r.stderr}');
       expect(r.stdout, contains('auditing the code and dist/my-app-1.2.3.apk'));
       expect(r.stdout, contains('APK: my-app-1.2.3.apk'));
@@ -262,14 +301,14 @@ void main() {
       expect(json, contains('"skipped"'));
     });
 
-    test('all mode without apk:/aab: audits the code only, even when an APK is built', () async {
+    test('explicit code mode ignores artifact configuration and built APKs', () async {
       final dir = project();
       put(dir, '$flutterApkDir/app-release.apk',
           bytes: File('test/fixtures/apk/secure.apk').readAsBytesSync());
-      File(p.join(dir.path, 'aegis.yaml')).writeAsStringSync('profile: l1\nlang: en\n');
-      final r = await aegis(['run', dir.path, '--offline', '--no-color']);
+      File(p.join(dir.path, 'aegis.yaml')).writeAsStringSync('profile: l1\nlang: en\napk: missing.apk\nipa: missing.ipa\n');
+      final r = await aegis(['run', dir.path, '-m', 'code', '--offline', '--no-color']);
       expect(r.exitCode, isNot(2), reason: '${r.stdout}${r.stderr}');
-      expect(r.stdout, contains('no apk:/aab: in aegis.yaml, auditing the code only'));
+      expect(r.stdout, isNot(contains('auditing the code and')));
       expect(r.stdout, isNot(contains('Resilience probe')));
     });
 

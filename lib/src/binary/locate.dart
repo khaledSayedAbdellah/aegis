@@ -1,5 +1,5 @@
 /// Finds the release APK or AAB that `flutter build` left in a project, so
-/// `aegis run --mode apk|aab|all` works without a path.
+/// `aegis run --mode apk|aab` works without a path.
 library;
 
 import 'dart:io';

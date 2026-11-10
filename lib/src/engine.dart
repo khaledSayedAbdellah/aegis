@@ -310,7 +310,7 @@ Future<AuditReport> runAudit(
           if (!project.hasSource) ...iosRules,
           ...ipaRules,
         ],
-        // Only in a run that tried the probe (aegis run --mode apk|aab|all).
+        // Only in a run that tried the probe (aegis run --mode apk|aab).
         if (project.apk != null && probe != null) ...probeRules,
         if (ipa != null && probe != null) ...iosProbeRules,
       ];
