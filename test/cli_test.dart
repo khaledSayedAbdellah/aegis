@@ -5,6 +5,7 @@ import 'package:aegis/aegis.dart';
 import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
+import 'package:yaml/yaml.dart';
 
 final aegisBin = p.absolute('bin/aegis.dart');
 
@@ -169,15 +170,47 @@ void main() {
       expect(config.lang, 'ar');
       expect(config.failOn, Severity.high);
       final yaml = File(p.join(dir.path, 'aegis.yaml')).readAsStringSync();
-      expect(yaml, contains('# probe_apk:'));
-      expect(yaml, contains('# probe_cert_sha256:'));
-      expect(config.probeApk, isNull);
-      expect(config.probeCertSha256, isNull);
+      final settings = loadYaml(yaml) as Map;
+      expect(settings.keys, unorderedEquals([
+        'profile', 'lang', 'fail_on', 'min_score', 'scan_packages', 'exclude',
+        'rules', 'baseline', 'apk', 'aab', 'ipa', 'probe_apk', 'probe_cert_sha256',
+        'ios_control_device', 'ios_jailbreak_device', 'ios_resigned_ipa',
+        'ios_simulator', 'ios_simulator_app', 'ios_simulator_flavor',
+        'ios_simulator_target',
+      ]));
+      for (final key in ['apk', 'aab', 'ipa', 'probe_apk', 'ios_resigned_ipa',
+        'ios_simulator_app', 'ios_simulator_target']) {
+        expect(settings[key], '<path-to-file>', reason: key);
+      }
+      expect(config.scanPackages, isTrue);
+      expect(config.minScore, isNull);
+      expect(config.exclude, isEmpty);
+      expect(config.disabledRules, isEmpty);
+      expect(config.severityOverrides, isEmpty);
+      expect(config.baseline, 'aegis-baseline.json');
+      expect([
+        config.apk, config.aab, config.ipa, config.probeApk, config.probeCertSha256,
+        config.iosControlDevice, config.iosJailbreakDevice, config.iosResignedIpa,
+        config.iosSimulator, config.iosSimulatorApp, config.iosSimulatorFlavor,
+        config.iosSimulatorTarget,
+      ], everyElement(isNull));
 
       final again = await aegis(['init', dir.path, '--profile', 'l1']);
       expect(again.exitCode, 2);
       expect(await aegis(['init', dir.path, '--profile', 'l1', '--force']).then((r) => r.exitCode), 0);
       expect(AegisConfig.load(dir.path).profile.toString(), 'L1');
+    });
+
+    test('unfilled init placeholders allow source audits and request missing IPA paths', () async {
+      final dir = project();
+      expect((await aegis(['init', dir.path, '--profile', 'l1', '--lang', 'en'])).exitCode, 0);
+      final run = await aegis(['run', dir.path, '--mode', 'all', '--offline', '-f', 'json', '-o', p.join(dir.path, 'report')]);
+      expect(run.exitCode, 0, reason: '${run.stdout}${run.stderr}');
+      expect(run.stdout, contains('auditing the code only'));
+      final ipa = await aegis(['run', dir.path, '--mode', 'ipa']);
+      expect(ipa.exitCode, 2);
+      expect(ipa.stderr, contains("needs the file's path in aegis.yaml"));
+      expect(ipa.stderr, isNot(contains('File not found')));
     });
 
     test('rejects an unknown profile', () async {
@@ -245,6 +278,16 @@ void main() {
       final r = await aegis(['probe', '--project', dir.path]);
       expect(r.exitCode, 2);
       expect(r.stderr, contains('apk: $flutterApkDir/app-release.apk'));
+    });
+
+    test('an iOS target selects the configured IPA even when apk: is present', () async {
+      final dir = project();
+      File(p.join(dir.path, 'aegis.yaml'))
+          .writeAsStringSync('apk: dist/android.apk\nipa: dist/ios.ipa\n');
+      final r = await aegis(['probe', '--project', dir.path,
+        '--only', 'debugger', '--ios-control-device', '00001234-0001234A3C03401E']);
+      expect(r.exitCode, 2);
+      expect(r.stderr, contains('File not found: ${p.join(dir.path, 'dist', 'ios.ipa')}'));
     });
 
     test('plain aegis keeps its CI defaults', () async {

@@ -9,7 +9,10 @@ import 'package:xml/xml.dart';
 import 'package:yaml/yaml.dart';
 
 import 'binary/apk.dart';
+import 'binary/ipa.dart';
+import 'binary/ios_signature.dart';
 import 'config.dart';
+import 'l10n/messages.g.dart';
 import 'dart_scanner.dart';
 import 'plist.dart';
 import 'probe/probe_model.dart';
@@ -48,6 +51,8 @@ class Project {
 
   /// The release APK to audit alongside the source, if any.
   ApkContext? apk;
+  IpaContext? ipa;
+  IosSignature? iosSignature;
 
   /// The resilience probe's outcome when this run tried it (rules AEG-R01..R04).
   ProbeOutcome? probe;
@@ -61,6 +66,7 @@ class Project {
   final Map<String, Object?> dependencyOverrides = {};
   final Map<String, LockedPackage> locked = {};
   String? lockIssue;
+  String? lockIssueAr;
   final List<String> assets = [];
 
   final List<DartFile> dartFiles = [];
@@ -140,6 +146,28 @@ class Project {
     return project;
   }
 
+  static Project ipaOnly(String path, IpaContext ipa, {AegisConfig? config}) {
+    final root = p.normalize(p.absolute(path));
+    final project = Project._(root, config ?? AegisConfig.load(root))
+      ..hasSource = false
+      ..name = ipa.bundleId;
+    return project;
+  }
+
+  void useIpa(IpaContext artifact, IosSignature signature) {
+    ipa = artifact;
+    iosSignature = signature;
+    final infoPath = '${artifact.label}!/${artifact.appPath}/Info.plist';
+    infoPlist = ProjectFile(infoPath, '');
+    infoPlistData = artifact.info;
+    entitlements.clear();
+    for (final slice in artifact.machO) {
+      if (slice.entitlements case final value?) {
+        entitlements['${artifact.label}!/${artifact.appPath}/${artifact.executable} [${slice.architecture}]'] = value;
+      }
+    }
+  }
+
   void _loadPubspec(String text) {
     final Object? doc;
     try {
@@ -194,7 +222,8 @@ class Project {
       final doc = loadYaml(f.readAsStringSync());
       final pkgs = doc is Map ? doc['packages'] : null;
       if (pkgs is! Map) {
-        lockIssue = 'pubspec.lock does not contain a packages map';
+        lockIssue = En.lockPackagesMissing;
+        lockIssueAr = Ar.lockPackagesMissing;
         return;
       }
       pkgs.forEach((k, v) {
@@ -205,7 +234,8 @@ class Project {
         }
       });
     } catch (_) {
-      lockIssue = 'Could not read pubspec.lock';
+      lockIssue = En.lockUnreadable;
+        lockIssueAr = Ar.lockUnreadable;
     }
   }
 

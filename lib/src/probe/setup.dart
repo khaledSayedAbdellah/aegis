@@ -80,6 +80,8 @@ const installOrder = [
   'control-avd',
   'frida',
   'frida-server',
+  'ios-gadget',
+  'ios-simulator-gadget',
   'bundletool',
 ];
 
@@ -234,6 +236,11 @@ class Setup {
         'control-avd' => await _createAvd(control: true),
         'frida' => await _installFrida(log),
         'frida-server' => await _installFridaServer(log),
+        'ios-gadget' => await _installIosGadget(toolchain.iosGadgetPath,
+            pins.iosGadgetUrl, pins.iosGadgetPin, log),
+        'ios-simulator-gadget' => await _installIosGadget(
+            toolchain.iosSimulatorGadgetPath, pins.iosSimulatorGadgetUrl,
+            pins.iosSimulatorGadgetPin, log),
         'bundletool' => await verifiedDownload(
             pins.bundletoolUrl, toolchain.bundletoolPath, pins.bundletoolPin, log),
         'platform-tools' ||
@@ -307,6 +314,22 @@ class Setup {
     host.deleteFile(xz);
     host.makeExecutable(dest);
     return null;
+  }
+
+  Future<String?> _installIosGadget(
+      String dest, String url, pins.Pinned pin, void Function(String) log) async {
+    final staged = '$dest.${DateTime.now().microsecondsSinceEpoch}.tmp';
+    final xz = '$staged.xz';
+    try {
+      final error = await verifiedDownload(url, xz, pin, log);
+      if (error != null) return error;
+      host.writeBytes(staged, XZDecoder().decodeBytes(host.readBytes(xz)));
+      host.rename(staged, dest);
+      return null;
+    } finally {
+      host.deleteFile(xz);
+      host.deleteFile(staged);
+    }
   }
 
   /// Downloads [url] to [dest] and checks its SHA-256 against [pin];

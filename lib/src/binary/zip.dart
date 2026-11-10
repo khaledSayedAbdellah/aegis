@@ -7,7 +7,7 @@ import 'dart:typed_data';
 
 class ZipEntry {
   ZipEntry(this.name, this.method, this.compressedSize, this.size,
-      this.localHeaderOffset);
+      this.localHeaderOffset, {this.unixMode = 0});
 
   final String name;
 
@@ -16,6 +16,10 @@ class ZipEntry {
   final int compressedSize;
   final int size;
   final int localHeaderOffset;
+
+  final int unixMode;
+  bool get isSymlink => unixMode & 0xf000 == 0xa000;
+  bool get executable => unixMode & 0x49 != 0;
 
   bool get isDirectory => name.endsWith('/');
 }
@@ -37,7 +41,7 @@ class ZipReader {
         for (final e in names.entries)
           if (entries[e.key] case final entry?)
             e.value: ZipEntry(e.value, entry.method, entry.compressedSize, entry.size,
-                entry.localHeaderOffset)
+                entry.localHeaderOffset, unixMode: entry.unixMode)
       });
 
   final Uint8List bytes;
@@ -85,10 +89,17 @@ class ZipReader {
       final extraLen = _u16(p + 30);
       final commentLen = _u16(p + 32);
       final local = _u32(p + 42);
+      if (p + 46 + nameLen + extraLen + commentLen > bytes.length) {
+        throw const FormatException('Truncated zip central directory entry.');
+      }
       final name = utf8.decode(
           Uint8List.sublistView(bytes, p + 46, p + 46 + nameLen),
           allowMalformed: true);
-      entries[name] = ZipEntry(name, method, compressed, size, local);
+      if (entries.containsKey(name)) {
+        throw const FormatException('Duplicate zip entry.');
+      }
+      entries[name] = ZipEntry(name, method, compressed, size, local,
+          unixMode: _u16(p + 4) >> 8 == 3 ? _u16(p + 40) : 0);
       p += 46 + nameLen + extraLen + commentLen;
     }
   }

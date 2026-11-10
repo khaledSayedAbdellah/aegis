@@ -7,12 +7,18 @@ import 'package:path/path.dart' as p;
 
 import 'baseline.dart';
 import 'binary/apk.dart';
+import 'binary/ipa.dart';
+import 'binary/ios_signature.dart';
+import 'binary/signing.dart';
 import 'config.dart';
+import 'l10n/messages.g.dart';
 import 'masvs.dart';
 import 'model.dart';
 import 'probe/probe_model.dart';
 import 'project.dart';
 import 'rules/probe_rules.dart';
+import 'rules/ios_rules.dart';
+import 'rules/ipa_rules.dart';
 import 'rules/registry.dart';
 import 'rules/rule.dart';
 import 'scoring.dart';
@@ -116,6 +122,8 @@ class BinaryInfo {
     this.abis = const [],
     this.isFlutter = false,
     this.certificates = const [],
+    this.encrypted,
+    this.signatureVerified,
     this.kind = 'APK',
   });
 
@@ -135,6 +143,31 @@ class BinaryInfo {
             CertificateInfo(c.commonName, c.scheme, c.sha256Base64, c.sha256Hex)
         ],
       );
+
+  factory BinaryInfo.fromIpa(IpaContext ipa, IosSignature signature) {
+    final der = signature.certificate;
+    final cert = der == null ? null : SigningCert(der, 'Apple code signing');
+    return BinaryInfo(
+      file: ipa.label,
+      sizeBytes: ipa.archive.bytes.length,
+      packageName: ipa.bundleId,
+      versionName: ipa.version,
+      versionCode: ipa.build,
+      abis: ipa.machO.map((slice) => slice.architecture).toSet().toList(),
+      isFlutter: ipa.isFlutter,
+      encrypted: ipa.encrypted,
+      signatureVerified: signature.valid,
+      kind: 'IPA',
+      certificates: [
+        if (cert != null)
+          CertificateInfo(cert.commonName, cert.scheme, cert.sha256Base64,
+              cert.sha256Hex.replaceAll(':', '').toLowerCase()),
+      ],
+    );
+  }
+
+  final bool? encrypted;
+  final bool? signatureVerified;
 
   final String file;
   final int sizeBytes;
@@ -161,6 +194,8 @@ class BinaryInfo {
         'targetSdk': targetSdk,
         'abis': abis,
         'flutter': isFlutter,
+        if (kind == 'IPA') 'encrypted': encrypted,
+        if (kind == 'IPA') 'signatureVerified': signatureVerified,
         'certificates': [for (final c in certificates) c.toJson()],
       };
 }
@@ -188,7 +223,7 @@ Future<RuleCheck> _safeCheck(Rule rule, Project project, ProfileSet profile) asy
   try {
     return await rule.check(project, profile);
   } catch (e) {
-    return RuleCheck.incomplete('Rule error: $e');
+    return RuleCheck.incompleteLocalized(En.ruleError(error: e), Ar.ruleError(error: e));
   }
 }
 
@@ -202,17 +237,39 @@ Future<AuditReport> runAudit(
   bool offline = false,
   List<Rule>? rules,
   String? apkPath,
+  String? ipaPath,
   Baseline? baseline,
   ProbeOutcome? probe,
 }) async {
+  if (apkPath != null && ipaPath != null) {
+    throw const FormatException('Audit one artifact at a time with --apk or --ipa.');
+  }
+  final ipa = ipaPath == null ? null : IpaContext.load(ipaPath);
+  IosSignature? signature;
+  if (ipa != null) {
+    if (Platform.isMacOS) {
+      final staging = Directory.systemTemp.createTempSync('aegis-ipa-');
+      try {
+        final app = ipa.stage(staging);
+        signature = await verifyIosSignature(app, staging);
+      } finally {
+        staging.deleteSync(recursive: true);
+      }
+    } else {
+      signature = (valid: null, evidence: En.signatureMacOnly, evidenceAr: Ar.signatureMacOnly, certificate: null);
+    }
+  }
   final apk = apkPath == null ? null : ApkContext.load(apkPath);
   final hasPubspec = File(p.join(path, 'pubspec.yaml')).existsSync();
   final Project project;
   if (!hasPubspec && apk != null) {
     project = Project.binaryOnly(path, apk, config: config);
+  } else if (!hasPubspec && ipa != null) {
+    project = Project.ipaOnly(path, ipa, config: config);
   } else {
     project = Project.load(path, config: config)..apk = apk;
   }
+  if (ipa != null) project.useIpa(ipa, signature!);
   project.offline = offline;
   project.probe = probe;
   final cfg = project.config;
@@ -249,8 +306,13 @@ Future<AuditReport> runAudit(
       [
         if (project.hasSource) ...allRules,
         if (project.apk != null) ...apkRules,
+        if (ipa != null) ...[
+          if (!project.hasSource) ...iosRules,
+          ...ipaRules,
+        ],
         // Only in a run that tried the probe (aegis run --mode apk|aab|all).
         if (project.apk != null && probe != null) ...probeRules,
+        if (ipa != null && probe != null) ...iosProbeRules,
       ];
   // Binary rules are written for APKs; for a bundle they say "AAB".
   final bundle = project.apk?.isBundle ?? false;
@@ -265,7 +327,7 @@ Future<AuditReport> runAudit(
           messageAr: f.messageAr == null ? null : bundleText(f.messageAr!),
           file: f.file,
           line: f.line,
-          snippet: f.snippet);
+          snippet: f.snippet, snippetAr: f.snippetAr);
 
   for (final rule in ruleSet) {
     final meta = metaOf(rule);
@@ -284,7 +346,7 @@ Future<AuditReport> runAudit(
           meta: meta,
           status: check.isIncomplete ? RuleStatus.incomplete : RuleStatus.notApplicable,
           severity: severity,
-          note: check.note));
+          note: check.note, noteAr: check.noteAr));
       continue;
     }
     final kept = <Finding>[];
@@ -303,6 +365,7 @@ Future<AuditReport> runAudit(
           : check.isIncomplete ? RuleStatus.incomplete : RuleStatus.passed,
       incomplete: check.isIncomplete,
       note: check.note,
+      noteAr: check.noteAr,
       severity: severity,
       findings: kept,
       suppressed: hidden,
@@ -330,7 +393,7 @@ Future<AuditReport> runAudit(
         .where((m) => !(apk != null && m.id == 'AEG-M05'))
         .toList(),
     generatedAt: DateTime.now(),
-    binary: apk == null ? null : BinaryInfo.from(apk),
+    binary: ipa != null ? BinaryInfo.fromIpa(ipa, signature!) : apk == null ? null : BinaryInfo.from(apk),
     scannedPackages: project.scannedPackages,
     baselinePath: baseline == null ? null : (baseline.path ?? defaultBaselineFile),
     baselineResolved: resolved,

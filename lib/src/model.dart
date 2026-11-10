@@ -198,6 +198,7 @@ class Finding {
     this.file,
     this.line,
     this.snippet,
+    this.snippetAr,
     this.messageAr,
   });
 
@@ -215,6 +216,8 @@ class Finding {
 
   /// Short, already-redacted excerpt.
   final String? snippet;
+  final String? snippetAr;
+  String? snippetOf(String lang) => lang == 'ar' ? snippetAr ?? snippet : snippet;
 
   /// True when this finding is listed in the baseline (a known issue).
   bool baselined = false;
@@ -234,6 +237,7 @@ class Finding {
         if (file != null) 'file': file,
         if (line != null) 'line': line,
         if (snippet != null) 'snippet': snippet,
+        if (snippetAr != null) 'snippetAr': snippetAr,
         if (baselined) 'baselined': true,
       };
 }
@@ -268,6 +272,7 @@ class RuleResult {
     this.suppressed = 0,
     this.incomplete = false,
     this.note,
+    this.noteAr,
   });
 
   final RuleMeta meta;
@@ -283,6 +288,8 @@ class RuleResult {
 
   /// Why the rule was not applicable, if relevant.
   final String? note;
+  final String? noteAr;
+  String? noteOf(String lang) => lang == 'ar' ? noteAr ?? note : note;
 
   bool get counts =>
       status == RuleStatus.passed || status == RuleStatus.failed;

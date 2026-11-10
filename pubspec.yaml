@@ -3,7 +3,7 @@ description: >-
   Security audit for Flutter apps that checks whether your protections actually
   work, not just whether they exist. OWASP MASVS-mapped rules, MAS profile
   scoring (L1/L2/R), and reports in English and Arabic.
-version: 0.8.0
+version: 0.9.0
 repository: https://github.com/khaledSayedAbdellah/aegis
 issue_tracker: https://github.com/khaledSayedAbdellah/aegis/issues
 
@@ -31,3 +31,11 @@ dev_dependencies:
 
 executables:
   aegis: aegis
+
+# Deliberately synthetic credentials used to exercise secret detection.
+# Keep this allowlist restricted to these test/fixture sources.
+false_secrets:
+  - /test/baseline_test.dart
+  - /test/scoring_test.dart
+  - /tool/make_apk_fixtures.py
+  - /tool/make_aab_fixtures.py

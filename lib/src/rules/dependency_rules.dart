@@ -1,6 +1,8 @@
 /// Rules about third-party packages.
 library;
 
+import '../l10n/messages.g.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -16,12 +18,9 @@ class VulnerableDependencyRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-C01',
-        title: Bilingual('Dependency with known vulnerabilities', 'مكتبة فيها ثغرات معروفة'),
-        description: Bilingual(
-            'A locked package version has a published advisory in the OSV database.',
-            'فيه نسخة مكتبة في pubspec.lock عليها ثغرة منشورة في قاعدة بيانات OSV.'),
-        fix: Bilingual('Upgrade the package to a fixed version (dart pub upgrade <package>).',
-            'حدّث المكتبة لنسخة فيها الإصلاح (dart pub upgrade <package>).'),
+        title: Bilingual(En.dependencyRulesDependencyWithKnownVulnerabilities, Ar.dependencyRulesDependencyWithKnownVulnerabilities),
+        description: Bilingual(En.dependencyRulesALockedPackageVersionHasAPublishedAdvisory, Ar.dependencyRulesALockedPackageVersionHasAPublishedAdvisory),
+        fix: Bilingual(En.dependencyRulesUpgradeThePackageToAFixedVersionDart, Ar.dependencyRulesUpgradeThePackageToAFixedVersionDart),
         severity: Severity.high,
         masvs: ['MASVS-CODE-3'],
         maswe: ['MASWE-0044'],
@@ -35,7 +34,7 @@ class VulnerableDependencyRule extends Rule {
       return RuleCheck.notApplicable('Skipped (--offline)');
     }
     final lockIssue = project.lockIssue;
-    if (lockIssue != null) return RuleCheck.incomplete(lockIssue);
+    if (lockIssue != null) return RuleCheck.incompleteLocalized(lockIssue, project.lockIssueAr);
     final pkgs = project.locked.values
         .where((p) => p.source == 'hosted' && p.version.isNotEmpty)
         .toList();
@@ -63,17 +62,17 @@ class VulnerableDependencyRule extends Rule {
         final res = await req.close().timeout(const Duration(seconds: 20));
         final text = await res.transform(utf8.decoder).join().timeout(const Duration(seconds: 20));
         if (res.statusCode != 200) {
-          return RuleCheck.incomplete('osv.dev returned ${res.statusCode}', out);
+          return RuleCheck.incompleteLocalized(En.osvStatus(status: res.statusCode), Ar.osvStatus(status: res.statusCode), out);
         }
         final json = jsonDecode(text);
         final results = json is Map ? json['results'] : null;
         if (results is! List || results.length != batch.length) {
-          return RuleCheck.incomplete('Invalid OSV batch response', out);
+          return RuleCheck.incompleteLocalized(En.osvBatchInvalid, Ar.osvBatchInvalid, out);
         }
         for (var k = 0; k < results.length && k < batch.length; k++) {
           final r = results[k];
           if (r is! Map || r['vulns'] != null && r['vulns'] is! List) {
-            return RuleCheck.incomplete('Invalid OSV package response', out);
+            return RuleCheck.incompleteLocalized(En.osvPackageInvalid, Ar.osvPackageInvalid, out);
           }
           final vulns = r['vulns'] as List?;
           if (vulns == null || vulns.isEmpty) continue;
@@ -81,7 +80,7 @@ class VulnerableDependencyRule extends Rule {
               .map((v) => v is Map ? v['id']?.toString() : null)
               .whereType<String>()
               .toList();
-          if (ids.isEmpty) return RuleCheck.incomplete('Invalid OSV advisory response', out);
+          if (ids.isEmpty) return RuleCheck.incompleteLocalized(En.osvAdvisoryInvalid, Ar.osvAdvisoryInvalid, out);
           final p = batch[k];
           out.add(inFile('pubspec.lock', null,
               '${p.name} ${p.version}: ${ids.join(', ')} (https://osv.dev/vulnerability/${ids.first})',
@@ -89,7 +88,7 @@ class VulnerableDependencyRule extends Rule {
         }
       }
     } on Object catch (e) {
-      return RuleCheck.incomplete('Could not complete OSV lookup ($e)', out);
+      return RuleCheck.incompleteLocalized(En.osvLookupFailed(error: e), Ar.osvLookupFailed(error: e), out);
     } finally {
       client.close(force: true);
     }
@@ -103,12 +102,9 @@ class UnpinnedDependencyRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-C02',
-        title: Bilingual('Unpinned or overridden dependencies', 'مكتبات مش متثبتة على نسخة أو متعمل لها override'),
-        description: Bilingual(
-            'Git dependencies without a ref follow whatever is pushed next, and dependency_overrides silently replace audited versions.',
-            'مكتبات الـ git من غير ref بتاخد أي حاجة تترفع بعد كده، والـ dependency_overrides بتبدّل النسخ اللي اتراجعت من غير ما تحس.'),
-        fix: Bilingual('Pin git dependencies to a commit (ref: <sha>) and remove dependency_overrides before release.',
-            'ثبّت مكتبات الـ git على commit معين (ref: <sha>)، وشيل الـ dependency_overrides قبل الـ release.'),
+        title: Bilingual(En.dependencyRulesUnpinnedOrOverriddenDependencies, Ar.dependencyRulesUnpinnedOrOverriddenDependencies),
+        description: Bilingual(En.dependencyRulesGitDependenciesWithoutARefFollowWhateverIs, Ar.dependencyRulesGitDependenciesWithoutARefFollowWhateverIs),
+        fix: Bilingual(En.dependencyRulesPinGitDependenciesToACommitRefSha, Ar.dependencyRulesPinGitDependenciesToACommitRefSha),
         severity: Severity.low,
         masvs: ['MASVS-CODE-3'],
         maswe: ['MASWE-0044'],
@@ -125,14 +121,14 @@ class UnpinnedDependencyRule extends Rule {
         final ref = git is Map ? git['ref'] : null;
         if (ref == null || RegExp(r'^(main|master|develop|dev)$').hasMatch(ref.toString())) {
           out.add(inFile('pubspec.yaml', null,
-              '$name is a git dependency without a pinned commit.',
-              messageAr: '$name مكتبة git من غير commit ثابت.'));
+              En.dependencyRulesIsAGitDependencyWithoutAPinned(name: name),
+              messageAr: Ar.dependencyRulesIsAGitDependencyWithoutAPinned(name: name)));
         }
       }
     });
     for (final name in project.dependencyOverrides.keys) {
-      out.add(inFile('pubspec.yaml', null, '$name is overridden in dependency_overrides.',
-          messageAr: '$name متعمل لها override في dependency_overrides.'));
+      out.add(inFile('pubspec.yaml', null, En.dependencyRulesIsOverriddenInDependencyOverrides(name: name),
+          messageAr: Ar.dependencyRulesIsOverriddenInDependencyOverrides(name: name)));
     }
     return RuleCheck(out);
   }

@@ -51,6 +51,27 @@ void main() {
         '-k system-images;android-34;google_apis_playstore;arm64-v8a -d pixel_6'));
   });
 
+  test('iOS setup plans Gadget without Android and rejects a corrupt download', () async {
+    final h = FakeHost()
+      ..answer('xcrun', ['--find', 'devicectl'], stdout: '/usr/bin/devicectl')
+      ..answer('python3', ['--version'], stdout: 'Python 3.9.6')
+      ..answer('python3', ['-c', 'import venv']);
+    final tools = Toolchain(h);
+    h.answer(tools.venvExe('frida'), ['--version'], stdout: pins.fridaVersion);
+    h.downloads[pins.iosGadgetUrl] = xzBytes;
+    h.downloads[pins.iosSimulatorGadgetUrl] = xzBytes;
+    final setup = Setup(tools);
+    final plan = setup.buildPlan(await tools.checkIos());
+    expect(plan.coversEverything, isTrue);
+    expect(plan.steps.map((step) => step.id), ['ios-gadget', 'ios-simulator-gadget']);
+    expect(setup.sdkmanagerPackages(plan), isEmpty);
+    final outcomes = await setup.execute(plan);
+    expect(outcomes.map((o) => o.error), everyElement(contains('checksum mismatch')));
+    expect(tools.checkIosGadget().ok, isFalse);
+    expect(tools.checkIosGadget(simulator: true).ok, isFalse);
+    expect(h.files, isEmpty);
+  });
+
   test('verifiedDownload accepts a file whose SHA-256 matches the pin', () async {
     final h = studioMac();
     h.downloads['https://x/f.xz'] = xzBytes;

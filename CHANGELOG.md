@@ -1,7 +1,20 @@
-## 0.8.0
+## 0.9.0
 
+* Make `setup` ask for Android, iOS or Both. `--android` prepares both Android AVDs and bundletool; `--ios` stays iOS-only; `--both` runs independent stages in Android-first order and reports unsupported iOS on non-Mac hosts without undoing Android setup. Keep `--aab` as an Android alias; CI must select a platform explicitly.
+
+* Honor explicit Simulator flavor/target changes for automatically discovered products, and retain verified build inputs for reuse. Correct release installation references and declare synthetic credential fixtures for Pub validation.
+
+* Move report, rule and setup/doctor translations to validated ARB catalogs with generated Dart accessors. Translate iOS probe evidence, limitations, finding excerpts and incomplete/skip reasons in Arabic reports while preserving English JSON evidence and original code/tool output.
+
+* Add partial Xcode Simulator jailbreak-file-indicator and ad-hoc signing-metadata experiments, with verified controls, separate observations and explicit Arabic/English limitations. Full jailbreak/signing checks remain incomplete in strict mode; no macOS security settings are changed.
+
+* `aegis init` now writes every supported YAML setting, with defaults and editable placeholders for unknown paths, device IDs, flavors, and fingerprints. Unfilled placeholders are treated as unset.
+
+* Automatically build missing or mismatched Flutter iOS Simulator apps during `run`/`probe`, using the IPA version/build, verifying the generated platform and identity, and retaining build logs. Add optional `ios_simulator_flavor` and `ios_simulator_target` settings to `init`.
+* Audit iOS IPAs with `--ipa` or `aegis run --mode ipa`. The iOS runtime probe uses Xcode on dedicated devices for jailbreak, Frida, LLDB, and signing identity changes. Configure `ios_simulator` and `ios_simulator_app` in `aegis.yaml` to run LLDB and Frida automatically on a matching Simulator build.
+* `aegis setup --ios` installs Frida and the pinned iOS Gadget. A provisioned Development IPA can be probed for Frida on a stock USB-connected device configured as `ios_control_device`.
 * `aegis setup` prepares separate rooted and unrooted Android 14 emulators. APK and AAB audits use both by default. The runtime probe verifies each test condition and reports continued execution under verified conditions as a process-level finding under MAS-R. Android self-exit records provide process-level blocking evidence. Optional app events provide a verdict on a specific operation.
-* AAB probes accept a signed companion APK, a bundletool `.apks` archive or a folder with one device-specific set of signed APKs. Aegis verifies the first-install APKs for each emulator and can require an expected app-signing certificate fingerprint. Set `probe_apk` and `probe_cert_sha256` in `aegis.yaml` or override them on the command line. `aegis init` includes both settings as commented examples.
+* AAB probes accept a signed companion APK, a bundletool `.apks` archive or a folder with one device-specific set of signed APKs. Aegis verifies the first-install APKs for each emulator and can require an expected app-signing certificate fingerprint. Set `probe_apk` and `probe_cert_sha256` in `aegis.yaml` or override them on the command line. `aegis init` includes both settings as active keys with editable placeholders.
 * `--strict` rejects an incomplete requested probe under any MAS profile. Reports distinguish incomplete checks from checks outside the profile or checks that do not apply.
 * The binary audit rejects unreadable Android manifests and resolves the network security configuration referenced by the manifest, including resource aliases and configuration variants.
 

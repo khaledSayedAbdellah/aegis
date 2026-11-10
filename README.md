@@ -50,7 +50,7 @@ aegis is a Dart command-line tool. It needs the Dart 3 SDK (the one inside Flutt
 
 ```bash
 # A released version, from GitHub
-dart pub global activate --source git https://github.com/khaledSayedAbdellah/aegis.git --git-ref v0.7.0
+dart pub global activate --source git https://github.com/khaledSayedAbdellah/aegis.git --git-ref v0.9.0
 
 # Or your local clone: every change in the clone is used right away, no reinstall
 dart pub global activate --source path ~/path/to/aegis
@@ -85,20 +85,21 @@ In your Flutter project (after `flutter pub get`):
 
 ```bash
 aegis init                 # 1. once per project: asks what kind of app it is, writes aegis.yaml
-aegis setup                # 2. once per machine: installs both emulators and the tools for the resilience probe
+aegis setup                # 2. choose Android, iOS or Both for this machine
 aegis run                  # 3. audit: code + the APK/AAB set in aegis.yaml, if any
 ```
 
-**Don't skip `aegis setup`.** It prepares both emulators that `aegis run --mode apk|aab|all` uses to check whether your app's anti-tampering actually reacts (rules AEG-R01..R04). Without it, the APK/AAB gets the static checks only and the report says the probe was skipped. It installs only what's missing, so running it again is harmless; `aegis doctor` shows what's there. Details in [The resilience probe](#the-resilience-probe).
+**Don't skip environment setup.** Choose Android in `aegis setup`, or run `aegis setup --android`, to prepare both Android emulators that `aegis run --mode apk|aab|all` uses to check whether your app's anti-tampering actually reacts (rules AEG-R01..R04). Without it, the APK/AAB gets the static checks only and the report says the probe was skipped. It installs only what's missing, so running it again is harmless; `aegis doctor` shows what's there. Details in [The resilience probe](#the-resilience-probe).
 
 `aegis run` prints the report, writes `build/aegis-report.html` and opens it in your browser (`--no-open` to skip; it never opens in CI). Choose what to audit with `--mode`:
 
 | Command | Audits |
 |---|---|
-| `aegis run` | `--mode all`: the code, plus the file at `apk:` (else `aab:`) in aegis.yaml with the resilience probe; the code only when neither is set |
+| `aegis run` | `--mode all` audits the code and the first configured artifact in `apk:`, `aab:`, `ipa:` order, with its resilience probe |
 | `aegis run --mode code` | Dart code, your git/path packages, Android and iOS configuration |
 | `aegis run --mode apk` | the code + the APK at `apk:` in aegis.yaml + the resilience probe on it |
 | `aegis run --mode aab` | the code + the AAB at `aab:` in aegis.yaml, with a resilience probe when a matching signed APK is supplied |
+| `aegis run --mode ipa` | the code + the IPA at `ipa:` in aegis.yaml, with the iOS resilience probe |
 
 The APK/AAB path is yours to set, relative to the project, because build names change with flavors and versions; aegis never guesses one from `build/`:
 
@@ -111,6 +112,33 @@ aab: build/app/outputs/bundle/prodRelease/app-prod-release.aab
 `--mode apk` or `aab` without that line, or with a file that isn't there, stops with the line to add or the build command to run.
 
 The language follows `lang:` in aegis.yaml, else your system language. If `~/.pub-cache/bin` is not on your PATH, add `export PATH="$PATH:$HOME/.pub-cache/bin"` to your shell profile.
+
+### Selecting the setup platform
+
+```bash
+aegis setup                 # interactive menu: Android / iOS / Both
+aegis setup --android       # Android only: two AVDs, Frida/server and bundletool
+aegis setup --ios           # iOS only: Xcode check, Frida and device/Simulator Gadgets
+aegis setup --both          # Android first, then iOS
+```
+
+Each platform is checked and prepared independently. Both runs Android first;
+iOS failures never undo Android preparation. On a known non-macOS host, Android
+still runs and iOS is reported as unsupported. If OS detection is unavailable,
+Android runs first and the iOS tool checks run afterward. A partial or failed
+setup returns exit code `1`, with a separate result for each requested platform.
+
+In CI or a non-interactive shell, specify the platform, for example
+`aegis setup --android --yes` or `aegis setup --both --yes` on macOS. `--yes`
+only skips installation confirmation; it does not choose a platform. Missing or
+conflicting platform flags in non-interactive use return exit code `2` before
+installation. Use one selector at a time; use `--remove` separately.
+
+The iOS setup installs probe tools; Xcode and an iOS Simulator runtime must
+already be installed, and the dedicated Simulator must be created/booted and
+selected in `aegis.yaml`. It does not change macOS security settings or install
+Android components. Python/Frida are shared prerequisites and are reused when
+already present.
 
 ## The resilience probe
 
@@ -133,10 +161,10 @@ The probe needs a few tools. aegis finds them the way Flutter does and installs 
 
 ```bash
 aegis doctor               # lists each tool: present, aegis can install it, or install it yourself
-aegis setup                # installs the missing ones (asks once; --yes to skip the prompt)
+aegis setup --android      # Android tools + both emulators + bundletool; --yes skips installation confirmation
 ```
 
-`aegis setup` uses the Android SDK and JDK from your Flutter setup. It installs the emulator and Android 14 Google APIs and Google Play images through the SDK, then creates `aegis-probe` and `aegis-probe-control`. It also installs Frida and its server under `~/.aegis`. The Android SDK tools prompt for any required licenses. Repeat setup to install missing items. Add `--aab` to install bundletool for probing a `.apks` archive. `aegis setup --remove` removes Aegis tools and AVDs it created while retaining SDK packages and a manually created control AVD.
+`aegis setup --android` uses the Android SDK and JDK from your Flutter setup. It installs the emulator and Android 14 Google APIs and Google Play images through the SDK, then creates `aegis-probe` and `aegis-probe-control`. It also installs Frida and its server under `~/.aegis`. The Android SDK tools prompt for any required licenses. Repeat setup to install missing items. It includes bundletool for AAB/`.apks` support. The old `--aab` flag remains a compatibility alias for `--android`. `aegis setup --remove` removes Aegis tools and AVDs it created while retaining SDK packages and a manually created control AVD.
 
 * Tools missing or the emulator unavailable: `aegis run` does the static checks only and the report says why the probe was skipped.
 * `--no-probe` skips it on purpose (static checks only).
@@ -168,7 +196,7 @@ Run `aegis --help`, or `aegis <command> --help`, for every option.
 | Command | What it does |
 |---|---|
 | `aegis init` | Once per project: asks what kind of app it is and writes `aegis.yaml` (`--profile`, `--lang` to skip the questions, `--force` to overwrite). |
-| `aegis setup` | Once per machine: installs the resilience-probe tools that are missing (`--yes` no prompt, `--aab` also bundletool, `--remove` uninstall them). |
+| `aegis setup` | Choose Android, iOS or Both. Use `--android`, `--ios` or `--both` to select directly; `--yes` confirms installation, `--remove` uninstalls Aegis tools. |
 | `aegis doctor` | Lists the tools the probe needs and whether each is present. Changes nothing. |
 | `aegis run` | Audits with the settings in `aegis.yaml`, prints the report, writes `build/aegis-report.html` and opens it. |
 | `aegis run --mode code\|apk\|aab\|all` | What to audit (see Quick start). `apk`/`aab` need `apk:`/`aab:` in aegis.yaml. |
@@ -222,7 +250,63 @@ The report also prints the **signing certificate SHA-256 in Base64**, the exact 
 | AEG-B10 | freeRASP `signingCertHashes` / `packageName` don't match the APK | RESILIENCE-2 |
 | AEG-B11 | Old targetSdk / minSdk in the final manifest | CODE-1 |
 
-aegis reads APKs and AABs itself (zip, binary XML, protobuf XML, v1/v2/v3 signatures) in pure Dart, with no external tools. IPAs are not supported yet.
+aegis reads APKs and AABs itself (zip, binary XML, protobuf XML, v1/v2/v3 signatures) in pure Dart, with no external tools.
+
+## iOS IPA audit and resilience probe
+
+`aegis --ipa path/to/app.ipa` audits the packaged application, with source checks when a Flutter project is supplied. It reads the final `Info.plist`, Mach-O architecture and entitlements, and checks ATS, file sharing, debug permissions and potential bundled secret files. On macOS it uses Apple `codesign` to verify the app and nested code. Other hosts report signature verification as incomplete. [Apple code-signing documentation](https://developer.apple.com/documentation/technotes/tn3125-inside-code-signing-provisioning-profiles)
+
+```yaml
+ipa: build/ios/ipa/app.ipa
+ios_control_device: <stock-device-udid>
+ios_jailbreak_device: <jailbroken-device-udid>
+ios_resigned_ipa: build/ios/ipa/app-resigned.ipa
+```
+
+Run `aegis run --mode ipa --strict` for the combined report or `aegis probe path/to/app.ipa --only debugger` for one runtime check. CLI flags `--ios-control-device`, `--ios-jailbreak-device` and `--ios-resigned-ipa` override YAML. Use `xcrun devicectl list devices` to find the device identifier. The devices must be available to Xcode, unlocked, and provisioned for the test app. Use dedicated devices. Aegis refuses to replace an existing installation of the same bundle ID and removes the test installation afterward. [Xcode device setup](https://developer.apple.com/documentation/Xcode/running-your-app-on-simulated-or-physical-devices)
+
+For Frida on a regular iPhone or iPad, configure `ios_control_device` alone and connect it over USB with Developer Mode enabled. Export a Development IPA for that device with `get-task-allow` enabled. Flutter supports `flutter build ipa --export-method development`. Run `aegis doctor --ios` to check the Mac tools and `aegis setup --ios` to install the pinned Frida client and iOS Gadget. Run `aegis probe path/to/app.ipa --only hooking` for Frida alone. Aegis uses Frida's injection through the iOS debugger service and verifies that a script runs inside the observed PID. The verdict applies to that Development build. [Flutter export options](https://docs.flutter.dev/deployment/ios#add-an-app-bundle) · [Frida iOS setup](https://frida.re/docs/ios/)
+
+* **Jailbreak** uses a separate USB-connected jailbroken device. Install `iproxy` from libusbmuxd and configure key-based root SSH on device port 22. Register the device's independently verified SSH host key under `aegis-<hardware-UDID>` in `known_hosts`. Aegis verifies UID 0 through the selected USB device. When `ios_jailbreak_device` is set, the Frida check also uses that device and needs a compatible `frida-server`. Aegis uses `~/.aegis/venv/bin/python` when available. [Frida iOS setup](https://frida.re/docs/ios/)
+* **Debugger** uses LLDB and verifies it attached to the observed PID.
+* **Signing identity change** requires a second unencrypted IPA exported from the same build with a different valid Apple signing certificate. Both exports must install on the stock device. Aegis compares payload files with signing data removed before attempting the alternate install. Rejection by iOS during install is reported as incomplete.
+
+### iOS Simulator
+
+Run `aegis setup --ios` once and boot a dedicated iOS Simulator. Get its UDID with `xcrun simctl list devices booted`. From a Flutter project, `run` builds the Simulator app automatically when it is missing or its identity, version, build number, or platform does not match the IPA. A matching existing app is reused. The build uses `flutter build ios --simulator --debug` with the IPA version and build number; the generated app is verified before installation.
+
+```yaml
+ipa: build/ios/ipa/app.ipa
+ios_simulator: <booted-simulator-udid>
+# Optional; run also finds Flutter's generated Simulator app automatically.
+ios_simulator_app: build/ios/iphonesimulator/Runner.app
+# Set once for projects using custom build inputs:
+# ios_simulator_flavor: prod
+# ios_simulator_target: lib/main_prod.dart
+```
+
+Automatic building requires the Flutter source project, Flutter SDK and Xcode dependencies. It respects the project's FVM/Flutter SDK, previous `FLUTTER_TARGET` and `DART_DEFINES`, and `flutter.default-flavor`; a matching local Xcode archive can supply the flavor. Use `ios_simulator_flavor` and `ios_simulator_target` to override these inputs. Build output is saved to `.dart_tool/aegis/ios-simulator-build.log`; a failed or mismatched build leaves the runtime checks incomplete. A configured `.app` path is tried first, then Flutter's generated output. Native projects or IPA-only audits need a separately built `ios_simulator_app`. Matching version metadata does not prove identical source or protection settings: runtime results describe the Simulator debug build, while static checks describe the original IPA. [Flutter iOS build modes](https://docs.flutter.dev/testing/build-modes) · [Flutter flavors](https://docs.flutter.dev/deployment/flavors-ios)
+
+When `ios_simulator_flavor` or `ios_simulator_target` is explicitly set, an
+automatically discovered product is reused only if its recorded Aegis build
+inputs and full product-content fingerprint match. Otherwise it is rebuilt and the verified inputs are recorded for
+later reuse. An explicitly supplied, matching `ios_simulator_app` remains the
+artifact selected by the user; build options apply when a build is needed.
+
+`aegis run --mode ipa` audits the IPA statically and runs LLDB and Frida on the Simulator build. `--ios-simulator` and `--ios-simulator-app` override the YAML fields. Explicit physical-device options select the device path instead. For just Frida, run `aegis probe path/to/app.ipa --only hooking` with the Simulator configured. The Simulator uses a separately pinned Frida Gadget `16.5.9`, loaded at app launch. Aegis verifies a fresh script response from the observed PID. `run` also executes two partial Simulator experiments automatically:
+
+* **Jailbreak file indicators:** a temporary native helper simulates Cydia/MobileSubstrate and `/var/jb` paths through `NSFileManager.fileExistsAtPath` and libc `access/stat/lstat`. It first runs a control with the same helper and indicators disabled, then verifies helper self-tests in the observed PID and records queried paths and process behavior. Direct syscalls, URL schemes, kernel state and sandbox escape are outside this test. A normal exit after querying an indicator can establish a partial process reaction; unexplained crashes remain inconclusive. Zero recorded queries is explicitly reported and does not establish that the IPA has no jailbreak protection.
+* **Ad-hoc signing metadata:** a disposable copy of the matching Simulator `.app` receives a different CodeDirectory identifier. Aegis verifies the signature/hash change, unchanged unsigned payload and the installed signature before observing the app. The original `.app` and IPA are left intact. This tests neither a different Apple certificate/Team ID nor provisioning or App Store validation.
+
+Reports label these observations as **partial Simulator tests**, with separate `partialStatus`, `coverage: partial` and limitations in JSON. Their full jailbreak/signing statuses remain `inconclusive`; they neither pass nor fail the corresponding MAS-R rules and a full `run --strict` remains incomplete. Simulator builds can disable protections present in device builds. These experiments do not change macOS SIP, AMFI or Research Guests settings. [Simulator Gadget compatibility](https://github.com/frida/frida/issues/3551)
+
+The iOS probe uses fresh application-console output. An app can report `AegisProbe <check> blocked` or `AegisProbe <check> not-blocked` on stdout after applying its policy, with `jailbreak`, `hooking`, `debugger` or `repackage` as the check. Flush stdout before exiting. A normal exit confirmed by LLDB after debugger attachment, or the same PID remaining alive after a verified condition, provides process-level evidence. An unexplained exit or an unverified condition is inconclusive and fails `--strict`.
+
+To verify automatic Flutter builds, changed IPA build numbers, and reuse with real LLDB/Frida probes, run `bash tool/ios_simulator_build_smoke.sh <booted-simulator-udid>` after `aegis setup --ios`. This creates a temporary Flutter project and a synthetic IPA metadata fixture, and retains reports/logs in the printed temporary directory.
+
+For disposable positive and negative controls of the partial experiments, run `AEGIS_SMOKE_PARTIAL_ONLY=1 AEGIS_SMOKE_IOS_FRIDA=1 bash tool/ios_probe_smoke.sh <booted-simulator-udid>`. The jailbreak positive controls exit after real NSFileManager/POSIX indicator queries without app-event markers; the signing positive control explicitly reports the modified CodeDirectory.
+
+For a disposable test of IPA parsing and LLDB attachment, run `bash tool/ios_probe_smoke.sh <booted-simulator-udid>` on macOS. Set `AEGIS_SMOKE_IOS_FRIDA=1` after `aegis setup --ios` to require a verified Frida result in the combined report.
 
 ## MAS profiles
 
@@ -264,6 +348,8 @@ Example (a real app, source only): under L2+R it has two high problems, four med
 Every report also says which rules keep the score in its band, what it becomes once they are fixed, and the single fixes worth most points. Each MASVS category is scored with the same formula, so a category's number and colour agree (a category with a high problem is red). Every report shows **MASVS coverage** and a list of **manual checks** (backend authorization, server-side attestation verification, …) so a clean score is never mistaken for a secure app.
 
 ## Configuration — `aegis.yaml`
+
+`aegis init` writes every supported YAML setting as an editable key, including audit policy, artifacts, AAB probe settings, and physical iOS/Simulator settings. Known defaults are filled in; unknown paths use `<path-to-file>` and device IDs, flavors, and fingerprints have named placeholders. Replace only the values you need. Unfilled `<...>` placeholders are treated as unset, so optional targets stay inactive and automatic Simulator building remains available. `min_score: null` disables the optional score threshold. Existing files are preserved unless you explicitly use `aegis init --force`.
 
 ```yaml
 profile: banking       # l1, l2, l1+r, l2+r or a preset
@@ -333,14 +419,14 @@ resources:
     type: github
     endpoint: <your GitHub service connection>
     name: khaledSayedAbdellah/aegis
-    ref: refs/tags/v0.7.0
+    ref: refs/tags/v0.9.0
 
 steps:
 - template: ci/azure-pipelines/aegis-steps.yml@aegis
   parameters:
     aegisSource: git
     aegisGitUrl: https://github.com/khaledSayedAbdellah/aegis.git
-    aegisGitRef: v0.7.0
+    aegisGitRef: v0.9.0
     failOn: high
 ```
 
@@ -433,7 +519,6 @@ Without `--apk` it reads source and configuration only, so build-time values, me
 
 ## Roadmap
 
-* `--ipa` support.
 * `--fix` for configuration findings.
 * Optional AI-assisted triage (opt-in, local model support, secrets redacted before sending).
 
@@ -442,3 +527,31 @@ Without `--apk` it reads source and configuration only, so build-time values, me
 ## License
 
 MIT
+
+### Translation catalogs
+
+Human-facing report text, rule descriptions and findings, and setup/doctor messages
+are maintained in [`app_en.arb`](lib/src/l10n/app_en.arb) and
+[`app_ar.arb`](lib/src/l10n/app_ar.arb). Use `--lang ar` or `lang: ar` in
+`aegis.yaml` for Arabic. iOS probe evidence, partial-test limitations and incomplete
+reasons have explicit Arabic translations; JSON retains English fields and adds
+Arabic counterparts. Tool names, paths, code excerpts and original external-tool
+logs remain unchanged. Keep technical product/tool names (including full tool display names), symbols,
+rule IDs, command flags and paths in their original spelling; translate the
+surrounding explanation and interface prose only.
+
+After editing a translation, regenerate and validate it:
+
+```bash
+dart run tool/generate_l10n.dart
+dart run tool/generate_l10n.dart --check
+dart test test/l10n_test.dart
+```
+
+Add the same key to both catalogs, a description under `@key` in the English
+catalog, and matching `placeholders` metadata for any `{name}` parameters. The
+small Dart-only generator supports plain messages and named placeholders; it
+rejects ICU plural/select expressions instead of displaying them incorrectly.
+Keep separate keys for wording variants. Commit `messages.g.dart` with the ARB
+changes. Translations are compiled into the CLI, so global installations work
+from any directory without Flutter or runtime access to the ARB files.

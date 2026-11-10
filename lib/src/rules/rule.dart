@@ -12,17 +12,24 @@ class RuleCheck {
   RuleCheck(this.findings)
       : applicable = true,
         note = null,
+        noteAr = null,
         isIncomplete = false;
 
   RuleCheck.notApplicable([this.note])
       : applicable = false,
+        noteAr = null,
         findings = const [],
         isIncomplete = false;
 
   RuleCheck.incomplete(this.note, [this.findings = const []])
       : applicable = false,
+        noteAr = null,
         isIncomplete = true;
 
+  RuleCheck.incompleteLocalized(this.note, this.noteAr, [this.findings = const []])
+      : applicable = false, isIncomplete = true;
+
+  final String? noteAr;
   final bool isIncomplete;
 
   final bool applicable;
@@ -40,7 +47,7 @@ abstract class Rule {
 
   /// Convenience for creating a finding in a Dart file at token [index].
   Finding at(DartFile f, int index, String message,
-      {String? messageAr, String? snippet}) {
+      {String? messageAr, String? snippet, String? snippetAr}) {
     final line = f.lineOfToken(index);
     return Finding(
       ruleId: meta.id,
@@ -48,12 +55,13 @@ abstract class Rule {
       messageAr: messageAr,
       file: f.path,
       line: line,
+      snippetAr: snippetAr,
       snippet: snippet ?? _short(f.lineText(line)),
     );
   }
 
   Finding inFile(String? file, int? line, String message,
-          {String? messageAr, String? snippet}) =>
+          {String? messageAr, String? snippet, String? snippetAr}) =>
       Finding(
         ruleId: meta.id,
         message: message,
@@ -61,6 +69,7 @@ abstract class Rule {
         file: file,
         line: line,
         snippet: snippet,
+        snippetAr: snippetAr,
       );
 
   static String _short(String s) =>

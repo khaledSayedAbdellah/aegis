@@ -1,6 +1,7 @@
 /// Human-readable terminal report.
 library;
 
+import '../l10n/messages.g.dart';
 import '../engine.dart';
 import '../masvs.dart';
 import '../model.dart';
@@ -69,7 +70,7 @@ class ConsoleReporter {
       for (final c in bin.certificates) {
         b.writeln('${t.signer}: ${c.commonName ?? '?'} ${_dim('(${c.scheme})')}');
         if (bin.kind == 'AAB') b.writeln(_dim('  ↳ ${t.uploadKey}'));
-        b.writeln('  ${t.certHash}: ${_cyan(c.sha256Base64)}');
+        b.writeln('  ${t.certHash(bin.kind)}: ${_cyan(c.sha256Base64)}');
       }
     }
     b.writeln();
@@ -150,7 +151,7 @@ class ConsoleReporter {
         final loc = f.location.isEmpty ? '' : _cyan(f.location);
         b.writeln('    • ${loc.isEmpty ? '' : '$loc  '}${f.messageOf(lang)}');
         if (f.snippet != null && f.snippet!.isNotEmpty) {
-          b.writeln(_dim('      ${f.snippet}'));
+          b.writeln(_dim('      ${f.snippetOf(lang)}'));
         }
       }
       if (!verbose && fresh.length > 5) {
@@ -204,9 +205,9 @@ class ConsoleReporter {
     b.writeln();
 
     if (r.incomplete.isNotEmpty) {
-      b.writeln(_bold(lang == 'ar' ? 'فحوصات غير مكتملة' : 'Incomplete checks'));
+      b.writeln(_bold(L10n(lang).incompleteChecks));
       for (final res in r.incomplete) {
-        b.writeln('  ? ${res.meta.id} · ${res.note ?? res.meta.title.of(lang)}');
+        b.writeln('  ? ${res.meta.id} · ${res.noteOf(lang) ?? res.meta.title.of(lang)}');
       }
       b.writeln();
     }
@@ -216,7 +217,7 @@ class ConsoleReporter {
       b.writeln(_bold('– ${t.notApplicable} (${na.length})'));
       b.writeln(line);
       for (final res in na) {
-        b.writeln('  – ${res.meta.title.of(lang)} ${_dim('${res.meta.id}${res.note == null ? '' : ' · ${res.note}'}')}');
+        b.writeln('  – ${res.meta.title.of(lang)} ${_dim('${res.meta.id}${res.note == null ? '' : ' · ${res.noteOf(lang)}'}')}');
       }
       b.writeln();
     }

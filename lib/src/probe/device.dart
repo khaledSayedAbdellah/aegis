@@ -1,5 +1,5 @@
 /// The one place `aegis probe` touches the emulator and the SDK tools
-/// (docs/plans/probe.md §5). Everything goes through [Host], so the runner can
+/// (doc/plans/probe.md §5). Everything goes through [Host], so the runner can
 /// be driven by a fake. Tool paths come from the toolchain (verified against
 /// disk; `~/.aegis/tools.json` is only a cache).
 ///

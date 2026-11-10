@@ -86,6 +86,7 @@ Map<String, Object?> reportToJson(AuditReport r) => {
             if (res.meta.cwe != null) 'cwe': res.meta.cwe,
             if (res.incomplete) 'incomplete': true,
             if (res.note != null) 'note': res.note,
+            if (res.noteAr != null) 'noteAr': res.noteAr,
             'findings': [
               for (final f in res.findings)
                 {...f.toJson(), 'fingerprint': Baseline.fingerprint(f)}
@@ -194,9 +195,10 @@ String _securitySeverity(Severity s) {
 /// it was skipped. The verdicts also appear as rules AEG-R01..R04.
 Map<String, Object?> _probeJson(ProbeOutcome o) {
   final r = o.report;
-  if (r == null) return {'ran': false, 'skipped': o.skipped};
+  if (r == null) return {'ran': false, 'skipped': o.skipped, if (o.skippedAr != null) 'skippedAr': o.skippedAr};
   return {
     'ran': true,
+    if (r.platform != 'android') 'platform': r.platform,
     'app': r.app.split(RegExp(r'[\\/]')).last,
     if (r.emulatorError != null) 'emulatorError': r.emulatorError,
     if (r.apkIdentity case final identity?)
@@ -211,17 +213,27 @@ Map<String, Object?> _probeJson(ProbeOutcome o) {
       },
     'baselineAlive': r.baselineAlive,
     if (r.baselineNote != null && r.baselineNote!.trim().isNotEmpty) 'baselineNote': r.baselineNote,
+    if (r.baselineNoteAr != null) 'baselineNoteAr': r.baselineNoteAr,
     'checks': [
       for (final x in r.scored)
         {
           'id': x.check.id,
           if (probeRuleIds[x.check.id] != null) 'rule': probeRuleIds[x.check.id],
           'status': x.status.name,
+          if (x.partialStatus != null) ...{
+            'coverage': 'partial',
+            'partialStatus': x.partialStatus!.name,
+            'environment': 'ios-simulator',
+            'limitations': x.note,
+            'limitationsAr': x.noteAr,
+          },
           if (x.processOnly) 'scope': 'process',
           if (x.check.masvs != null) 'masvs': x.check.masvs,
           if (x.check.mastg != null) 'mastg': x.check.mastg,
           if (x.evidence.isNotEmpty) 'evidence': x.evidence,
+          if (x.evidenceAr != null) 'evidenceAr': x.evidenceAr,
           if (x.note != null) 'note': x.note,
+          if (x.noteAr != null) 'noteAr': x.noteAr,
         }
     ],
   };

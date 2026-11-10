@@ -83,7 +83,7 @@ jobs:
           "$sdkmanager" --sdk_root="$ANDROID_HOME" 'platforms;android-35' 'build-tools;35.0.0'
       - run: flutter --version
       - run: dart pub get
-      - run: dart run aegis setup --yes --aab --lang en
+      - run: dart run aegis setup --android --yes --lang en
       - name: Run both emulators against a root-blocking APK
         run: bash tool/probe_smoke.sh protected-root
       - name: Run a protected Split APK set

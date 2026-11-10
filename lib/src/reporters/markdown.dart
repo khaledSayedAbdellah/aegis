@@ -1,6 +1,7 @@
 /// Markdown report, handy for pull-request comments and wikis.
 library;
 
+import '../l10n/messages.g.dart';
 import '../engine.dart';
 import '../masvs.dart';
 import '../model.dart';
@@ -26,7 +27,7 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
     b.writeln('| ${t.binaryKind(bin.kind)} | `${bin.file}` ${bin.packageName ?? ''} ${bin.versionName ?? ''} |');
     for (final c in bin.certificates) {
       b.writeln('| ${t.signer} | ${c.commonName ?? '?'} (${c.scheme})${bin.kind == 'AAB' ? ' · ${t.uploadKey}' : ''} |');
-      b.writeln('| ${t.certHash} | `${c.sha256Base64}` |');
+      b.writeln('| ${t.certHash(bin.kind)} | `${c.sha256Base64}` |');
     }
   }
   b.writeln('| ${t.score} | **${r.score.value}/100 (${r.score.grade})**'
@@ -38,10 +39,10 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
   b.writeln();
 
   if (r.incomplete.isNotEmpty) {
-    b.writeln(lang == 'ar' ? '## فحوصات غير مكتملة' : '## Incomplete checks');
+    b.writeln('## ${L10n(lang).incompleteChecks}');
     b.writeln();
     for (final res in r.incomplete) {
-      b.writeln('- ${res.meta.id} · ${res.note ?? res.meta.title.of(lang)}');
+      b.writeln('- ${res.meta.id} · ${res.noteOf(lang) ?? res.meta.title.of(lang)}');
     }
     b.writeln();
   }
