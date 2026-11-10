@@ -10,6 +10,9 @@ import '../../probe/ios_target.dart';
 import '../../probe/messages.dart';
 import '../../probe/pins.dart' show avdName, controlAvdName;
 import '../../rules/ipa_rules.dart';
+import '../../rules/registry.dart' show extendedRules;
+import '../../rules/runtime_security_rules.dart';
+import '../../security/runtime_security.dart';
 import '../../rules/probe_rules.dart' show iosProbeRules;
 import '../../services/android_probe.dart';
 import '../arguments.dart';
@@ -296,6 +299,12 @@ Future<void> auditCommand(ArgResults root, ArgParser parser) async {
     }
   }
 
+  final runtimeSecurity = run && artifact != null
+      ? await runRuntimeSecurity(artifact, p.absolute(path), config,
+          platform: ipaPath == null ? 'android' : iosTarget == IosTarget.simulator ? 'ios-simulator' : 'ios-device',
+          enabled: args['probe'] as bool, log: stdout.writeln)
+      : null;
+
   final AuditReport report;
   try {
     report = await runAudit(path,
@@ -304,7 +313,7 @@ Future<void> auditCommand(ArgResults root, ArgParser parser) async {
         apkPath: apkPath,
         ipaPath: ipaPath,
         baseline: baseline,
-        probe: probe);
+        probe: probe, runtimeSecurity: runtimeSecurity);
   } on FileSystemException catch (e) {
     stderr.writeln('${e.message}: ${e.path}');
     if (artifact == null) {
@@ -409,7 +418,7 @@ Future<void> auditCommand(ArgResults root, ArgParser parser) async {
 }
 
 void _listRules() {
-  for (final r in [...allRules, ...apkRules, ...ipaRules, ...iosProbeRules]) {
+  for (final r in [...allRules, ...apkRules, ...ipaRules, ...iosProbeRules, ...extendedRules, ...runtimeSecurityRules]) {
     final m = r.meta;
     final profiles = m.profiles.map((x) => x.name.toUpperCase()).join('/');
     stdout.writeln(

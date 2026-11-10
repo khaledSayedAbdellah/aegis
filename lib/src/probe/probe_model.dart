@@ -58,6 +58,10 @@ class ProbeResult {
       : status = ProbeStatus.inconclusive, applicable = true,
         partialStatus = observation;
   final ProbeStatus? partialStatus;
+
+  /// The verdict for the environment actually exercised. [status] still tracks
+  /// the full condition so limited experiments cannot claim complete coverage.
+  ProbeStatus get observedStatus => partialStatus ?? status;
   final String? noteAr;
   final ProbeCheck check;
   final ProbeStatus status;
@@ -100,12 +104,14 @@ class ProbeReport {
     this.baselineNoteAr,
     this.apkIdentity,
     this.platform = 'android',
+    this.platformObservations = const {},
   });
 
   /// The app that was probed (file name).
   final String app;
   final String platform;
   final ProbeApkIdentity? apkIdentity;
+  final Map<String, Object?> platformObservations;
 
   /// Set when the emulator or install could not run at all (a tooling
   /// problem, not the app). Distinct from [baselineAlive] being false, which

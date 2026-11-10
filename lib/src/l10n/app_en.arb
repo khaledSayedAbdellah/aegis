@@ -309,23 +309,23 @@
   "@probeReportTheInstallableFilesWereSuppliedForThisAab": {
     "description": "probe/probe_report.dart: localized message."
   },
-  "probeReportJailbreakFileIndicatorsPartialSimulatorTest": "Jailbreak file indicators (partial Simulator test)",
+  "probeReportJailbreakFileIndicatorsPartialSimulatorTest": "Jailbreak file indicator detection on Simulator",
   "@probeReportJailbreakFileIndicatorsPartialSimulatorTest": {
     "description": "probe/probe_report.dart: localized message."
   },
-  "probeReportAdHocSigningMetadataChangePartialSimulatorTest": "Ad-hoc signing metadata change (partial Simulator test)",
+  "probeReportAdHocSigningMetadataChangePartialSimulatorTest": "Local signing-change detection on Simulator",
   "@probeReportAdHocSigningMetadataChangePartialSimulatorTest": {
     "description": "probe/probe_report.dart: localized message."
   },
-  "probeReportPartialObservationAppReacted": "Partial observation: app reacted",
+  "probeReportPartialObservationAppReacted": "Simulator verdict: the app reacted to the tested condition",
   "@probeReportPartialObservationAppReacted": {
     "description": "probe/probe_report.dart: localized message."
   },
-  "probeReportPartialObservationNoProcessBlockObserved": "Partial observation: no process block observed",
+  "probeReportPartialObservationNoProcessBlockObserved": "Simulator verdict: no protection blocking continued execution was observed in this scenario",
   "@probeReportPartialObservationNoProcessBlockObserved": {
     "description": "probe/probe_report.dart: localized message."
   },
-  "probeReportPartialObservationInconclusive": "Partial observation: inconclusive",
+  "probeReportPartialObservationInconclusive": "Simulator verdict: the experiment did not establish an outcome",
   "@probeReportPartialObservationInconclusive": {
     "description": "probe/probe_report.dart: localized message."
   },
@@ -362,7 +362,7 @@
   "@probeReportInconclusiveARaspThatRefusesToRunOn": {
     "description": "probe/probe_report.dart: localized message."
   },
-  "probeReportPartialSimulatorChecksFullIosConditionsRemain": "Partial Simulator checks: {partial}. Full iOS conditions remain incomplete.",
+  "probeReportPartialSimulatorChecksFullIosConditionsRemain": "Simulator-scoped verdicts: {partial}. Full iOS jailbreak/signing coverage remains incomplete.",
   "@probeReportPartialSimulatorChecksFullIosConditionsRemain": {
     "description": "probe/probe_report.dart: localized message.",
     "placeholders": {
@@ -1740,11 +1740,11 @@
       }
     }
   },
-  "jailbreakLimit": "Partial Simulator test: synthetic file indicators through NSFileManager fileExistsAtPath and libc access/stat/lstat only. Direct syscalls, sandbox escape, URL schemes, kernel checks and real jailbreak environments are not tested. The Simulator build may disable protection. Continued execution does not prove the IPA lacks jailbreak protection.",
+  "jailbreakLimit": "Coverage limits: this Simulator test simulates file indicators through NSFileManager and access/stat/lstat. It does not test a real jailbreak, kernel checks, sandbox escape, URL schemes or direct syscalls. The verdict applies to the tested file indicators on this Simulator build.",
   "@jailbreakLimit": {
     "description": "Report and runtime probe message."
   },
-  "signingLimit": "Partial Simulator test: ad-hoc CodeDirectory identifier and hash changed on a disposable .app with unchanged unsigned payload. No different Apple certificate, Team ID, provisioning, App Store validation or physical iOS enforcement was tested. This does not establish the IPA signing protection.",
+  "signingLimit": "Coverage limits: this Simulator test changes the ad-hoc CodeDirectory identifier and hash while preserving the unsigned app content. It does not test a different Apple certificate, Team ID, provisioning, App Store validation or physical iOS enforcement. The verdict applies to the tested local signing change on this Simulator build.",
   "@signingLimit": {
     "description": "Report and runtime probe message."
   },
@@ -3277,5 +3277,924 @@
   "iosSimulatorMissing": "Set ios_simulator in aegis.yaml or pass --ios-simulator with the UDID of a booted iOS Simulator.",
   "@iosSimulatorMissing": {
     "description": "Explicit Simulator versus physical iOS test target."
+  },
+  "iosStaticHeading": "iOS static binary analysis",
+  "@iosStaticHeading": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticScope": "Reads the IPA executable, bundled frameworks, dylibs and app extensions without a device. This section does not change runtime probe verdicts.",
+  "@iosStaticScope": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticCaveat": "References may belong to SDKs or unused code. Their presence does not prove that protection ran; their absence does not prove that protection is missing. Symbol inspection does not establish ARC or stack-canary coverage for every function.",
+  "@iosStaticCaveat": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticLimited": "Inspection is limited by unreadable binaries, encryption, missing symbol tables or analysis limits. Unavailable evidence is not a pass.",
+  "@iosStaticLimited": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticObserved": "References observed",
+  "@iosStaticObserved": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticNotObserved": "No references observed",
+  "@iosStaticNotObserved": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticUnavailable": "Evidence unavailable or incomplete",
+  "@iosStaticUnavailable": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticJailbreak": "Jailbreak-related references",
+  "@iosStaticJailbreak": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticDebugger": "Debugger-related references",
+  "@iosStaticDebugger": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticHooking": "Frida / hooking-related references",
+  "@iosStaticHooking": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticSigning": "Signing / integrity-related references",
+  "@iosStaticSigning": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticCanary": "Stack-canary symbol references",
+  "@iosStaticCanary": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticArc": "ARC-related symbol references",
+  "@iosStaticArc": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticBinary": "Binary / architecture",
+  "@iosStaticBinary": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticFacts": "Packaged binary facts",
+  "@iosStaticFacts": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticYes": "present",
+  "@iosStaticYes": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticNo": "not present",
+  "@iosStaticNo": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticNa": "not applicable",
+  "@iosStaticNa": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticUnreadable": "Could not inspect this binary; static checks are incomplete.",
+  "@iosStaticUnreadable": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticFactsLine": "PIE: {pie}; executable-stack request: {stack}; W+X segments: {wx}; signature blob: {signature}; encrypted: {encrypted}; debug entries: {debug}",
+  "@iosStaticFactsLine": {
+    "description": "Device-independent iOS binary analysis.",
+    "placeholders": {
+      "pie": {},
+      "stack": {},
+      "wx": {},
+      "signature": {},
+      "encrypted": {},
+      "debug": {}
+    }
+  },
+  "iosStaticSignatureCaveat": "A signature blob is not cryptographic verification or proof of tamper detection. AEG-I05 verifies the packaged signature; AEG-R08 tests the app response. Memory flags describe requested permissions, not observed iOS memory policy.",
+  "@iosStaticSignatureCaveat": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosStaticMore": "{count} additional references are included in JSON.",
+  "@iosStaticMore": {
+    "description": "Device-independent iOS binary analysis.",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "iosPieTitle": "iOS executable lacks the PIE header flag",
+  "@iosPieTitle": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosPiePass": "iOS executable PIE flags checked",
+  "@iosPiePass": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosPieDescription": "Executable Mach-O slices should request position-independent loading. Shared libraries are not assessed by this flag.",
+  "@iosPieDescription": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosPieFix": "Review the release linker settings and enable PIE for executables; verify the rebuilt IPA.",
+  "@iosPieFix": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosPieFinding": "{architecture}: MH_EXECUTE does not set MH_PIE. This is a header finding, not a runtime ASLR test.",
+  "@iosPieFinding": {
+    "description": "Device-independent iOS binary analysis.",
+    "placeholders": {
+      "architecture": {}
+    }
+  },
+  "iosMemoryTitle": "iOS binary requests executable writable memory or stack",
+  "@iosMemoryTitle": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosMemoryPass": "iOS executable-memory requests checked",
+  "@iosMemoryPass": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosMemoryDescription": "Inspect MH_ALLOW_STACK_EXECUTION and initial segment protections. Actual iOS enforcement requires runtime verification.",
+  "@iosMemoryDescription": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosMemoryFix": "Remove executable-stack linker options and unintended write+execute segment permissions from the release build.",
+  "@iosMemoryFix": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosMemoryFinding": "{architecture}: executable-stack request={stack}; initial W+X segments={segments}.",
+  "@iosMemoryFinding": {
+    "description": "Device-independent iOS binary analysis.",
+    "placeholders": {
+      "architecture": {},
+      "stack": {},
+      "segments": {}
+    }
+  },
+  "iosDebugTitle": "Source debugging entries retained in iOS binary",
+  "@iosDebugTitle": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosDebugPass": "No retained source debugging entries found in inspected tables",
+  "@iosDebugPass": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosDebugDescription": "N_STAB debug entries can reveal source details. Ordinary exported symbols are not treated as debug information.",
+  "@iosDebugDescription": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosDebugFix": "Strip source debugging entries from shipped binaries and keep dSYM files separately for crash symbolication.",
+  "@iosDebugFix": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosDebugFinding": "{architecture}: {count} source debugging entries remain in the symbol table.",
+  "@iosDebugFinding": {
+    "description": "Device-independent iOS binary analysis.",
+    "placeholders": {
+      "architecture": {},
+      "count": {}
+    }
+  },
+  "iosHardeningIncomplete": "Some packaged binaries could not be inspected. See the iOS static binary analysis section.",
+  "@iosHardeningIncomplete": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "iosDebugUnavailable": "A symbol table is unavailable in one or more slices; debug-entry inspection is incomplete.",
+  "@iosDebugUnavailable": {
+    "description": "Device-independent iOS binary analysis."
+  },
+  "extEvidenceHeading": "Additional security evidence",
+  "@extEvidenceHeading": {
+    "description": "Extended security analysis: extEvidenceHeading"
+  },
+  "extEvidenceScope": "Indicators and inventory are not verified vulnerabilities or MASVS passes. Static absence does not prove safety; runtime results cover only the exercised scenario.",
+  "@extEvidenceScope": {
+    "description": "Extended security analysis: extEvidenceScope"
+  },
+  "extObserved": "Observed indicator",
+  "@extObserved": {
+    "description": "Extended security analysis: extObserved"
+  },
+  "extUnavailable": "Inspection incomplete",
+  "@extUnavailable": {
+    "description": "Extended security analysis: extUnavailable"
+  },
+  "extFacts": "Inspected facts",
+  "@extFacts": {
+    "description": "Extended security analysis: extFacts"
+  },
+  "extScope": "Review the evidence in its usage context. Binary references may belong to unused code or third-party libraries.",
+  "@extScope": {
+    "description": "Extended security analysis: extScope"
+  },
+  "extIncomplete": "Some inputs could not be inspected; no complete verdict is available.",
+  "@extIncomplete": {
+    "description": "Extended security analysis: extIncomplete"
+  },
+  "extIndicatorOnly": "Evidence is listed separately; references alone do not establish a vulnerability.",
+  "@extIndicatorOnly": {
+    "description": "Extended security analysis: extIndicatorOnly"
+  },
+  "extNativeMatch": "Explicit configuration or API usage: {token}. Validate its reachability and data sensitivity.",
+  "@extNativeMatch": {
+    "description": "Extended security analysis: extNativeMatch",
+    "placeholders": {
+      "token": {
+        "type": "Object"
+      }
+    }
+  },
+  "extManifestFinding": "{component}: {detail}",
+  "@extManifestFinding": {
+    "description": "Extended security analysis: extManifestFinding",
+    "placeholders": {
+      "component": {
+        "type": "Object"
+      },
+      "detail": {
+        "type": "Object"
+      }
+    }
+  },
+  "extLinkAuto": "HTTP(S) VIEW filter has no autoVerify=true.",
+  "@extLinkAuto": {
+    "description": "Extended security analysis: extLinkAuto"
+  },
+  "extLinkBroad": "Link filter accepts an unspecified or wildcard host.",
+  "@extLinkBroad": {
+    "description": "Extended security analysis: extLinkBroad"
+  },
+  "extLinkCustom": "Custom URL scheme; validate every input and do not use scheme ownership as authentication.",
+  "@extLinkCustom": {
+    "description": "Extended security analysis: extLinkCustom"
+  },
+  "extPermissionWeak": "Exported {operation} is protected only by a normal/dangerous permission: {permission}.",
+  "@extPermissionWeak": {
+    "description": "Extended security analysis: extPermissionWeak",
+    "placeholders": {
+      "operation": {
+        "type": "Object"
+      },
+      "permission": {
+        "type": "Object"
+      }
+    }
+  },
+  "extProviderOpen": "Exported provider has no effective permission for {operation}.",
+  "@extProviderOpen": {
+    "description": "Extended security analysis: extProviderOpen",
+    "placeholders": {
+      "operation": {
+        "type": "Object"
+      }
+    }
+  },
+  "extPermissionUnknown": "Permission strength could not be resolved: {permission}.",
+  "@extPermissionUnknown": {
+    "description": "Extended security analysis: extPermissionUnknown",
+    "placeholders": {
+      "permission": {
+        "type": "Object"
+      }
+    }
+  },
+  "extLinkMismatch": "assetlinks.json does not authorize this package and signing certificate.",
+  "@extLinkMismatch": {
+    "description": "Extended security analysis: extLinkMismatch"
+  },
+  "extLinkUnavailable": "Domain association was not verified (offline, missing release signer, unreachable domain, or inspection limit).",
+  "@extLinkUnavailable": {
+    "description": "Extended security analysis: extLinkUnavailable"
+  },
+  "extEntitlement": "Entitlement needs review: {key} = {value}. Scope depends on the platform and provisioning profile.",
+  "@extEntitlement": {
+    "description": "Extended security analysis: extEntitlement",
+    "placeholders": {
+      "key": {
+        "type": "Object"
+      },
+      "value": {
+        "type": "Object"
+      }
+    }
+  },
+  "extElfFinding": "ELF build configuration: {detail}.",
+  "@extElfFinding": {
+    "description": "Extended security analysis: extElfFinding",
+    "placeholders": {
+      "detail": {
+        "type": "Object"
+      }
+    }
+  },
+  "extElfStack": "executable stack requested",
+  "@extElfStack": {
+    "description": "Extended security analysis: extElfStack"
+  },
+  "extElfWx": "writable and executable LOAD segment",
+  "@extElfWx": {
+    "description": "Extended security analysis: extElfWx"
+  },
+  "extElfRelro": "RELRO missing or partial on a dynamically linked ELF",
+  "@extElfRelro": {
+    "description": "Extended security analysis: extElfRelro"
+  },
+  "extElfDebug": "debug sections retained",
+  "@extElfDebug": {
+    "description": "Extended security analysis: extElfDebug"
+  },
+  "extElfRpath": "relative or empty library search path",
+  "@extElfRpath": {
+    "description": "Extended security analysis: extElfRpath"
+  },
+  "extElfPie": "non-position-independent executable",
+  "@extElfPie": {
+    "description": "Extended security analysis: extElfPie"
+  },
+  "extRuntimeMissing": "Configure runtime_security with a scenario and dedicated test target. No runtime outcome was verified.",
+  "@extRuntimeMissing": {
+    "description": "Extended security analysis: extRuntimeMissing"
+  },
+  "extRuntimeIncomplete": "Runtime scenario or evidence is incomplete. Missing traffic is not proof that TLS/pinning blocked it; absence of marker hits is not proof that all sensitive data is protected.",
+  "@extRuntimeIncomplete": {
+    "description": "Extended security analysis: extRuntimeIncomplete"
+  },
+  "extRuntimeTls": "Intercepted request to configured endpoint {host} during {phase}. The substituted certificate was accepted on this path.",
+  "@extRuntimeTls": {
+    "description": "Extended security analysis: extRuntimeTls",
+    "placeholders": {
+      "host": {
+        "type": "Object"
+      },
+      "phase": {
+        "type": "Object"
+      }
+    }
+  },
+  "extRuntimeLeak": "Synthetic sensitive marker {marker} was found in {channel}; value redacted.",
+  "@extRuntimeLeak": {
+    "description": "Extended security analysis: extRuntimeLeak",
+    "placeholders": {
+      "marker": {
+        "type": "Object"
+      },
+      "channel": {
+        "type": "Object"
+      }
+    }
+  },
+  "extRuntimeScope": "Scenario {scenario}; artifact SHA-256 {digest}. Results apply only to the configured target, endpoints and markers.",
+  "@extRuntimeScope": {
+    "description": "Extended security analysis: extRuntimeScope",
+    "placeholders": {
+      "scenario": {
+        "type": "Object"
+      },
+      "digest": {
+        "type": "Object"
+      }
+    }
+  },
+  "extRuntimeDisabled": "Runtime security checks were disabled for this run.",
+  "@extRuntimeDisabled": {
+    "description": "Extended security analysis: extRuntimeDisabled"
+  },
+  "extA11Title": "Android link configuration",
+  "@extA11Title": {
+    "description": "Extended security analysis: extA11Title"
+  },
+  "extA11Description": "Review HTTP(S) verification and broad link filters.",
+  "@extA11Description": {
+    "description": "Extended security analysis: extA11Description"
+  },
+  "extA11Fix": "Use verified HTTPS App Links with explicit hosts; validate incoming paths and parameters.",
+  "@extA11Fix": {
+    "description": "Extended security analysis: extA11Fix"
+  },
+  "extA11Pass": "No flagged condition in the inspected scope: Android link configuration",
+  "@extA11Pass": {
+    "description": "Extended security analysis: extA11Pass"
+  },
+  "extA12Title": "Android component permission strength",
+  "@extA12Title": {
+    "description": "Extended security analysis: extA12Title"
+  },
+  "extA12Description": "Inspect effective application/component/provider permissions, including read and write separately.",
+  "@extA12Description": {
+    "description": "Extended security analysis: extA12Description"
+  },
+  "extA12Fix": "Restrict private components and use signature-level permissions for trusted app-to-app access.",
+  "@extA12Fix": {
+    "description": "Extended security analysis: extA12Fix"
+  },
+  "extA12Pass": "No flagged condition in the inspected scope: Android component permission strength",
+  "@extA12Pass": {
+    "description": "Extended security analysis: extA12Pass"
+  },
+  "extA13Title": "Android domain association",
+  "@extA13Title": {
+    "description": "Extended security analysis: extA13Title"
+  },
+  "extA13Description": "Verify assetlinks authorization against the release package and signer.",
+  "@extA13Description": {
+    "description": "Extended security analysis: extA13Description"
+  },
+  "extA13Fix": "Publish the correct package and release signing SHA-256 in assetlinks.json.",
+  "@extA13Fix": {
+    "description": "Extended security analysis: extA13Fix"
+  },
+  "extA13Pass": "No flagged condition in the inspected scope: Android domain association",
+  "@extA13Pass": {
+    "description": "Extended security analysis: extA13Pass"
+  },
+  "extN01Title": "Native TLS validation bypass configuration",
+  "@extN01Title": {
+    "description": "Extended security analysis: extN01Title"
+  },
+  "extN01Description": "Detect explicit trust-all and certificate-error bypass patterns in native sources.",
+  "@extN01Description": {
+    "description": "Extended security analysis: extN01Description"
+  },
+  "extN01Fix": "Use platform certificate and hostname verification; remove permissive callbacks.",
+  "@extN01Fix": {
+    "description": "Extended security analysis: extN01Fix"
+  },
+  "extN01Pass": "No flagged condition in the inspected scope: Native TLS validation bypass configuration",
+  "@extN01Pass": {
+    "description": "Extended security analysis: extN01Pass"
+  },
+  "extN02Title": "Unsafe WebView settings",
+  "@extN02Title": {
+    "description": "Extended security analysis: extN02Title"
+  },
+  "extN02Description": "Inspect mixed content, local file access and native WebView configuration.",
+  "@extN02Description": {
+    "description": "Extended security analysis: extN02Description"
+  },
+  "extN02Fix": "Disable cross-origin local-file access and mixed content; allow only trusted navigation.",
+  "@extN02Fix": {
+    "description": "Extended security analysis: extN02Fix"
+  },
+  "extN02Pass": "No flagged condition in the inspected scope: Unsafe WebView settings",
+  "@extN02Pass": {
+    "description": "Extended security analysis: extN02Pass"
+  },
+  "extN03Title": "Native cryptography review",
+  "@extN03Title": {
+    "description": "Extended security analysis: extN03Title"
+  },
+  "extN03Description": "Locate explicit weak cipher selections; list ambiguous hashes and random APIs as indicators.",
+  "@extN03Description": {
+    "description": "Extended security analysis: extN03Description"
+  },
+  "extN03Fix": "Use current authenticated cryptography and cryptographic random generators for security-sensitive operations.",
+  "@extN03Fix": {
+    "description": "Extended security analysis: extN03Fix"
+  },
+  "extN03Pass": "No flagged condition in the inspected scope: Native cryptography review",
+  "@extN03Pass": {
+    "description": "Extended security analysis: extN03Pass"
+  },
+  "extN04Title": "Native storage and Keychain settings",
+  "@extN04Title": {
+    "description": "Extended security analysis: extN04Title"
+  },
+  "extN04Description": "Detect weak Keychain accessibility, unprotected files and world-accessible Android storage.",
+  "@extN04Description": {
+    "description": "Extended security analysis: extN04Description"
+  },
+  "extN04Fix": "Choose data protection and Keychain ACLs for the threat model; restrict storage to the application.",
+  "@extN04Fix": {
+    "description": "Extended security analysis: extN04Fix"
+  },
+  "extN04Pass": "No flagged condition in the inspected scope: Native storage and Keychain settings",
+  "@extN04Pass": {
+    "description": "Extended security analysis: extN04Pass"
+  },
+  "extI10Title": "iOS entitlement scope",
+  "@extI10Title": {
+    "description": "Extended security analysis: extI10Title"
+  },
+  "extI10Description": "Inspect broad Keychain groups, associated domains and sensitive entitlement flags.",
+  "@extI10Description": {
+    "description": "Extended security analysis: extI10Description"
+  },
+  "extI10Fix": "Remove unnecessary entitlements and restrict sharing/domain scope.",
+  "@extI10Fix": {
+    "description": "Extended security analysis: extI10Fix"
+  },
+  "extI10Pass": "No flagged condition in the inspected scope: iOS entitlement scope",
+  "@extI10Pass": {
+    "description": "Extended security analysis: extI10Pass"
+  },
+  "extI11Title": "ATS forward secrecy exception",
+  "@extI11Title": {
+    "description": "Extended security analysis: extI11Title"
+  },
+  "extI11Description": "Detect explicitly disabled forward secrecy in domain exceptions.",
+  "@extI11Description": {
+    "description": "Extended security analysis: extI11Description"
+  },
+  "extI11Fix": "Remove obsolete ATS exceptions and use modern TLS server configuration.",
+  "@extI11Fix": {
+    "description": "Extended security analysis: extI11Fix"
+  },
+  "extI11Pass": "No flagged condition in the inspected scope: ATS forward secrecy exception",
+  "@extI11Pass": {
+    "description": "Extended security analysis: extI11Pass"
+  },
+  "extB12Title": "Android native ELF hardening",
+  "@extB12Title": {
+    "description": "Extended security analysis: extB12Title"
+  },
+  "extB12Description": "Inspect executable stack, W+X, RELRO, executable PIE, search paths and debug sections.",
+  "@extB12Description": {
+    "description": "Extended security analysis: extB12Description"
+  },
+  "extB12Fix": "Rebuild native libraries with appropriate linker hardening and strip debug sections.",
+  "@extB12Fix": {
+    "description": "Extended security analysis: extB12Fix"
+  },
+  "extB12Pass": "No flagged condition in the inspected scope: Android native ELF hardening",
+  "@extB12Pass": {
+    "description": "Extended security analysis: extB12Pass"
+  },
+  "extT01Title": "Tracker SDK inventory",
+  "@extT01Title": {
+    "description": "Extended security analysis: extT01Title"
+  },
+  "extT01Description": "Identify tracker signatures without inferring collection, consent or a privacy violation.",
+  "@extT01Description": {
+    "description": "Extended security analysis: extT01Description"
+  },
+  "extT01Fix": "Review the listed SDKs, actual traffic, disclosures and consent flows.",
+  "@extT01Fix": {
+    "description": "Extended security analysis: extT01Fix"
+  },
+  "extT01Pass": "No flagged condition in the inspected scope: Tracker SDK inventory",
+  "@extT01Pass": {
+    "description": "Extended security analysis: extT01Pass"
+  },
+  "extR09Title": "Runtime TLS and pinning scenario",
+  "@extR09Title": {
+    "description": "Extended security analysis: extR09Title"
+  },
+  "extR09Description": "Observe traffic under certificate substitution using a configured test scenario.",
+  "@extR09Description": {
+    "description": "Extended security analysis: extR09Description"
+  },
+  "extR09Fix": "Reject untrusted certificates and enforce pins on the configured endpoints.",
+  "@extR09Fix": {
+    "description": "Extended security analysis: extR09Fix"
+  },
+  "extR09Pass": "No flagged condition in the inspected scope: Runtime TLS and pinning scenario",
+  "@extR09Pass": {
+    "description": "Extended security analysis: extR09Pass"
+  },
+  "extR10Title": "Runtime sensitive data leakage scenario",
+  "@extR10Title": {
+    "description": "Extended security analysis: extR10Title"
+  },
+  "extR10Description": "Search runtime logs, clipboard and collected app storage for configured synthetic markers.",
+  "@extR10Description": {
+    "description": "Extended security analysis: extR10Description"
+  },
+  "extR10Fix": "Remove sensitive data from logs and clipboard; encrypt and scope persistent storage.",
+  "@extR10Fix": {
+    "description": "Extended security analysis: extR10Fix"
+  },
+  "extR10Pass": "No flagged condition in the inspected scope: Runtime sensitive data leakage scenario",
+  "@extR10Pass": {
+    "description": "Extended security analysis: extR10Pass"
+  },
+  "simulatorJailbreakGapTitle": "No execution-blocking protection observed against Simulator jailbreak file indicators",
+  "@simulatorJailbreakGapTitle": {
+    "description": "Scoped Simulator verdict: simulatorJailbreakGapTitle"
+  },
+  "simulatorSigningGapTitle": "No execution-blocking protection observed after the Simulator signing change",
+  "@simulatorSigningGapTitle": {
+    "description": "Scoped Simulator verdict: simulatorSigningGapTitle"
+  },
+  "simulatorJailbreakDescription": "The Simulator experiment verified emulated file indicators and observed app behavior. It does not establish the behavior of the device IPA on a real jailbreak.",
+  "@simulatorJailbreakDescription": {
+    "description": "Scoped Simulator verdict: simulatorJailbreakDescription"
+  },
+  "simulatorSigningDescription": "The Simulator experiment verified changed ad-hoc signing metadata with the remaining payload unchanged. It does not test a different Apple certificate or Team ID.",
+  "@simulatorSigningDescription": {
+    "description": "Scoped Simulator verdict: simulatorSigningDescription"
+  },
+  "simulatorJailbreakGapFinding": "The app continued under verified simulated jailbreak file indicators; no execution-blocking protection was observed in this Simulator scenario. This is not a verdict on all jailbreak detection or on the device IPA.",
+  "@simulatorJailbreakGapFinding": {
+    "description": "Scoped Simulator verdict: simulatorJailbreakGapFinding"
+  },
+  "simulatorSigningGapFinding": "The app continued after the verified local signing change; no execution-blocking protection was observed in this Simulator scenario. This does not establish acceptance of a different Apple signing identity by the device IPA.",
+  "@simulatorSigningGapFinding": {
+    "description": "Scoped Simulator verdict: simulatorSigningGapFinding"
+  },
+  "iosMetadataScope": "Built-in Objective-C / Swift metadata extraction records names and relationships, not method bodies or Dart AOT source. Simple Swift nominal names are decoded; complex mangling may remain unresolved. The full inventory and byte offsets are included in JSON. References do not prove that a check executes or blocks the app.",
+  "@iosMetadataScope": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "iosMetadataCounts": "Metadata: {classes} classes; {methods} methods / requirements; {protocols} protocols; {types} Swift types; {references} name references.",
+  "@iosMetadataCounts": {
+    "description": "Static iOS metadata evidence and extraction limits.",
+    "placeholders": {
+      "classes": {},
+      "methods": {},
+      "protocols": {},
+      "types": {},
+      "references": {}
+    }
+  },
+  "iosMetadataEncrypted": "Metadata unavailable: encrypted binary.",
+  "@iosMetadataEncrypted": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "iosMetadataBudget": "Metadata extraction reached its bounded analysis limit.",
+  "@iosMetadataBudget": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "iosMetadataUnresolved": "Some metadata pointers, layouts or external relationships could not be resolved.",
+  "@iosMetadataUnresolved": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "iosMetadataFixups": "Unsupported or invalid chained fixups; encoded Objective-C pointers were not interpreted.",
+  "@iosMetadataFixups": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "iosMetadataMangling": "Some Swift symbols use mangling outside the supported nominal-name subset; original symbols remain searchable.",
+  "@iosMetadataMangling": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "iosMetadataSymbolic": "Some Swift symbolic reference kinds are unsupported.",
+  "@iosMetadataSymbolic": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "iosMetadataSourceSymbol": "symbol",
+  "@iosMetadataSourceSymbol": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "iosMetadataSourceString": "string",
+  "@iosMetadataSourceString": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "platformIncomplete": "Automatic inspection is partial; unexercised behavior is not a pass. See this check’s evidence and scope.",
+  "@platformIncomplete": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformNoRuntime": "No verified runtime observation is available for this check.",
+  "@platformNoRuntime": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformReferences": "Static references: {tokens}. They may be unused or belong to a dependency.",
+  "@platformReferences": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "tokens": {}
+    }
+  },
+  "platformConfiguration": "Explicit configuration requires review: {token}. Its application to a sensitive operation is not established.",
+  "@platformConfiguration": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "token": {}
+    }
+  },
+  "platformBackupPolicy": "Backup policy: {file}; flow: {flow}; includes: {includes}; excludes: {excludes}. Content sensitivity and restore behavior are unverified.",
+  "@platformBackupPolicy": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "file": {},
+      "flow": {},
+      "includes": {},
+      "excludes": {}
+    }
+  },
+  "platformBackupInvalid": "Backup policy is malformed or contains unsupported/invalid entries: {file}.",
+  "@platformBackupInvalid": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "file": {}
+    }
+  },
+  "platformBackupMissing": "Backup policy is absent, disabled, unresolved or incomplete for some OS versions / transfer flows; this is not proof of sensitive-data exposure.",
+  "@platformBackupMissing": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformAasa": "Association host: {host}; packaged identity authorized: {authorized}. URL routing is unverified.",
+  "@platformAasa": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "host": {},
+      "authorized": {}
+    }
+  },
+  "platformAasaMismatch": "AASA does not authorize the packaged application identity for {host}.",
+  "@platformAasaMismatch": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "host": {}
+    }
+  },
+  "platformAasaUnavailable": "Association could not be verified: offline, missing signed identity, unsupported host/mode, unreachable server or unsupported response.",
+  "@platformAasaUnavailable": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformRuntime": "Automatic runtime observation on {platform}: {facts}. Scope: launch window only; instrumentation can affect behavior. No app-specific workflow was exercised.",
+  "@platformRuntime": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "platform": {},
+      "facts": {}
+    }
+  },
+  "platformWeakRuntime": "Observed runtime configuration: {fact}. This finding is limited to the observed component, not every screen or operation.",
+  "@platformWeakRuntime": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "fact": {}
+    }
+  },
+  "platformCount": "{name}: {count}",
+  "@platformCount": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "name": {},
+      "count": {}
+    }
+  },
+  "platformYes": "yes",
+  "@platformYes": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformUnknown": "unverified",
+  "@platformUnknown": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformNo": "no",
+  "@platformNo": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactWindows": "Visible windows",
+  "@platformFactWindows": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactPasswordFields": "Password fields",
+  "@platformFactPasswordFields": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactUnmaskedPasswordFields": "Nonempty visible password fields without masking",
+  "@platformFactUnmaskedPasswordFields": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactFiles": "Regular sandbox files inspected",
+  "@platformFactFiles": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactExcludedFiles": "Files marked excluded from backup",
+  "@platformFactExcludedFiles": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactUnexcludedFiles": "Files without observed backup exclusion",
+  "@platformFactUnexcludedFiles": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactUnknownFiles": "Files with unreadable backup attributes",
+  "@platformFactUnknownFiles": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactKeychainItems": "Keychain attribute records",
+  "@platformFactKeychainItems": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactKeychainAlways": "Keychain records using Always accessibility",
+  "@platformFactKeychainAlways": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactKeychainAcl": "Keychain records with access-control objects",
+  "@platformFactKeychainAcl": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactWebviews": "Instantiated WebViews",
+  "@platformFactWebviews": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactWebviewJs": "WebViews with JavaScript enabled",
+  "@platformFactWebviewJs": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactWebviewInsecureContent": "HTTPS WebViews reporting insecure content",
+  "@platformFactWebviewInsecureContent": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactCustomSchemes": "Registered custom URL schemes",
+  "@platformFactCustomSchemes": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactSecureWindows": "Observed FLAG_SECURE windows",
+  "@platformFactSecureWindows": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformP10Title": "Screen and background snapshot exposure",
+  "@platformP10Title": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformP10Limit": "Launch-screen capture availability and native field metadata are inspected. iOS Simulator background transitions are observed separately. Capturing an image does not establish sensitive-data exposure; capture failure does not prove protection. Recording, actual app-switcher snapshot contents and unvisited/authenticated screens remain unverified. iOS has no general FLAG_SECURE equivalent.",
+  "@platformP10Limit": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformN05Title": "Backup exclusion policy and file metadata",
+  "@platformN05Title": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformN05Limit": "Android XML rules are parsed for every resolved variant and backup flow. File names and iOS exclusion metadata do not identify sensitive content or prove a completed backup/restore. iOS exclusion flags are advisory; Simulator file attributes do not prove physical-device encryption.",
+  "@platformN05Limit": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformN06Title": "Keychain / Keystore access and biometric binding",
+  "@platformN06Title": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformN06Limit": "Names and access-control metadata do not prove a sensitive operation is cryptographically bound to authentication. No secret values are read. Keys behind login, Secure Enclave / StrongBox enforcement and biometric bypass resistance require additional runtime coverage.",
+  "@platformN06Limit": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformI12Title": "iOS Universal Links association and URL handling",
+  "@platformI12Title": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformI12Limit": "AASA checks HTTPS identity authorization against the packaged application-identifier. It does not prove path/component routing, Apple CDN propagation or authorization in link handlers. No arbitrary links are opened and no business action is triggered.",
+  "@platformI12Limit": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformN07Title": "WebView navigation and native bridge exposure",
+  "@platformN07Title": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformN07Limit": "Configuration and currently instantiated WebViews are inspected. A JavaScript bridge or JavaScript support alone is not a vulnerability. No attacker content is loaded automatically; origin restrictions, redirects and bridge authorization on unvisited pages remain unverified.",
+  "@platformN07Limit": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformA14Title": "Android obscured-touch and overlay protection",
+  "@platformA14Title": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformA14Limit": "Android-only checks distinguish full and partial occlusion. Synthetic events are passed only to visible views’ security-filter predicates, never dispatched as touches or clicks. A filter result does not prove OS overlay handling, Flutter widget coverage or sensitive-action authorization.",
+  "@platformA14Limit": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactClickableViews": "Visible clickable Android views",
+  "@platformFactClickableViews": {
+    "description": "Redacted automatic runtime fact."
+  },
+  "platformFactFilterControls": "Views accepting unobscured control events",
+  "@platformFactFilterControls": {
+    "description": "Redacted automatic runtime fact."
+  },
+  "platformFactFilterRejectsFull": "Security filters rejecting fully obscured events",
+  "@platformFactFilterRejectsFull": {
+    "description": "Redacted automatic runtime fact."
+  },
+  "platformFactFilterRejectsPartial": "Security filters rejecting partially obscured events",
+  "@platformFactFilterRejectsPartial": {
+    "description": "Redacted automatic runtime fact."
+  },
+  "platformFactKeystoreAliases": "Keystore aliases inspected",
+  "@platformFactKeystoreAliases": {
+    "description": "Redacted automatic runtime fact."
+  },
+  "platformFactAuthRequiredKeys": "Keys requiring user authentication",
+  "@platformFactAuthRequiredKeys": {
+    "description": "Redacted automatic runtime fact."
+  },
+  "platformFactUnknownKeys": "Keys with unavailable access metadata",
+  "@platformFactUnknownKeys": {
+    "description": "Redacted automatic runtime fact."
+  },
+  "platformObservationLimited": "Some collectors reached their limits or could not read all attributes. Zero counts do not prove absence.",
+  "@platformObservationLimited": {
+    "description": "Partial automatic collection."
+  },
+  "platformFactScreenshotsCaptured": "Screen captures created (content not classified)",
+  "@platformFactScreenshotsCaptured": {
+    "description": "Count-only screen/background observation; not a leak verdict."
+  },
+  "platformFactBackgroundObserved": "Background transition observed",
+  "@platformFactBackgroundObserved": {
+    "description": "Count-only screen/background observation; not a leak verdict."
+  },
+  "platformFactBackgroundPasswordFields": "Native password fields at background transition",
+  "@platformFactBackgroundPasswordFields": {
+    "description": "Count-only screen/background observation; not a leak verdict."
+  },
+  "platformFactBackgroundUnmaskedPasswordFields": "Unmasked native password fields at background transition",
+  "@platformFactBackgroundUnmaskedPasswordFields": {
+    "description": "Count-only screen/background observation; not a leak verdict."
+  },
+  "platformBackupReferenceOnly": "A backup XML reference exists, but its presence alone does not verify exclusions. See AEG-N05 for parsed policy evidence and limits.",
+  "@platformBackupReferenceOnly": {
+    "description": "A backup resource name is not proof of policy enforcement."
+  },
+  "simulatorSigningNotBlocked": "Simulator verdict: no protection blocked execution after the tested local signing change; the app continued running.",
+  "@simulatorSigningNotBlocked": {
+    "description": "Verified no-block verdict for the specific Simulator experiment."
+  },
+  "simulatorJailbreakNotBlocked": "Simulator verdict: no protection blocked execution under the tested jailbreak file indicators; the app continued running.",
+  "@simulatorJailbreakNotBlocked": {
+    "description": "Verified no-block verdict for the specific Simulator experiment."
   }
 }

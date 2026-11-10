@@ -113,6 +113,28 @@ ios_simulator: <simulator-udid>
 ios_simulator_app: <path-to-file>  # Optional .app directory; automatic if unset.
 ios_simulator_flavor: <flavor>  # Optional; uses the project's build settings.
 ios_simulator_target: <path-to-file>  # Optional Dart entry point; automatic if unset.
+
+# Generic screen/backup/key-access/links/WebView/tapjacking checks run automatically.
+# No app-specific settings are needed; see doc/platform-protection.md for limits.
+
+# Optional literal tracker signature catalog (JSON); built-in inventory always runs.
+tracker_signatures: <path-to-file>
+
+# Opt-in application-specific network/storage scenario. No host security changes.
+# See doc/runtime-security.md. command is an argument list, never a shell string.
+runtime_security:
+  enabled: false
+  platform: <platform>  # android, ios-simulator, or ios-device; must match run.
+  device: <device-id>
+  command: []  # Example: [python3, tool/security_scenario.py]
+  timeout_seconds: 120  # Per scenario phase.
+  hosts: []  # Exact HTTPS hosts exercised and asserted by the baseline scenario.
+  pinned_hosts: []  # Subset of hosts for trusted replacement-certificate checks.
+  marker_env: {}  # Example: {password: AEGIS_TEST_PASSWORD}; synthetic values only.
+  trusted_ca_dir: <path-to-file>  # Directory containing a dedicated test proxy CA.
+  python: python3
+  adb: adb
+  mitmdump: mitmdump
 ''');
   stdout.writeln(
       terminalText.aegisWroteNext1AegisSetupOncePer(value1: file.path));

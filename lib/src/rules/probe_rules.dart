@@ -13,6 +13,7 @@ import 'package:path/path.dart' as p;
 
 import '../model.dart';
 import '../probe/probe_model.dart';
+import '../probe/probe_report.dart' show probeSimulatorVerdict;
 import '../project.dart';
 import 'rule.dart';
 
@@ -35,6 +36,28 @@ class ProbeRule extends Rule {
   /// The finding text when the app did not react. Kept free of timings and
   /// pids so its baseline fingerprint is stable.
   final Bilingual message;
+
+  /// Keep Simulator findings explicitly scoped in every reporter, including
+  /// the scored rule summary and SARIF, rather than using physical-iOS titles.
+  RuleMeta reportMeta(ProbeReport? report) {
+    if (report?.platform != 'ios-simulator' ||
+        !['jailbreak', 'ios-repackage'].contains(checkId)) {
+      return meta;
+    }
+    final jailbreak = checkId == 'jailbreak';
+    return RuleMeta(
+      id: meta.id,
+      title: jailbreak
+          ? const Bilingual(En.simulatorJailbreakGapTitle, Ar.simulatorJailbreakGapTitle)
+          : const Bilingual(En.simulatorSigningGapTitle, Ar.simulatorSigningGapTitle),
+      passTitleText: const Bilingual(En.probeReportPartialObservationAppReacted, Ar.probeReportPartialObservationAppReacted),
+      description: jailbreak
+          ? const Bilingual(En.simulatorJailbreakDescription, Ar.simulatorJailbreakDescription)
+          : const Bilingual(En.simulatorSigningDescription, Ar.simulatorSigningDescription),
+      fix: meta.fix, severity: meta.severity, l2Severity: meta.l2Severity,
+      masvs: meta.masvs, maswe: meta.maswe, cwe: meta.cwe, profiles: meta.profiles,
+    );
+  }
 
   @override
   RuleCheck check(Project project, ProfileSet profile) {
@@ -62,6 +85,24 @@ class ProbeRule extends Rule {
     }
     final r = result;
     if (!r.applicable) return RuleCheck.notApplicable(r.note);
+    if (r.partialStatus != null) {
+      final findings = <Finding>[];
+      if (r.partialStatus == ProbeStatus.notBlocked) {
+        final jailbreak = checkId == 'jailbreak';
+        findings.add(inFile('${p.basename(report.app)}!/runtime', null,
+            jailbreak ? En.simulatorJailbreakGapFinding : En.simulatorSigningGapFinding,
+            messageAr: jailbreak ? Ar.simulatorJailbreakGapFinding : Ar.simulatorSigningGapFinding,
+            snippet: r.evidence, snippetAr: r.evidenceAr));
+      }
+      // A concrete gap in the exercised scenario is a finding. Full condition
+      // coverage remains incomplete, and no partial reaction grants a MASVS pass.
+      // Coverage summaries must not hide a failed Simulator verdict behind
+      // a limitations-only note. Findings/scoring and strict coverage stay intact.
+      return RuleCheck.incompleteLocalized(
+          '${probeSimulatorVerdict(r, 'en')} ${r.note ?? ''}'.trim(),
+          '${probeSimulatorVerdict(r, 'ar')} ${r.noteAr ?? r.note ?? ''}'.trim(),
+          findings);
+    }
     return switch (r.status) {
       ProbeStatus.blocked => RuleCheck(const []),
       ProbeStatus.inconclusive => RuleCheck.incompleteLocalized(

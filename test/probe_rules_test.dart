@@ -4,25 +4,33 @@ import 'package:test/test.dart';
 const fixtures = 'test/fixtures/apk';
 
 ProbeReport report(Map<String, ProbeStatus> checks,
-        {bool baselineAlive = true, String? emulatorError, String app = '/b/app-prod-release-1.2.3.apk'}) =>
+        {bool baselineAlive = true,
+        String? emulatorError,
+        String app = '/b/app-prod-release-1.2.3.apk'}) =>
     ProbeReport(
       app: app,
       baselineAlive: baselineAlive,
       emulatorError: emulatorError,
       results: [
-        ProbeResult(probeChecks.first, ProbeStatus.notBlocked, evidence: 'stayed alive 8s'),
+        ProbeResult(probeChecks.first, ProbeStatus.notBlocked,
+            evidence: 'stayed alive 8s'),
         for (final e in checks.entries)
           ProbeResult(probeChecks.firstWhere((c) => c.id == e.key), e.value,
-              evidence: e.value == ProbeStatus.notBlocked ? 'app kept running normally' : 'app exited',
-              note: e.value == ProbeStatus.inconclusive ? 'release builds are not debuggable' : null),
+              evidence: e.value == ProbeStatus.notBlocked
+                  ? 'app kept running normally'
+                  : 'app exited',
+              note: e.value == ProbeStatus.inconclusive
+                  ? 'release builds are not debuggable'
+                  : null),
       ],
     );
 
-Future<AuditReport> audit(ProbeOutcome? probe, {String profile = 'l2+r'}) => runAudit(fixtures,
-    apkPath: '$fixtures/secure.apk',
-    config: AegisConfig(profile: ProfileSet.tryParse(profile)!),
-    offline: true,
-    probe: probe);
+Future<AuditReport> audit(ProbeOutcome? probe, {String profile = 'l2+r'}) =>
+    runAudit(fixtures,
+        apkPath: '$fixtures/secure.apk',
+        config: AegisConfig(profile: ProfileSet.tryParse(profile)!),
+        offline: true,
+        probe: probe);
 
 RuleResult? rule(AuditReport r, String id) {
   for (final x in r.results) {
@@ -35,7 +43,8 @@ void main() {
   test('every probe rule has its own pass title and a RESILIENCE control', () {
     for (final r in probeRules) {
       expect(r.meta.passTitle.en, isNot(r.meta.title.en), reason: r.meta.id);
-      expect(r.meta.masvs.single, startsWith('MASVS-RESILIENCE-'), reason: r.meta.id);
+      expect(r.meta.masvs.single, startsWith('MASVS-RESILIENCE-'),
+          reason: r.meta.id);
       expect(r.meta.profiles, {MasProfile.r});
     }
   });
@@ -46,7 +55,8 @@ void main() {
     expect(r.probe, isNull);
   });
 
-  test('blocked → passed, not blocked → finding, inconclusive → incomplete', () async {
+  test('blocked → passed, not blocked → finding, inconclusive → incomplete',
+      () async {
     final r = await audit(ProbeOutcome.ran(report({
       'root': ProbeStatus.notBlocked,
       'hooking': ProbeStatus.blocked,
@@ -68,20 +78,28 @@ void main() {
 
   test('R findings count in the score', () async {
     final clean = await audit(ProbeOutcome.ran(report({
-      'root': ProbeStatus.blocked, 'hooking': ProbeStatus.blocked, 'repackage': ProbeStatus.blocked,
+      'root': ProbeStatus.blocked,
+      'hooking': ProbeStatus.blocked,
+      'repackage': ProbeStatus.blocked,
     })));
     final gaps = await audit(ProbeOutcome.ran(report({
-      'root': ProbeStatus.notBlocked, 'hooking': ProbeStatus.notBlocked, 'repackage': ProbeStatus.notBlocked,
+      'root': ProbeStatus.notBlocked,
+      'hooking': ProbeStatus.notBlocked,
+      'repackage': ProbeStatus.notBlocked,
     })));
     expect(gaps.score.value, lessThan(clean.score.value));
   });
 
   test('outside a MAS-R profile the R rules are out of profile', () async {
-    final r = await audit(ProbeOutcome.ran(report({'root': ProbeStatus.notBlocked})), profile: 'l2');
+    final r = await audit(
+        ProbeOutcome.ran(report({'root': ProbeStatus.notBlocked})),
+        profile: 'l2');
     expect(rule(r, 'AEG-R01')!.status, RuleStatus.outOfProfile);
   });
 
-  test('probe completion is independent of MAS-R and ignores inapplicable checks', () async {
+  test(
+      'probe completion is independent of MAS-R and ignores inapplicable checks',
+      () async {
     final undecided = await audit(
         ProbeOutcome.ran(report({'root': ProbeStatus.inconclusive})),
         profile: 'l1');
@@ -94,46 +112,63 @@ void main() {
         ProbeStatus.inconclusive,
         applicable: false));
     final r = await audit(ProbeOutcome.ran(completed), profile: 'l1');
-    expect(r.complete, isTrue);
+    expect(r.probe!.incomplete, isFalse);
+    expect(r.complete, isFalse,
+        reason:
+            'Generic platform coverage remains partial independently of resilience verdicts');
   });
 
-  test('an automatic process verdict produces a scoped MAS-R finding', () async {
+  test('an automatic process verdict produces a scoped MAS-R finding',
+      () async {
     final runtime = report({});
     runtime.results.add(ProbeResult(
         probeChecks.firstWhere((check) => check.id == 'root'),
         ProbeStatus.notBlocked,
-        evidence: 'The same app process stayed alive after the condition was verified.',
+        evidence:
+            'The same app process stayed alive after the condition was verified.',
         processOnly: true));
     final r = await audit(ProbeOutcome.ran(runtime));
-    expect(r.complete, isTrue);
+    expect(r.probe!.incomplete, isFalse);
+    expect(r.complete, isFalse,
+        reason:
+            'Generic platform coverage remains partial independently of resilience verdicts');
     final root = rule(r, 'AEG-R01')!;
     expect(root.status, RuleStatus.failed);
     expect(root.findings.single.message, contains('No process-level block'));
     expect(r.countAtLeast(Severity.high), greaterThan(0));
-    expect(renderHtml(r, lang: 'ar'), contains('نفس عملية التطبيق فضلت شغّالة'));
+    expect(
+        renderHtml(r, lang: 'ar'), contains('نفس عملية التطبيق فضلت شغّالة'));
     final probe = reportToJson(r)['probe'] as Map<String, Object?>;
     final checks = probe['checks'] as List;
     expect(checks.single['status'], 'notBlocked');
     expect(checks.single['scope'], 'process');
   });
 
-  test('skipped / emulator error / dead baseline → incomplete with the reason', () async {
-    final skipped = await audit(const ProbeOutcome.skipped('no emulator tools (run aegis setup)'));
+  test('skipped / emulator error / dead baseline → incomplete with the reason',
+      () async {
+    final skipped = await audit(
+        const ProbeOutcome.skipped('no emulator tools (run aegis setup)'));
     expect(rule(skipped, 'AEG-R01')!.status, RuleStatus.incomplete);
     expect(rule(skipped, 'AEG-R01')!.note, contains('aegis setup'));
 
-    final broken = await audit(ProbeOutcome.ran(
-        report({'root': ProbeStatus.inconclusive}, emulatorError: 'emulator did not boot')));
+    final broken = await audit(ProbeOutcome.ran(report(
+        {'root': ProbeStatus.inconclusive},
+        emulatorError: 'emulator did not boot')));
     expect(rule(broken, 'AEG-R01')!.note, contains('did not boot'));
 
-    final dead = await audit(ProbeOutcome.ran(report({}, baselineAlive: false)));
+    final dead =
+        await audit(ProbeOutcome.ran(report({}, baselineAlive: false)));
     expect(rule(dead, 'AEG-R04')!.note, contains('control launch'));
   });
 
-  test('the same gap in a build with another version still matches the baseline', () async {
-    final a = await audit(ProbeOutcome.ran(report({'root': ProbeStatus.notBlocked},
+  test(
+      'the same gap in a build with another version still matches the baseline',
+      () async {
+    final a = await audit(ProbeOutcome.ran(report(
+        {'root': ProbeStatus.notBlocked},
         app: '/b/app-prod-release-1.2.3.apk')));
-    final b = await audit(ProbeOutcome.ran(report({'root': ProbeStatus.notBlocked},
+    final b = await audit(ProbeOutcome.ran(report(
+        {'root': ProbeStatus.notBlocked},
         app: '/b/app-prod-release-1.2.4.apk')));
     final fa = Baseline.fingerprint(rule(a, 'AEG-R01')!.findings.single);
     final fb = Baseline.fingerprint(rule(b, 'AEG-R01')!.findings.single);
@@ -174,11 +209,13 @@ void main() {
       expect(root['status'], 'notBlocked');
       expect(root['rule'], 'AEG-R01');
       expect(root['masvs'], 'MASVS-RESILIENCE-1');
-      expect(checks.firstWhere((c) => c['id'] == 'debugger')['note'], contains('debuggable'));
+      expect(checks.firstWhere((c) => c['id'] == 'debugger')['note'],
+          contains('debuggable'));
     });
 
     test('a skipped probe says why, in every format', () async {
-      final r = await audit(const ProbeOutcome.skipped('no emulator tools (run aegis setup)'));
+      final r = await audit(
+          const ProbeOutcome.skipped('no emulator tools (run aegis setup)'));
       expect(ConsoleReporter(color: false).render(r), contains('aegis setup'));
       expect(renderMarkdown(r), contains('aegis setup'));
       expect(renderHtml(r), contains('aegis setup'));
@@ -189,7 +226,8 @@ void main() {
 
     test('a run without the probe has no probe section', () async {
       final r = await audit(null);
-      expect(ConsoleReporter(color: false).render(r), isNot(contains('Resilience probe')));
+      expect(ConsoleReporter(color: false).render(r),
+          isNot(contains('Resilience probe')));
       expect(renderMarkdown(r), isNot(contains('Resilience probe')));
       expect(reportToJson(r).containsKey('probe'), isFalse);
     });

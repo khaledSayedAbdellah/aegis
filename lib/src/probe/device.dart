@@ -8,7 +8,10 @@
 /// particular protection — it observes whether the app reacts.
 library;
 
+import 'dart:convert';
+import 'dart:isolate';
 import 'package:path/path.dart' as p;
+import '../security/android_platform.dart';
 
 import 'host.dart';
 import 'jdwp.dart';
@@ -134,6 +137,56 @@ class Device implements ProbeDevice {
   Future<Proc?> _run(List<String> cmd,
           {Duration timeout = const Duration(seconds: 30)}) =>
       host.run(cmd.first, cmd.sublist(1), timeout: timeout);
+
+  /// Automatic, noninteractive inspection of the currently running control app.
+  Future<Map<String, Object?>> platformObservation(String package, int pid) async {
+    if (await pidOf(package) != pid) return {};
+    final windows = await _run(_adb(['shell', 'dumpsys', 'window', 'windows']));
+    if (windows?.ok != true || windows!.stdout.length > 2 * 1024 * 1024) return {};
+    final dump = '/data/local/tmp/aegis-platform-$pid.xml';
+    String? hierarchy;
+    try {
+      final saved = await _run(_adb(['shell', 'uiautomator', 'dump', dump]), timeout: const Duration(seconds: 15));
+      if (saved?.ok == true) {
+        final read = await _run(_adb(['shell', 'cat', dump]));
+        if (read?.ok == true && read!.stdout.length <= 2 * 1024 * 1024) hierarchy = read.stdout;
+      }
+    } finally {
+      await _run(_adb(['shell', 'rm', '-f', dump]));
+    }
+    if (await pidOf(package) != pid) return {};
+    final facts = inspectAndroidPlatform(package, windows.stdout, hierarchy);
+    final shot = '/data/local/tmp/aegis-platform-$pid.png';
+    try {
+      final captured = await _run(_adb(['shell', 'screencap', '-p', shot]), timeout: const Duration(seconds: 15));
+      final size = await _run(_adb(['shell', 'stat', '-c', '%s', shot]));
+      final length = int.tryParse(size?.out ?? '');
+      if (captured?.ok == true && length != null && length >= 24 && length <= 32 * 1024 * 1024) {
+        (facts['screen'] as Map)['screenshotsCaptured'] = 1;
+      }
+    } finally { await _run(_adb(['shell', 'rm', '-f', shot])); }
+    return {...facts,
+      'verified': true, 'scope': 'launch-only', 'instrumented': false};
+  }
+
+  Future<Map<String, Object?>> instrumentedPlatformObservation(String package) async {
+    final pid = await pidOf(package);
+    if (pid == null || tools.frida == null) return {};
+    final uri = await Isolate.resolvePackageUri(Uri.parse('package:aegis/src/security/android_platform_observer.py'));
+    if (uri == null) return {};
+    final forwarded = await _run(_adb(['forward','tcp:0','tcp:27042']));
+    final port = int.tryParse(forwarded?.out ?? '');
+    if (forwarded?.ok != true || port == null) return {};
+    try {
+      final python = p.join(p.dirname(tools.frida!), host.os == 'windows' ? 'python.exe' : 'python');
+      final result = await host.run(python, [uri.toFilePath(), '$port', '$pid', package], timeout: const Duration(seconds: 30));
+      if (result?.ok != true || result!.stdout.length > 1024 * 1024 || await pidOf(package) != pid) return {};
+      final value = jsonDecode(result.out);
+      if (value is! Map<String, dynamic> || value['verified'] != true || value['pid'] != pid || value['bundle'] != package) return {};
+      return value;
+    } catch (_) { return {}; }
+    finally { await _run(_adb(['forward','--remove','tcp:$port'])); }
+  }
 
   // --- emulator -----------------------------------------------------------
 

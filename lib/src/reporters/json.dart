@@ -17,8 +17,10 @@ Map<String, Object?> reportToJson(AuditReport r) => {
       'profile': r.profile.toString(),
       'complete': r.complete,
       'scannedPackages': r.scannedPackages,
+      'securityEvidence': r.securityEvidence.map((e) => e.toJson()).toList(),
       if (r.binary != null) 'binary': r.binary!.toJson(),
       if (r.probe != null) 'probe': _probeJson(r.probe!),
+      if (r.iosStatic != null) 'iosStaticAnalysis': r.iosStatic!.toJson(),
       'score': {
         'value': r.score.value,
         'grade': r.score.grade,
@@ -219,9 +221,11 @@ Map<String, Object?> _probeJson(ProbeOutcome o) {
         {
           'id': x.check.id,
           if (probeRuleIds[x.check.id] != null) 'rule': probeRuleIds[x.check.id],
-          'status': x.status.name,
+          'status': x.observedStatus.name,
           if (x.partialStatus != null) ...{
             'coverage': 'partial',
+            'scope': 'ios-simulator',
+            'fullConditionStatus': x.status.name,
             'partialStatus': x.partialStatus!.name,
             'environment': 'ios-simulator',
             'limitations': x.note,

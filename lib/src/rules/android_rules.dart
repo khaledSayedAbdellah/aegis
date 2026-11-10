@@ -100,7 +100,7 @@ class AllowBackupRule extends Rule {
     if (v == 'false') return RuleCheck([]);
     final hasRules = androidAttr(app, 'dataExtractionRules') != null ||
         androidAttr(app, 'fullBackupContent') != null;
-    if (hasRules) return RuleCheck([]);
+    if (hasRules) return RuleCheck.incompleteLocalized(En.platformBackupReferenceOnly, Ar.platformBackupReferenceOnly);
     if (v == 'true') {
       return RuleCheck([
         inFile(m.path, lineOfFirst(m.text, 'android:allowBackup'),
@@ -284,7 +284,7 @@ class ExportedComponentRule extends Rule {
         return true;
       }
       // App links / deep links are meant to be exported; validated elsewhere.
-      if (actions.contains('android.intent.action.VIEW')) return true;
+      if (actions.contains('android.intent.action.VIEW') && cats.contains('android.intent.category.BROWSABLE')) return true;
     }
     return false;
   }

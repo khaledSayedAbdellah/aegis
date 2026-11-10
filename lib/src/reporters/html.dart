@@ -10,6 +10,8 @@ import '../model.dart';
 import '../probe/probe_model.dart';
 import 'i18n.dart';
 import 'probe_view.dart';
+import 'ios_static_view.dart';
+import 'security_view.dart';
 
 /// Escapes text for HTML. `/` is left as is so paths and Base64 hashes stay
 /// readable and copyable.
@@ -170,6 +172,8 @@ ${cats.toString()}
 </div>
 </section>
 ${probe.toString()}
+${r.iosStatic == null ? '' : IosStaticView(r.iosStatic!, lang).html()}
+${SecurityView(r.securityEvidence, lang).html()}
 $incomplete
 <h2>✗ ${_e(failedTitle)} (${newFailed.length})</h2>
 ${newFailed.isEmpty ? '<p>${_e(emptyText)}</p>' : ''}${failed.toString()}

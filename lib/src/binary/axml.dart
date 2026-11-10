@@ -25,6 +25,8 @@ const Map<int, String> androidAttrIds = {
   0x01010473: 'fullBackupContent',
   0x010104ec: 'usesCleartextTraffic',
   0x01010527: 'networkSecurityConfig',
+  0x0101063e: 'dataExtractionRules',
+  0x010102c4: 'filterTouchesWhenObscured',
 };
 
 /// Whether [bytes] starts with an AXML header.

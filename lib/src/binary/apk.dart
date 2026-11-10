@@ -28,11 +28,13 @@ class ApkContext {
   static ApkContext load(String path) {
     final lower = path.toLowerCase();
     if (lower.endsWith('.ipa')) {
-      throw const FormatException('Use --ipa to audit an iOS application archive.');
+      throw const FormatException(
+          'Use --ipa to audit an iOS application archive.');
     }
     final archive = ZipReader.file(path);
     if (archive.contains('base/manifest/AndroidManifest.xml')) {
-      return _validated(ApkContext._(path, archive.renamed(bundleView(archive.entries.keys)), archive,
+      return _validated(ApkContext._(
+          path, archive.renamed(bundleView(archive.entries.keys)), archive,
           isBundle: true));
     }
     if (lower.endsWith('.aab')) {
@@ -40,7 +42,8 @@ class ApkContext {
           'No base/manifest/AndroidManifest.xml: this is not an Android App Bundle.');
     }
     if (!archive.contains('AndroidManifest.xml')) {
-      throw const FormatException('No AndroidManifest.xml: this is not an APK.');
+      throw const FormatException(
+          'No AndroidManifest.xml: this is not an APK.');
     }
     return _validated(ApkContext._(path, archive, archive));
   }
@@ -49,7 +52,8 @@ class ApkContext {
     if (apk.manifest?.rootElement.name.local != 'manifest' ||
         !RegExp(r'^[A-Za-z_][A-Za-z0-9_]*(?:\.[A-Za-z_][A-Za-z0-9_]*)*$')
             .hasMatch(apk.packageName ?? '')) {
-      throw const FormatException('Could not read a valid AndroidManifest.xml.');
+      throw const FormatException(
+          'Could not read a valid AndroidManifest.xml.');
     }
     return apk;
   }
@@ -82,7 +86,9 @@ class ApkContext {
         if (base) add(n, 'AndroidManifest.xml');
       } else if (rest.startsWith('dex/')) {
         add(n, base ? rest.substring(4) : '$module/${rest.substring(4)}');
-      } else if (rest.startsWith('lib/') || rest.startsWith('assets/') || rest.startsWith('res/')) {
+      } else if (rest.startsWith('lib/') ||
+          rest.startsWith('assets/') ||
+          rest.startsWith('res/')) {
         add(n, rest);
       } else if (rest.startsWith('root/')) {
         if (base) add(n, rest.substring(5));
@@ -122,26 +128,32 @@ class ApkContext {
 
   String? get packageName => manifest?.rootElement.getAttribute('package');
 
-  String? get versionName =>
-      manifest == null ? null : androidAttr(manifest!.rootElement, 'versionName');
+  String? get versionName => manifest == null
+      ? null
+      : androidAttr(manifest!.rootElement, 'versionName');
 
-  String? get versionCode =>
-      manifest == null ? null : androidAttr(manifest!.rootElement, 'versionCode');
+  String? get versionCode => manifest == null
+      ? null
+      : androidAttr(manifest!.rootElement, 'versionCode');
 
   XmlElement? get _usesSdk =>
       manifest == null ? null : firstElement(manifest!, 'uses-sdk');
 
   int? get minSdk => int.tryParse(
-      (_usesSdk == null ? null : androidAttr(_usesSdk!, 'minSdkVersion')) ?? '');
+      (_usesSdk == null ? null : androidAttr(_usesSdk!, 'minSdkVersion')) ??
+          '');
 
   int? get targetSdk => int.tryParse(
-      (_usesSdk == null ? null : androidAttr(_usesSdk!, 'targetSdkVersion')) ?? '');
+      (_usesSdk == null ? null : androidAttr(_usesSdk!, 'targetSdkVersion')) ??
+          '');
 
-  String? get networkSecurityConfigReference =>
-      application == null ? null : androidAttr(application!, 'networkSecurityConfig');
+  String? get networkSecurityConfigReference => application == null
+      ? null
+      : androidAttr(application!, 'networkSecurityConfig');
 
   /// First resolved variant, for callers that only need one document.
-  (String, XmlDocument)? get networkSecurityConfig => networkSecurityConfigs.firstOrNull;
+  (String, XmlDocument)? get networkSecurityConfig =>
+      networkSecurityConfigs.firstOrNull;
 
   /// All variants of the resource referenced by the manifest.
   late final List<(String, XmlDocument)> networkSecurityConfigs = _findNsc();
@@ -149,32 +161,55 @@ class ApkContext {
   List<(String, XmlDocument)> _findNsc() {
     final reference = networkSecurityConfigReference;
     if (reference == null || reference == '@null') return const [];
+    return [
+      for (final path in xmlResourcePaths(reference)) (path, _readNsc(path))
+    ];
+  }
+
+  /// Resolve every variant of an XML resource in the base APK/AAB module.
+  List<String> xmlResourcePaths(String reference) {
     final numeric = RegExp(r'^@0x([0-9a-fA-F]+)$').firstMatch(reference);
-    final named = RegExp(r'^@(?:([\w.]+):)?xml/([\w.]+)$').firstMatch(reference);
+    final named =
+        RegExp(r'^@(?:([\w.]+):)?xml/([\w.]+)$').firstMatch(reference);
     final id = numeric == null ? null : int.tryParse(numeric[1]!, radix: 16);
     final name = named?[2];
     final resourcePackage = named?[1] ?? packageName;
     final paths = <String>{};
     if (id != null || name != null) {
       if (isBundle && zip.contains('resources.pb')) {
-        paths.addAll(protoResourceFiles(zip.read('resources.pb')!, id: id, name: name, packageName: resourcePackage));
+        paths.addAll(protoResourceFiles(zip.read('resources.pb')!,
+            id: id, name: name, packageName: resourcePackage));
       } else if (!isBundle && id != null && zip.contains('resources.arsc')) {
         paths.addAll(androidResourceFiles(zip.read('resources.arsc')!, id));
       } else if (name != null && resourcePackage == packageName) {
-        final path = RegExp('^res/xml(?:-[^/]+)?/${RegExp.escape(name)}\\.xml\$');
+        final path =
+            RegExp('^res/xml(?:-[^/]+)?/${RegExp.escape(name)}\\.xml\$');
         paths.addAll(zip.entries.keys.where(path.hasMatch));
       }
     }
-    if (paths.isEmpty) throw FormatException('Cannot resolve network security config $reference');
-    return [
-      for (final path in paths)
-        (path, _readNsc(path)),
-    ];
+    if (paths.isEmpty || paths.length > 64) {
+      throw FormatException(
+          'Unresolved or excessive XML resource variants: $reference');
+    }
+    return paths.toList()..sort();
+  }
+
+  XmlDocument readXmlResource(String path) {
+    final entry = isBundle ? archive.entries['base/$path'] : zip.entries[path];
+    if (entry == null || entry.isSymlink || entry.size > 1024 * 1024) {
+      throw const FormatException('Unsupported XML resource');
+    }
+    final doc =
+        _parse(isBundle ? _decode('base/$path', from: archive) : _decode(path));
+    if (doc == null) throw const FormatException('Unreadable XML resource');
+    return doc;
   }
 
   XmlDocument _readNsc(String path) {
-    final doc = _parse(isBundle ? _decode('base/$path', from: archive) : _decode(path));
-    if (doc == null || doc.rootElement.name.local != 'network-security-config') {
+    final doc =
+        _parse(isBundle ? _decode('base/$path', from: archive) : _decode(path));
+    if (doc == null ||
+        doc.rootElement.name.local != 'network-security-config') {
       throw FormatException('Cannot decode network security config $path');
     }
     return doc;
@@ -207,8 +242,9 @@ class ApkContext {
   }
 
   /// Printable strings of libapp.so (the compiled Dart program).
-  late final List<String> libappStrings =
-      libappEntry == null ? const [] : printableStrings(zip.read(libappEntry!)!);
+  late final List<String> libappStrings = libappEntry == null
+      ? const []
+      : printableStrings(zip.read(libappEntry!)!);
 
   /// Entries under assets/flutter_assets/.
   List<String> get flutterAssets => [

@@ -8,6 +8,7 @@ import 'package:path/path.dart' as p;
 import 'baseline.dart';
 import 'binary/apk.dart';
 import 'binary/ipa.dart';
+import 'binary/ios_static.dart';
 import 'binary/ios_signature.dart';
 import 'binary/signing.dart';
 import 'config.dart';
@@ -22,6 +23,9 @@ import 'rules/ipa_rules.dart';
 import 'rules/registry.dart';
 import 'rules/rule.dart';
 import 'scoring.dart';
+import 'security/evidence.dart';
+import 'security/runtime_security.dart';
+import 'rules/runtime_security_rules.dart';
 import 'version.dart';
 
 class AuditReport {
@@ -39,6 +43,8 @@ class AuditReport {
     this.baselinePath,
     this.baselineResolved = const [],
     this.probe,
+    this.iosStatic,
+    this.securityEvidence = const [],
   });
 
   final String projectName;
@@ -70,6 +76,10 @@ class AuditReport {
   /// The resilience probe's outcome when this run tried it: its report (also
   /// reflected in rules AEG-R01..R04) or why it was skipped.
   final ProbeOutcome? probe;
+
+  /// Packaged iOS binary facts; these never replace runtime probe verdicts.
+  final IosStaticAnalysis? iosStatic;
+  final List<SecurityEvidence> securityEvidence;
 
   Iterable<RuleResult> get failed =>
       results.where((r) => r.status == RuleStatus.failed);
@@ -240,6 +250,7 @@ Future<AuditReport> runAudit(
   String? ipaPath,
   Baseline? baseline,
   ProbeOutcome? probe,
+  RuntimeSecurityResult? runtimeSecurity,
 }) async {
   if (apkPath != null && ipaPath != null) {
     throw const FormatException('Audit one artifact at a time with --apk or --ipa.');
@@ -272,6 +283,7 @@ Future<AuditReport> runAudit(
   if (ipa != null) project.useIpa(ipa, signature!);
   project.offline = offline;
   project.probe = probe;
+  project.runtimeSecurity = runtimeSecurity;
   final cfg = project.config;
   final profile = cfg.profile;
   final results = <RuleResult>[];
@@ -305,6 +317,8 @@ Future<AuditReport> runAudit(
   final ruleSet = rules ??
       [
         if (project.hasSource) ...allRules,
+        ...extendedRules,
+        if (runtimeSecurity != null) ...runtimeSecurityRules,
         if (project.apk != null) ...apkRules,
         if (ipa != null) ...[
           if (!project.hasSource) ...iosRules,
@@ -317,8 +331,10 @@ Future<AuditReport> runAudit(
   // Binary rules are written for APKs; for a bundle they say "AAB".
   final bundle = project.apk?.isBundle ?? false;
   String bundleText(String s) => s.replaceAll('APK', 'AAB');
-  RuleMeta metaOf(Rule rule) =>
-      bundle && rule.meta.id.startsWith('AEG-B') ? rule.meta.mapText(bundleText) : rule.meta;
+  RuleMeta metaOf(Rule rule) {
+    final meta = rule is ProbeRule ? rule.reportMeta(project.probe?.report) : rule.meta;
+    return bundle && meta.id.startsWith('AEG-B') ? meta.mapText(bundleText) : meta;
+  }
   Finding findingOf(Finding f) => !bundle || !f.ruleId.startsWith('AEG-B')
       ? f
       : Finding(
@@ -398,5 +414,7 @@ Future<AuditReport> runAudit(
     baselinePath: baseline == null ? null : (baseline.path ?? defaultBaselineFile),
     baselineResolved: resolved,
     probe: probe,
+    iosStatic: ipa?.staticAnalysis,
+    securityEvidence: project.securityEvidence,
   );
 }

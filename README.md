@@ -299,6 +299,94 @@ For Frida on a regular iPhone or iPad, configure `ios_control_device` alone and 
 * **Debugger** uses LLDB and verifies it attached to the observed PID.
 * **Signing identity change** requires a second unencrypted IPA exported from the same build with a different valid Apple signing certificate. Both exports must install on the stock device. Aegis compares payload files with signing data removed before attempting the alternate install. Rejection by iOS during install is reported as incomplete.
 
+### Device-independent iOS binary checks
+
+Every IPA audit also inspects the packaged executable, bundled frameworks,
+`.dylib` libraries and app extensions locally. No iPhone, Simulator, MobSF server
+or extra dependency is needed for these checks:
+
+* `AEG-I07`: missing `MH_PIE` on executable slices; shared libraries are excluded.
+* `AEG-I08`: executable-stack requests or initial writable+executable segment permissions.
+* `AEG-I09` (MAS-R): retained source debugging entries (`N_STAB`); ordinary exports and the linker strip marker are excluded.
+* A separate **iOS static binary analysis** section inventories jailbreak,
+  debugger, Frida/hooking and signing-related references, plus stack-canary and
+  ARC symbol references. It reports the binary, architecture and evidence source.
+  `sysctl`, for example, can be used for ordinary system information. A Frida
+  reference can belong to instrumentation. Neither establishes anti-debugging
+  or anti-Frida protection.
+
+```bash
+aegis run --mode ipa --no-probe
+```
+
+This still produces the static checks and evidence inventory without asking for
+an iOS target. Normal IPA runs include the same analysis alongside their selected
+runtime tests. HTML, Markdown and JSON include the new section; JSON uses
+`iosStaticAnalysis` with `runtimeVerified: false`. The terminal remains English.
+The new concrete build findings participate in the usual profile, rule override,
+score and `--strict` handling. The reference inventory does not change scoring
+or turn `AEG-R05`–`AEG-R08` into passes.
+
+The built-in reader also extracts Objective-C class/category names, instance and
+class methods, protocol requirements and adopted-protocol relationships. Swift
+context descriptors provide module-qualified classes, structs, enums and protocols;
+`__swift5_typeref` is parsed with awareness of embedded symbolic references, rather
+than splitting pointer payloads at zero bytes. Simple Swift nominal type symbols
+are demangled internally. Complex function/generic/substitution manglings remain
+searchable in their original form and are reported as a limitation.
+
+JSON includes `binaries[].slices[].metadata.entries` with kind, name, owner where
+known, originating section and slice-relative byte offset (symbol-table name
+references have no byte offset). HTML/Markdown summarize counts and show matching
+protection references with their owners. Name strings and protocol requirements
+are distinguished from class/method definitions. These are metadata relationships,
+not recovered source, method bodies, call graphs, or Flutter Dart AOT decompilation.
+The expanded jailbreak/integrity reference patterns remain informational.
+
+No external backend, `class-dump`, server, subprocess tool or additional install
+is used. Supported layouts include 32/64-bit and both endiannesses, absolute and
+relative Objective-C method lists, and dyld chained rebase formats 2 and 6.
+Unsupported chained formats (including arm64e authenticated pointers), external
+bindings, malformed/cyclic metadata and unsupported Swift descriptor versions are
+reported as limited. Metadata work is bounded to 30,000 entries and 2,000,000
+reader operations per slice, with 4 KiB strings and 32-level context ancestry.
+Encrypted metadata is skipped. Original symbol/string analysis remains available.
+The implementation follows the published
+[Objective-C runtime layouts](https://github.com/apple-oss-distributions/objc4/blob/main/runtime/objc-runtime-new.h),
+[Swift metadata ABI](https://github.com/swiftlang/swift/blob/main/include/swift/ABI/Metadata.h),
+[Swift mangling ABI](https://github.com/swiftlang/swift/blob/main/docs/ABI/Mangling.rst)
+and [dyld fixup layouts](https://github.com/apple-oss-distributions/dyld/blob/main/include/mach-o/fixup-chains.h).
+
+Presence of a symbol or string is **not proof that protection executes**, and
+absence is **not proof that protection is missing**. Encryption, missing symbol
+tables, malformed files and analysis limits are reported explicitly. FairPlay
+ciphertext is not scanned as plaintext. Inspecting a signature blob is separate
+from `AEG-I05` cryptographic verification and from testing the app's reaction to
+re-signing. Header permissions do not prove the operating system's runtime
+memory policy. ARC and canary references do not prove protection of every function.
+
+The review used [MobSF's Mach-O analysis](https://github.com/MobSF/Mobile-Security-Framework-MobSF/blob/master/mobsf/StaticAnalyzer/views/common/binary/macho.py)
+and [iOS binary rule matcher](https://github.com/MobSF/Mobile-Security-Framework-MobSF/blob/master/mobsf/StaticAnalyzer/views/ios/binary_rule_matcher.py)
+to identify coverage gaps. The implementation is independent Dart code using
+[Apple's Mach-O layout](https://github.com/apple-oss-distributions/xnu/blob/main/EXTERNAL_HEADERS/mach-o/loader.h).
+MobSF's [iOS dynamic setup](https://github.com/MobSF/docs/blob/master/dynamic_analyzer_docker.md)
+documents Corellium or a jailbroken device; it does not establish full jailbreak
+or Apple signing-identity enforcement tests on Xcode Simulator. Aegis's existing
+partial Simulator results keep their limitations.
+
+### Automatic platform protection checks
+
+`AEG-P10`, `AEG-N05`–`AEG-N07`, `AEG-I12` and `AEG-A14` add screen,
+backup, key-access/biometric, Universal Links, WebView and Android tapjacking
+inspection. They require no app-specific configuration or credentials. Existing
+`run` probes collect available launch-time metadata, including a separate iOS
+Simulator observer and an Android synthetic security-filter comparison when
+instrumentation is available. Static references and partial runtime observations
+remain distinct; unknown screens or unexercised behavior do not pass.
+See [exact coverage, limits and safety](doc/platform-protection.md).
+Applicable incomplete checks remain incomplete under `--strict`, including when
+runtime testing is disabled with `--no-probe`.
+
 ### iOS Simulator
 
 Run `aegis setup --ios` once and boot a dedicated iOS Simulator. Get its UDID with `xcrun simctl list devices booted`. From a Flutter project, `run` builds the Simulator app automatically when it is missing or its identity, version, build number, or platform does not match the IPA. A matching existing app is reused. The build uses `flutter build ios --simulator --debug` with the IPA version and build number; the generated app is verified before installation.
@@ -326,7 +414,7 @@ artifact selected by the user; build options apply when a build is needed.
 * **Jailbreak file indicators:** a temporary native helper simulates Cydia/MobileSubstrate and `/var/jb` paths through `NSFileManager.fileExistsAtPath` and libc `access/stat/lstat`. It first runs a control with the same helper and indicators disabled, then verifies helper self-tests in the observed PID and records queried paths and process behavior. Direct syscalls, URL schemes, kernel state and sandbox escape are outside this test. A normal exit after querying an indicator can establish a partial process reaction; unexplained crashes remain inconclusive. Zero recorded queries is explicitly reported and does not establish that the IPA has no jailbreak protection.
 * **Ad-hoc signing metadata:** a disposable copy of the matching Simulator `.app` receives a different CodeDirectory identifier. Aegis verifies the signature/hash change, unchanged unsigned payload and the installed signature before observing the app. The original `.app` and IPA are left intact. This tests neither a different Apple certificate/Team ID nor provisioning or App Store validation.
 
-Reports label these observations as **partial Simulator tests**, with separate `partialStatus`, `coverage: partial` and limitations in JSON. Their full jailbreak/signing statuses remain `inconclusive`; they neither pass nor fail the corresponding MAS-R rules and a full `run --strict` remains incomplete. Simulator builds can disable protections present in device builds. These experiments do not change macOS SIP, AMFI or Research Guests settings. [Simulator Gadget compatibility](https://github.com/frida/frida/issues/3551)
+Reports show an explicit **Simulator-scoped verdict** and a red/green/inconclusive mark from the observed behavior. Continued execution produces a scoped AEG-R05/AEG-R08 finding and affects the score/fail-on policy; it does not claim that the device IPA lacks protection. JSON `status` is the observed Simulator verdict, with `partialStatus`, `scope: ios-simulator`, `coverage: partial`, `fullConditionStatus: inconclusive` and limitations retained. Full MASVS coverage is not granted and `run --strict` remains incomplete. Simulator builds can disable protections present in device builds. These experiments do not change macOS SIP, AMFI or Research Guests settings. [Simulator Gadget compatibility](https://github.com/frida/frida/issues/3551)
 
 The iOS probe uses fresh application-console output. An app can report `AegisProbe <check> blocked` or `AegisProbe <check> not-blocked` on stdout after applying its policy, with `jailbreak`, `hooking`, `debugger` or `repackage` as the check. Flush stdout before exiting. A normal exit confirmed by LLDB after debugger attachment, or the same PID remaining alive after a verified condition, provides process-level evidence. An unexplained exit or an unverified condition is inconclusive and fails `--strict`.
 
@@ -492,6 +580,11 @@ Run `aegis --list-rules` for the full list.
 | AEG-I02 | Insecure ATS exception | NETWORK-1 |
 | AEG-I03 | `get-task-allow` entitlement | RESILIENCE-4 |
 | AEG-I04 | Documents folder exposed | STORAGE-2 |
+| AEG-I05 | IPA code signature verification | RESILIENCE-2 |
+| AEG-I06 | Potential bundled secret files in IPA | STORAGE-1 |
+| AEG-I07 | Missing executable PIE flag | CODE-4 |
+| AEG-I08 | Executable stack / initial W+X segments | CODE-4 |
+| AEG-I09 | Retained source debug entries (MAS-R) | RESILIENCE-3 |
 | AEG-D01 | Hardcoded secret (known formats, JWT/Supabase service role, high-entropy values) | STORAGE-1 |
 | AEG-D02 | `http://` URL | NETWORK-1 |
 | AEG-D03 | TLS validation disabled | NETWORK-1 |
@@ -586,3 +679,15 @@ rejects ICU plural/select expressions instead of displaying them incorrectly.
 Keep separate keys for wording variants. Commit `messages.g.dart` with the ARB
 changes. Translations are compiled into the CLI, so global installations work
 from any directory without Flutter or runtime access to the ARB files.
+
+### Extended MASVS analysis and runtime scenarios
+
+`run` now includes Android App Link/permission checks, native TLS/WebView/crypto/
+storage patterns, iOS entitlement/ATS checks, ELF hardening and tracker inventory.
+Reference-only evidence is separate from findings and scoring. `init` includes
+`tracker_signatures` and opt-in `runtime_security` configuration.
+
+Network interception and runtime leakage tests need an application-specific
+scenario. Missing setup/traffic/channels remains incomplete, never an assumed
+protection pass. `--no-probe` disables runtime tests; no host security settings
+are changed. See [scope, prerequisites and scenario contract](doc/runtime-security.md).

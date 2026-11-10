@@ -112,7 +112,10 @@ class ZipReader {
     return e == null ? null : readEntry(e);
   }
 
-  Uint8List readEntry(ZipEntry e) {
+  Uint8List readEntry(ZipEntry e, {int? maxBytes}) {
+    if (maxBytes != null && e.size > maxBytes) {
+      throw const FormatException('ZIP entry exceeds inspection limit.');
+    }
     final h = e.localHeaderOffset;
     if (h + 30 > bytes.length || _u32(h) != 0x04034b50) {
       throw FormatException('Bad zip local header for ${e.name}.');
@@ -125,12 +128,34 @@ class ZipReader {
     final raw = Uint8List.sublistView(bytes, start, end);
     switch (e.method) {
       case 0:
+        if (raw.length != e.size || maxBytes != null && raw.length > maxBytes) {
+          throw const FormatException('ZIP size mismatch.');
+        }
         return raw;
       case 8:
-        return Uint8List.fromList(ZLibDecoder(raw: true).convert(raw));
+        final sink = _LimitedZipSink(maxBytes ?? e.size);
+        final decoder = ZLibDecoder(raw: true).startChunkedConversion(sink);
+        decoder.add(raw);
+        decoder.close();
+        final result = sink.bytes.takeBytes();
+        if (result.length != e.size) throw const FormatException('ZIP size mismatch.');
+        return result;
       default:
         throw FormatException(
             'Unsupported compression method ${e.method} for ${e.name}.');
     }
   }
+}
+
+class _LimitedZipSink extends ByteConversionSinkBase {
+  _LimitedZipSink(this.limit);
+  final int limit;
+  final bytes = BytesBuilder(copy: false);
+  @override void add(List<int> chunk) {
+    if (bytes.length + chunk.length > limit) {
+      throw const FormatException('ZIP entry exceeds inspection limit.');
+    }
+    bytes.add(chunk);
+  }
+  @override void close() {}
 }

@@ -63,11 +63,11 @@
   "probeReportTheSignerMatchedTheExpectedFingerprint": "بصمة الموقّع طابقت البصمة المتوقعة.",
   "probeReportNoExpectedSignerFingerprintWasSupplied": "لم يتم تحديد بصمة موقّع متوقعة.",
   "probeReportTheInstallableFilesWereSuppliedForThisAab": "ملفات التثبيت دي اتوفرت للفحص مع الـAAB. ارتباطهم بنفس الـbuild بيعتمد على مصدر الملفات.",
-  "probeReportJailbreakFileIndicatorsPartialSimulatorTest": "مؤشرات ملفات jailbreak — اختبار جزئي على المحاكي",
-  "probeReportAdHocSigningMetadataChangePartialSimulatorTest": "تغيير بيانات التوقيع المحلي — اختبار جزئي على المحاكي",
-  "probeReportPartialObservationAppReacted": "ملاحظة جزئية: التطبيق استجاب",
-  "probeReportPartialObservationNoProcessBlockObserved": "ملاحظة جزئية: لم يُرصد إيقاف عملية التطبيق",
-  "probeReportPartialObservationInconclusive": "ملاحظة جزئية: غير محسومة",
+  "probeReportJailbreakFileIndicatorsPartialSimulatorTest": "كشف مؤشرات ملفات jailbreak على المحاكي",
+  "probeReportAdHocSigningMetadataChangePartialSimulatorTest": "كشف تغيير التوقيع المحلي على المحاكي",
+  "probeReportPartialObservationAppReacted": "نتيجة المحاكي: التطبيق استجاب للشرط المختبَر",
+  "probeReportPartialObservationNoProcessBlockObserved": "نتيجة المحاكي: لم تُرصد حماية تمنع استمرار التطبيق في السيناريو المختبَر",
+  "probeReportPartialObservationInconclusive": "نتيجة المحاكي: تعذر تحديد نتيجة الاختبار",
   "probeReportResilienceProbe": "اختبار الحماية — {appName}",
   "probeReportTheEmulatorOrToolsCouldNotRun": "الإيموليتر أو الأدوات مقدرتش تشتغل.",
   "probeReportNothingWasProbedCheckThatAegisSetupFinished": "مفيش حاجة اتفحصت. اتأكد إن \"aegis setup\" خلص، وإن إيموليتر aegis-probe بيقلّع (جرّبه مرة من Device Manager في Android Studio).",
@@ -75,7 +75,7 @@
   "probeReportBaselineTheAppDidNotStayAliveOn": "الأساس: التطبيق مكملش شغّال على إيموليتر نضيف.",
   "probeReportLastLogcatLines": "     آخر سطور logcat:",
   "probeReportInconclusiveARaspThatRefusesToRunOn": "غير حاسم: حماية بترفض تشتغل على إيموليتر مش ممكن تختبرها بالطريقة دي. جرّب جهاز حقيقي، أو نسخة من غير منع الإيموليتر.",
-  "probeReportPartialSimulatorChecksFullIosConditionsRemain": "اختبارات المحاكي الجزئية: {partial}. فحوصات iOS الكاملة تظل غير مكتملة.",
+  "probeReportPartialSimulatorChecksFullIosConditionsRemain": "نتائج خاصة بالمحاكي: {partial}. فحوصات iOS الكاملة تظل غير مكتملة.",
   "probeReportReactedNoBlockObservedInconclusive": "صدّ: {reacted}   مصدّش: {gaps}   غير حاسم: {unknown}",
   "probeReportTheProbeObservedContinuedExecutionInConditionS": "❌ الفحص رصد استمرار التشغيل في {gaps} حالة. ده يُعدّ مشكلة في profile المقاومة.",
   "probeReportTheProbeObservedContinuedExecutionInConditionS2": "ℹ️  الفحص رصد استمرار التشغيل في {gaps} حالة. النتيجة للعلم خارج MAS-R.",
@@ -390,8 +390,8 @@
   "passTitlesApkSdkLevelsAreCurrent": "إصدارات الـ SDK في الـ APK حديثة",
   "scoreBand": "بين {range} طول ما فيه مشكلة {severity} مفتوحة ({rules})، ولو اتصلحت يبقى {after}",
   "toolsMissing": "عدد الأدوات الناقصة: {count}. شغّل \"{command}\".",
-  "jailbreakLimit": "اختبار جزئي على المحاكي: محاكاة مؤشرات ملفات عبر NSFileManager وaccess/stat/lstat فقط. لا يختبر jailbreak فعليًا أو النواة أو تجاوز sandbox أو URL schemes أو استدعاءات النظام المباشرة. نسخة المحاكي قد تعطّل الحماية؛ استمرار التشغيل لا يثبت غياب حماية الـIPA.",
-  "signingLimit": "اختبار جزئي على المحاكي: تغيير معرّف وبصمة التوقيع المحلي ad-hoc لنسخة مؤقتة مع ثبات المحتوى خارج التوقيع. لا يختبر شهادة Apple مختلفة أو Team ID أو provisioning أو تحقق App Store أو تنفيذ القيود على iOS الحقيقي؛ النتيجة لا تحسم حماية توقيع الـIPA.",
+  "jailbreakLimit": "حدود التغطية: اختبار على نسخة المحاكي يحاكي مؤشرات ملفات عبر NSFileManager وaccess/stat/lstat. لا يختبر jailbreak فعليًا أو النواة أو تجاوز sandbox أو URL schemes أو استدعاءات النظام المباشرة. الحكم يخص مؤشرات الملفات المختبَرة على نسخة المحاكي.",
+  "signingLimit": "حدود التغطية: اختبار على نسخة المحاكي يغيّر معرّف وبصمة التوقيع المحلي ad-hoc مع ثبات المحتوى خارج التوقيع. لا يختبر شهادة Apple مختلفة أو Team ID أو provisioning أو تحقق App Store أو تنفيذ القيود على iOS الحقيقي. الحكم يخص تغيير التوقيع المحلي المختبَر على نسخة المحاكي.",
   "incompleteChecks": "فحوصات غير مكتملة",
   "iosAlive": "نفس عملية التطبيق فضلت شغالة لمدة {seconds} ثانية.",
   "iosSimulatorBuild": "نسخة محاكي iOS.",
@@ -642,5 +642,446 @@
   "iosTargetConflict": "خيارات iOS متعارضة مع الهدف المختار. استخدم إعدادات المحاكي مع simulator وإعدادات الجهاز الحقيقي مع device.",
   "iosTargetIpaOnly": "الخيار --ios-target يحتاج --mode ipa.",
   "iosTargetSelected": "هدف الاختبار الديناميكي لـiOS: {target}",
-  "iosSimulatorMissing": "حدّد ios_simulator في aegis.yaml أو مرّر --ios-simulator برقم UDID لمحاكي iOS شغّال."
+  "iosSimulatorMissing": "حدّد ios_simulator في aegis.yaml أو مرّر --ios-simulator برقم UDID لمحاكي iOS شغّال.",
+  "iosStaticHeading": "التحليل الثابت لملفات iOS التنفيذية",
+  "iosStaticScope": "بيفحص الملف التنفيذي والـframeworks وdylibs وامتدادات التطبيق داخل IPA من غير جهاز. القسم ده ما بيغيّرش نتائج الاختبارات الديناميكية.",
+  "iosStaticCaveat": "المؤشرات ممكن تكون من SDK أو كود مش بيتنفّذ. وجودها مش دليل إن الحماية اشتغلت، وغيابها مش دليل إن الحماية ناقصة. قراءة الرموز ما بتثبتش تغطية ARC أو stack canary لكل دالة.",
+  "iosStaticLimited": "الفحص محدود بسبب ملفات غير مقروءة أو تشفير أو غياب جداول الرموز أو حدود التحليل. الدليل غير المتاح ما يتحسبش نجاح.",
+  "iosStaticObserved": "اتوجدت مؤشرات",
+  "iosStaticNotObserved": "ما اتوجدتش مؤشرات",
+  "iosStaticUnavailable": "الدليل غير متاح أو غير مكتمل",
+  "iosStaticJailbreak": "مؤشرات مرتبطة بـjailbreak",
+  "iosStaticDebugger": "مؤشرات مرتبطة بـdebugger",
+  "iosStaticHooking": "مؤشرات مرتبطة بـFrida / hooking",
+  "iosStaticSigning": "مؤشرات مرتبطة بالتوقيع وسلامة الملفات",
+  "iosStaticCanary": "مؤشرات رموز stack canary",
+  "iosStaticArc": "مؤشرات رموز مرتبطة بـARC",
+  "iosStaticBinary": "الملف التنفيذي / المعمارية",
+  "iosStaticFacts": "خصائص الملف المبني",
+  "iosStaticYes": "موجود",
+  "iosStaticNo": "غير موجود",
+  "iosStaticNa": "غير منطبق",
+  "iosStaticUnreadable": "تعذّر فحص الملف التنفيذي ده؛ الفحوصات الثابتة غير مكتملة.",
+  "iosStaticFactsLine": "PIE: {pie}؛ طلب تنفيذ الـstack: {stack}؛ segments بصلاحيات W+X: {wx}؛ بيانات التوقيع: {signature}؛ التشفير: {encrypted}؛ مدخلات debug: {debug}",
+  "iosStaticSignatureCaveat": "وجود بيانات توقيع مش تحقق تشفيري ولا إثبات لكشف العبث. AEG-I05 بيتحقق من توقيع الحزمة، وAEG-R08 بيختبر استجابة التطبيق. أعلام الذاكرة بتوضح الصلاحيات المطلوبة، مش سياسة iOS المرصودة وقت التشغيل.",
+  "iosStaticMore": "فيه {count} مؤشرات إضافية موجودة في JSON.",
+  "iosPieTitle": "الملف التنفيذي على iOS من غير علم PIE في الرأس",
+  "iosPiePass": "اتراجعت أعلام PIE للملفات التنفيذية على iOS",
+  "iosPieDescription": "شرائح Mach-O التنفيذية المفروض تطلب التحميل بعناوين مستقلة. العلم ده ما بيتستخدمش للحكم على المكتبات المشتركة.",
+  "iosPieFix": "راجع إعدادات الربط لنسخة الإصدار وفعّل PIE للملفات التنفيذية، وبعدها افحص IPA المبني من جديد.",
+  "iosPieFinding": "{architecture}: الملف من نوع MH_EXECUTE من غير MH_PIE. دي نتيجة من الرأس، مش اختبار ASLR وقت التشغيل.",
+  "iosMemoryTitle": "ملف iOS بيطلب ذاكرة قابلة للكتابة والتنفيذ أو stack قابل للتنفيذ",
+  "iosMemoryPass": "اتراجعت طلبات صلاحيات تنفيذ الذاكرة على iOS",
+  "iosMemoryDescription": "بيفحص MH_ALLOW_STACK_EXECUTION والصلاحيات المبدئية للـsegments. التأكد من تطبيق السياسة على iOS محتاج اختبار وقت التشغيل.",
+  "iosMemoryFix": "شيل خيارات الربط اللي بتطلب stack قابل للتنفيذ وصلاحيات الكتابة والتنفيذ غير المقصودة من نسخة الإصدار.",
+  "iosMemoryFinding": "{architecture}: طلب تنفيذ الـstack={stack}؛ الـsegments بصلاحيات W+X المبدئية={segments}.",
+  "iosDebugTitle": "بيانات تصحيح المصدر لسه موجودة في ملف iOS التنفيذي",
+  "iosDebugPass": "ما اتوجدتش بيانات تصحيح مصدر متبقية في الجداول المفحوصة",
+  "iosDebugDescription": "مدخلات N_STAB ممكن تكشف تفاصيل المصدر. الرموز المصدّرة العادية ما بتتحسبش بيانات تصحيح.",
+  "iosDebugFix": "احذف بيانات تصحيح المصدر من الملفات اللي بتتوزع، واحتفظ بملفات dSYM منفصلة لتحليل الأعطال.",
+  "iosDebugFinding": "{architecture}: لسه فيه {count} مدخلات لتصحيح المصدر في جدول الرموز.",
+  "iosHardeningIncomplete": "بعض الملفات التنفيذية داخل الحزمة ما اتفحصتش. راجع قسم التحليل الثابت لملفات iOS التنفيذية.",
+  "iosDebugUnavailable": "جدول الرموز مش متاح في شريحة أو أكتر؛ فحص مدخلات التصحيح غير مكتمل.",
+  "extEvidenceHeading": "أدلة أمنية إضافية",
+  "extEvidenceScope": "المؤشرات والجرد لا تثبت ثغرة أو نجاح بند MASVS. غياب المؤشر لا يثبت الأمان؛ نتائج التشغيل تخص السيناريو الذي تم اختباره فقط.",
+  "extObserved": "مؤشر مرصود",
+  "extUnavailable": "الفحص غير مكتمل",
+  "extFacts": "حقائق تم فحصها",
+  "extScope": "راجع الدليل في سياق استخدامه. قد تكون مراجع الملف الثنائي من كود غير مستخدم أو مكتبات خارجية.",
+  "extIncomplete": "تعذر فحص بعض المدخلات؛ لا توجد نتيجة مكتملة.",
+  "extIndicatorOnly": "الأدلة معروضة بشكل منفصل؛ المراجع وحدها لا تثبت وجود ثغرة.",
+  "extNativeMatch": "إعداد صريح أو استخدام API: ‏{token}. تحقق من إمكانية الوصول إليه وحساسية البيانات.",
+  "extManifestFinding": "{component}: ‏{detail}",
+  "extLinkAuto": "مرشح VIEW الخاص بروابط HTTP(S) بدون autoVerify=true.",
+  "extLinkBroad": "مرشح الروابط يقبل نطاقًا غير محدد أو يحتوي wildcard.",
+  "extLinkCustom": "مخطط URL مخصص؛ تحقق من كل المدخلات ولا تعتمد على ملكية المخطط لإثبات الهوية.",
+  "extPermissionWeak": "عملية {operation} المكشوفة محمية فقط بصلاحية normal/dangerous: ‏{permission}.",
+  "extProviderOpen": "Content Provider مكشوف بدون صلاحية فعالة لعملية {operation}.",
+  "extPermissionUnknown": "تعذر تحديد قوة الصلاحية: ‏{permission}.",
+  "extLinkMismatch": "ملف assetlinks.json لا يمنح الارتباط لاسم الحزمة وشهادة التوقيع الحالية.",
+  "extLinkUnavailable": "لم يتم التحقق من ارتباط النطاق (وضع offline، أو شهادة الإصدار غير متاحة، أو تعذر الوصول، أو حدود الفحص).",
+  "extEntitlement": "صلاحية تحتاج مراجعة: ‏{key} = {value}. نطاق تأثيرها يعتمد على المنصة وبروفايل التوقيع.",
+  "extElfFinding": "إعداد بناء ELF: ‏{detail}.",
+  "extElfStack": "تم طلب stack قابل للتنفيذ",
+  "extElfWx": "جزء LOAD قابل للكتابة والتنفيذ معًا",
+  "extElfRelro": "حماية RELRO مفقودة أو جزئية في ELF مرتبط ديناميكيًا",
+  "extElfDebug": "أقسام debug موجودة",
+  "extElfRpath": "مسار بحث مكتبات نسبي أو فارغ",
+  "extElfPie": "ملف تنفيذي بدون position independence",
+  "extRuntimeMissing": "اضبط runtime_security بسيناريو وجهاز اختبار مخصص. لم يتم التحقق من نتيجة أثناء التشغيل.",
+  "extRuntimeIncomplete": "سيناريو التشغيل أو أدلته غير مكتملة. غياب الاتصالات لا يثبت أن TLS/pinning منعها؛ غياب العلامات لا يثبت حماية كل البيانات الحساسة.",
+  "extRuntimeTls": "تم اعتراض طلب للنطاق المحدد {host} أثناء {phase}. تم قبول الشهادة البديلة في هذا المسار.",
+  "extRuntimeLeak": "تم العثور على علامة البيانات الحساسة التجريبية {marker} في {channel}؛ القيمة محجوبة.",
+  "extRuntimeScope": "السيناريو {scenario}؛ SHA-256 للملف {digest}. النتائج تخص الهدف والنطاقات والعلامات المحددة فقط.",
+  "extRuntimeDisabled": "تم تعطيل فحوصات أمان التشغيل في هذه الجولة.",
+  "extA11Title": "إعداد روابط Android",
+  "extA11Description": "راجع التحقق من روابط HTTP(S) ومرشحات الروابط الواسعة.",
+  "extA11Fix": "استخدم App Links موثقة عبر HTTPS بنطاقات محددة، وتحقق من المسارات والمعاملات.",
+  "extA11Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: إعداد روابط Android",
+  "extA12Title": "قوة صلاحيات مكونات Android",
+  "extA12Description": "افحص الصلاحيات الفعالة للتطبيق والمكونات وContent Providers، بما فيها القراءة والكتابة منفصلتين.",
+  "extA12Fix": "اقصر الوصول للمكونات الخاصة واستخدم صلاحيات signature للتواصل بين التطبيقات الموثوقة.",
+  "extA12Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: قوة صلاحيات مكونات Android",
+  "extA13Title": "ارتباط نطاق Android",
+  "extA13Description": "تحقق من تفويض assetlinks باستخدام اسم الحزمة وشهادة الإصدار.",
+  "extA13Fix": "انشر اسم الحزمة وSHA-256 الصحيح لشهادة الإصدار في assetlinks.json.",
+  "extA13Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: ارتباط نطاق Android",
+  "extN01Title": "إعدادات تجاوز التحقق من TLS في native code",
+  "extN01Description": "اكشف الأنماط الصريحة لقبول الشهادات أو تجاوز أخطائها في native code.",
+  "extN01Fix": "استخدم التحقق من الشهادة واسم المضيف الذي توفره المنصة واحذف callbacks المتساهلة.",
+  "extN01Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: إعدادات تجاوز التحقق من TLS في native code",
+  "extN02Title": "إعدادات WebView غير الآمنة",
+  "extN02Description": "افحص mixed content والوصول للملفات المحلية وإعدادات WebView الأصلية.",
+  "extN02Fix": "عطّل الوصول للملفات المحلية عبر origins مختلفة وmixed content، واقصر التنقل على مصادر موثوقة.",
+  "extN02Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: إعدادات WebView غير الآمنة",
+  "extN03Title": "مراجعة التشفير في native code",
+  "extN03Description": "حدد الاختيارات الصريحة لخوارزميات ضعيفة واعرض hashing وrandom الملتبسة كمؤشرات.",
+  "extN03Fix": "استخدم تشفيرًا حديثًا موثقًا ومولدات عشوائية تشفيرية للعمليات الحساسة.",
+  "extN03Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: مراجعة التشفير في native code",
+  "extN04Title": "إعدادات التخزين وKeychain في native code",
+  "extN04Description": "اكشف إعدادات Keychain الضعيفة والملفات غير المحمية والتخزين المتاح للتطبيقات الأخرى.",
+  "extN04Fix": "اختر حماية البيانات وKeychain ACLs المناسبة لنموذج التهديد واقصر التخزين على التطبيق.",
+  "extN04Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: إعدادات التخزين وKeychain في native code",
+  "extI10Title": "نطاق صلاحيات iOS",
+  "extI10Description": "افحص اتساع Keychain groups وassociated domains وأعلام الصلاحيات الحساسة.",
+  "extI10Fix": "احذف الصلاحيات غير الضرورية وقلل نطاق المشاركة والنطاقات.",
+  "extI10Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: نطاق صلاحيات iOS",
+  "extI11Title": "استثناء forward secrecy في ATS",
+  "extI11Description": "اكشف تعطيل forward secrecy الصريح في استثناءات النطاقات.",
+  "extI11Fix": "احذف استثناءات ATS القديمة واستخدم إعداد TLS حديثًا على الخادم.",
+  "extI11Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: استثناء forward secrecy في ATS",
+  "extB12Title": "حماية مكتبات ELF في Android",
+  "extB12Description": "افحص stack التنفيذي وW+X وRELRO وPIE ومسارات البحث وأقسام debug.",
+  "extB12Fix": "أعد بناء المكتبات الأصلية بخيارات linker المناسبة واحذف أقسام debug.",
+  "extB12Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: حماية مكتبات ELF في Android",
+  "extT01Title": "جرد SDKs الخاصة بالتتبع",
+  "extT01Description": "حدد توقيعات trackers بدون استنتاج جمع البيانات أو الموافقة أو مخالفة الخصوصية.",
+  "extT01Fix": "راجع SDKs المعروضة والاتصالات الفعلية والإفصاحات ومسارات الموافقة.",
+  "extT01Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: جرد SDKs الخاصة بالتتبع",
+  "extR09Title": "سيناريو TLS وpinning أثناء التشغيل",
+  "extR09Description": "راقب الاتصالات مع استبدال الشهادة باستخدام سيناريو اختبار محدد.",
+  "extR09Fix": "ارفض الشهادات غير الموثوقة وطبق pinning على النطاقات المحددة.",
+  "extR09Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: سيناريو TLS وpinning أثناء التشغيل",
+  "extR10Title": "سيناريو تسريب البيانات الحساسة أثناء التشغيل",
+  "extR10Description": "ابحث في سجلات التشغيل والحافظة وتخزين التطبيق المجمع عن علامات تجريبية محددة.",
+  "extR10Fix": "احذف البيانات الحساسة من السجلات والحافظة وشفّر التخزين الدائم وحدد نطاقه.",
+  "extR10Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: سيناريو تسريب البيانات الحساسة أثناء التشغيل",
+  "simulatorJailbreakGapTitle": "لم تُرصد حماية تمنع التشغيل مع مؤشرات jailbreak على المحاكي",
+  "simulatorSigningGapTitle": "لم تُرصد حماية تمنع التشغيل بعد تغيير التوقيع المحلي على المحاكي",
+  "simulatorJailbreakDescription": "تحقق اختبار المحاكي من محاكاة مؤشرات الملفات ورصد سلوك التطبيق. لا يحسم سلوك نسخة IPA على جهاز عليه jailbreak فعلي.",
+  "simulatorSigningDescription": "تحقق اختبار المحاكي من تغيير بيانات التوقيع المحلي ad-hoc مع ثبات باقي المحتوى. لا يختبر شهادة Apple مختلفة أو Team ID.",
+  "simulatorJailbreakGapFinding": "استمر التطبيق مع مؤشرات ملفات jailbreak المحاكاة بعد التحقق منها؛ لم تُرصد حماية تمنع التشغيل في سيناريو المحاكي ده. النتيجة لا تحكم على كل طرق كشف jailbreak أو على نسخة IPA الخاصة بالجهاز.",
+  "simulatorSigningGapFinding": "استمر التطبيق بعد التحقق من تغيير التوقيع المحلي؛ لم تُرصد حماية تمنع التشغيل في سيناريو المحاكي ده. النتيجة لا تثبت أن نسخة IPA الخاصة بالجهاز تقبل هوية توقيع Apple مختلفة.",
+  "iosMetadataScope": "استخراج بيانات Objective-C / Swift المدمج يسجّل الأسماء والعلاقات، ولا يسترجع أجسام الدوال أو سورس Dart AOT. تُفك أسماء أنواع Swift البسيطة، وقد تظل الصيغ المعقدة غير محلولة. القائمة الكاملة ومواضع البيانات موجودة في JSON. وجود مرجع لا يثبت تنفيذ الفحص أو منع التطبيق من العمل.",
+  "@iosMetadataScope": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "iosMetadataCounts": "البيانات الوصفية: {classes} classes؛ {methods} methods / متطلبات؛ {protocols} protocols؛ {types} أنواع Swift؛ {references} مراجع أسماء.",
+  "@iosMetadataCounts": {
+    "description": "Static iOS metadata evidence and extraction limits.",
+    "placeholders": {
+      "classes": {},
+      "methods": {},
+      "protocols": {},
+      "types": {},
+      "references": {}
+    }
+  },
+  "iosMetadataEncrypted": "البيانات الوصفية غير متاحة: الملف التنفيذي مشفّر.",
+  "@iosMetadataEncrypted": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "iosMetadataBudget": "استخراج البيانات الوصفية وصل للحد المسموح للتحليل.",
+  "@iosMetadataBudget": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "iosMetadataUnresolved": "تعذّر حل بعض مؤشرات البيانات الوصفية أو صيغها أو علاقاتها الخارجية.",
+  "@iosMetadataUnresolved": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "iosMetadataFixups": "صيغة chained fixups غير مدعومة أو غير صالحة؛ لم تُفسّر مؤشرات Objective-C المرمّزة.",
+  "@iosMetadataFixups": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "iosMetadataMangling": "بعض رموز Swift تستخدم صيغ أسماء خارج النطاق المدعوم؛ تظل الرموز الأصلية ضمن البحث.",
+  "@iosMetadataMangling": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "iosMetadataSymbolic": "بعض أنواع المراجع الرمزية في Swift غير مدعومة.",
+  "@iosMetadataSymbolic": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "iosMetadataSourceSymbol": "رمز",
+  "@iosMetadataSourceSymbol": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "iosMetadataSourceString": "نص",
+  "@iosMetadataSourceString": {
+    "description": "Static iOS metadata evidence and extraction limits."
+  },
+  "platformIncomplete": "الفحص التلقائي جزئي؛ السلوك الذي لم يُختبر لا يُعتبر نجاحًا. راجع أدلة هذا الفحص ونطاقه.",
+  "@platformIncomplete": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformNoRuntime": "لا تتوفر ملاحظة تشغيل متحققة لهذا الفحص.",
+  "@platformNoRuntime": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformReferences": "مراجع static: {tokens}. قد تكون غير مستخدمة أو تابعة لمكتبة.",
+  "@platformReferences": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "tokens": {}
+    }
+  },
+  "platformConfiguration": "إعداد صريح يحتاج مراجعة: {token}. لم يُثبت انطباقه على عملية حساسة.",
+  "@platformConfiguration": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "token": {}
+    }
+  },
+  "platformBackupPolicy": "قواعد النسخ: {file}؛ المسار: {flow}؛ قواعد التضمين: {includes}؛ قواعد الاستثناء: {excludes}. حساسية المحتوى وسلوك الاستعادة غير متحققين.",
+  "@platformBackupPolicy": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "file": {},
+      "flow": {},
+      "includes": {},
+      "excludes": {}
+    }
+  },
+  "platformBackupInvalid": "قواعد النسخ الاحتياطي غير سليمة أو تحتوي عناصر غير مدعومة أو غير صالحة: {file}.",
+  "@platformBackupInvalid": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "file": {}
+    }
+  },
+  "platformBackupMissing": "قواعد النسخ غائبة أو معطلة أو تعذر حلها أو غير مكتملة لبعض إصدارات النظام أو مسارات نقل البيانات؛ وهذا لا يثبت انكشاف بيانات حساسة.",
+  "@platformBackupMissing": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformAasa": "دومين الربط: {host}؛ السماح لهوية الحزمة: {authorized}. توجيه الروابط غير متحقق.",
+  "@platformAasa": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "host": {},
+      "authorized": {}
+    }
+  },
+  "platformAasaMismatch": "ملف AASA لا يسمح لهوية التطبيق داخل الحزمة على {host}.",
+  "@platformAasaMismatch": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "host": {}
+    }
+  },
+  "platformAasaUnavailable": "تعذر التحقق من الربط: وضع دون اتصال أو هوية توقيع مفقودة أو دومين/وضع غير مدعوم أو خادم غير متاح أو استجابة غير مدعومة.",
+  "@platformAasaUnavailable": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformRuntime": "ملاحظة تشغيل تلقائية على {platform}: {facts}. النطاق: نافذة بدء التشغيل فقط؛ قد يؤثر القياس على السلوك. لم يُنفّذ مسار عمل خاص بالتطبيق.",
+  "@platformRuntime": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "platform": {},
+      "facts": {}
+    }
+  },
+  "platformWeakRuntime": "إعداد مرصود أثناء التشغيل: {fact}. تقتصر الملاحظة على المكوّن المرصود، ولا تشمل كل الشاشات أو العمليات.",
+  "@platformWeakRuntime": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "fact": {}
+    }
+  },
+  "platformCount": "{name}: {count}",
+  "@platformCount": {
+    "description": "Automatic platform protection checks and explicit scope.",
+    "placeholders": {
+      "name": {},
+      "count": {}
+    }
+  },
+  "platformYes": "نعم",
+  "@platformYes": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformUnknown": "غير متحقق",
+  "@platformUnknown": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformNo": "لا",
+  "@platformNo": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactWindows": "النوافذ المرئية",
+  "@platformFactWindows": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactPasswordFields": "حقول كلمات المرور",
+  "@platformFactPasswordFields": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactUnmaskedPasswordFields": "حقول كلمة مرور مرئية غير فارغة دون إخفاء",
+  "@platformFactUnmaskedPasswordFields": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactFiles": "ملفات مساحة التطبيق المفحوصة",
+  "@platformFactFiles": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactExcludedFiles": "ملفات بعلامة استثناء من النسخ",
+  "@platformFactExcludedFiles": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactUnexcludedFiles": "ملفات دون استثناء مرصود من النسخ",
+  "@platformFactUnexcludedFiles": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactUnknownFiles": "ملفات تعذر قراءة خصائص نسخها",
+  "@platformFactUnknownFiles": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactKeychainItems": "سجلات خصائص Keychain",
+  "@platformFactKeychainItems": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactKeychainAlways": "سجلات Keychain تستخدم إتاحة Always",
+  "@platformFactKeychainAlways": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactKeychainAcl": "سجلات Keychain لها كائن تحكم بالوصول",
+  "@platformFactKeychainAcl": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactWebviews": "WebViews المنشأة",
+  "@platformFactWebviews": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactWebviewJs": "WebViews مع JavaScript مفعّل",
+  "@platformFactWebviewJs": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactWebviewInsecureContent": "WebViews تستخدم HTTPS وتبلغ عن محتوى غير آمن",
+  "@platformFactWebviewInsecureContent": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactCustomSchemes": "مخططات URL المخصصة المسجلة",
+  "@platformFactCustomSchemes": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactSecureWindows": "نوافذ مرصود بها FLAG_SECURE",
+  "@platformFactSecureWindows": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformP10Title": "انكشاف الشاشة ولقطات الخلفية",
+  "@platformP10Title": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformP10Limit": "تُفحص إمكانية التقاط شاشة بدء التشغيل وبيانات الحقول الأصلية، ويُرصد انتقال محاكي iOS للخلفية بشكل منفصل. إنشاء صورة لا يثبت انكشاف بيانات حساسة؛ وفشل الالتقاط لا يثبت الحماية. تظل التسجيلات ومحتويات لقطة تبديل التطبيقات الفعلية والشاشات غير المفتوحة أو المحمية بتسجيل الدخول غير متحققة. لا يوجد في iOS بديل عام لـ FLAG_SECURE.",
+  "@platformP10Limit": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformN05Title": "قواعد استثناء النسخ الاحتياطي وبيانات الملفات",
+  "@platformN05Title": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformN05Limit": "تُقرأ قواعد XML في Android لكل نسخة إعداد ومسار نسخ احتياطي تم حله. أسماء الملفات وبيانات الاستثناء في iOS لا تحدد حساسية المحتوى ولا تثبت تنفيذ نسخ واستعادة. علامات الاستثناء في iOS إرشادية؛ وخصائص ملفات المحاكي لا تثبت تشفير الجهاز الحقيقي.",
+  "@platformN05Limit": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformN06Title": "الوصول إلى Keychain / Keystore وربط البصمة",
+  "@platformN06Title": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformN06Limit": "الأسماء وبيانات التحكم في الوصول لا تثبت ربط العملية الحساسة بالمصادقة تشفيريًا. لا تُقرأ قيم الأسرار. المفاتيح خلف تسجيل الدخول وحماية Secure Enclave / StrongBox ومقاومة تجاوز البصمة تتطلب تغطية تشغيل إضافية.",
+  "@platformN06Limit": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformI12Title": "ربط Universal Links ومعالجة الروابط في iOS",
+  "@platformI12Title": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformI12Limit": "يتحقق AASA عبر HTTPS من السماح لهوية application-identifier داخل الحزمة. لا يثبت صحة توجيه المسارات أو انتشار الإعدادات عبر Apple CDN أو التحقق من الصلاحيات داخل معالجات الروابط. لا تُفتح روابط عشوائية ولا تُنفذ عمليات داخل التطبيق.",
+  "@platformI12Limit": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformN07Title": "تنقل WebView وانكشاف الربط بالكود الأصلي",
+  "@platformN07Title": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformN07Limit": "تُفحص الإعدادات وWebViews المنشأة حاليًا. وجود JavaScript bridge أو دعم JavaScript وحده ليس ثغرة. لا يُحمّل محتوى هجومي تلقائيًا؛ وتظل قيود المصدر والتحويلات وصلاحيات الربط في الصفحات غير المفتوحة غير متحققة.",
+  "@platformN07Limit": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformA14Title": "حماية Android من اللمس المحجوب والنوافذ المغطية",
+  "@platformA14Title": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformA14Limit": "تفرّق فحوصات Android بين الحجب الكامل والجزئي. تُمرر أحداث اصطناعية لدوال تصفية الأمان في العناصر المرئية فقط، ولا تُنفذ كلمسات أو ضغطات. نتيجة التصفية لا تثبت معالجة النظام للنوافذ المغطية أو تغطية عناصر Flutter أو صلاحيات العملية الحساسة.",
+  "@platformA14Limit": {
+    "description": "Automatic platform protection checks and explicit scope."
+  },
+  "platformFactClickableViews": "عناصر Android المرئية القابلة للضغط",
+  "@platformFactClickableViews": {
+    "description": "Redacted automatic runtime fact."
+  },
+  "platformFactFilterControls": "عناصر تقبل أحداث التحكم غير المحجوبة",
+  "@platformFactFilterControls": {
+    "description": "Redacted automatic runtime fact."
+  },
+  "platformFactFilterRejectsFull": "مرشحات أمان ترفض أحداث الحجب الكامل",
+  "@platformFactFilterRejectsFull": {
+    "description": "Redacted automatic runtime fact."
+  },
+  "platformFactFilterRejectsPartial": "مرشحات أمان ترفض أحداث الحجب الجزئي",
+  "@platformFactFilterRejectsPartial": {
+    "description": "Redacted automatic runtime fact."
+  },
+  "platformFactKeystoreAliases": "مفاتيح Keystore المفحوصة",
+  "@platformFactKeystoreAliases": {
+    "description": "Redacted automatic runtime fact."
+  },
+  "platformFactAuthRequiredKeys": "مفاتيح تتطلب مصادقة المستخدم",
+  "@platformFactAuthRequiredKeys": {
+    "description": "Redacted automatic runtime fact."
+  },
+  "platformFactUnknownKeys": "مفاتيح تعذرت قراءة بيانات الوصول إليها",
+  "@platformFactUnknownKeys": {
+    "description": "Redacted automatic runtime fact."
+  },
+  "platformObservationLimited": "وصلت بعض أدوات الجمع لحدودها أو تعذرت قراءة كل الخصائص. الأعداد الصفرية لا تثبت الغياب.",
+  "@platformObservationLimited": {
+    "description": "Partial automatic collection."
+  },
+  "platformFactScreenshotsCaptured": "لقطات شاشة أُنشئت (المحتوى غير مصنف)",
+  "@platformFactScreenshotsCaptured": {
+    "description": "Count-only screen/background observation; not a leak verdict."
+  },
+  "platformFactBackgroundObserved": "رصد انتقال التطبيق للخلفية",
+  "@platformFactBackgroundObserved": {
+    "description": "Count-only screen/background observation; not a leak verdict."
+  },
+  "platformFactBackgroundPasswordFields": "حقول كلمة المرور الأصلية عند الانتقال للخلفية",
+  "@platformFactBackgroundPasswordFields": {
+    "description": "Count-only screen/background observation; not a leak verdict."
+  },
+  "platformFactBackgroundUnmaskedPasswordFields": "حقول كلمة المرور الأصلية غير المخفية عند الانتقال للخلفية",
+  "@platformFactBackgroundUnmaskedPasswordFields": {
+    "description": "Count-only screen/background observation; not a leak verdict."
+  },
+  "platformBackupReferenceOnly": "يوجد مرجع لملف XML للنسخ الاحتياطي، لكن وجوده وحده لا يثبت الاستثناءات. راجع AEG-N05 لأدلة قراءة القواعد وحدودها.",
+  "@platformBackupReferenceOnly": {
+    "description": "A backup resource name is not proof of policy enforcement."
+  },
+  "simulatorSigningNotBlocked": "نتيجة المحاكي: لا توجد حماية تمنع التشغيل بعد تغيير التوقيع المحلي المختبَر؛ استمر التطبيق في التشغيل.",
+  "@simulatorSigningNotBlocked": {
+    "description": "Verified no-block verdict for the specific Simulator experiment."
+  },
+  "simulatorJailbreakNotBlocked": "نتيجة المحاكي: لا توجد حماية تمنع التشغيل مع مؤشرات ملفات jailbreak المختبَرة؛ استمر التطبيق في التشغيل.",
+  "@simulatorJailbreakNotBlocked": {
+    "description": "Verified no-block verdict for the specific Simulator experiment."
+  }
 }

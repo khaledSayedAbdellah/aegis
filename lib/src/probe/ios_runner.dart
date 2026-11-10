@@ -12,6 +12,7 @@ import '../binary/ios_signature.dart';
 import '../binary/ipa.dart';
 import '../l10n/messages.g.dart';
 import 'ios_device.dart';
+import 'ios_platform_observer.dart';
 import 'ios_simulator_build.dart';
 import 'ios_simulator_partial.dart';
 import 'probe_model.dart';
@@ -140,6 +141,7 @@ class IosProbeRunner {
       final installed = <IosDevice>{};
       final results = <ProbeResult>[];
       var baselineAlive = false;
+      Map<String, Object?> platformObservations = {};
       String? baselineNote;
       String? baselineNoteAr;
       try {
@@ -313,6 +315,60 @@ class IosProbeRunner {
             }
           }
         }
+        // Separate fresh control launch: the generic observer must not contaminate
+        // resilience baselines or inspect the intentionally re-signed test build.
+        if (baselineAlive && simulator) {
+          try {
+            log?.call('iOS: inspecting launch-screen platform protections…');
+            if (installed.contains(control)) {
+              await control.uninstall(original.bundleId);
+              installed.remove(control);
+            }
+            await _install(control, app, original.bundleId, installed);
+            final observer = await IosPlatformObserver.prepare(control, original.bundleId);
+            platformObservations = await _withLaunch(control, original, (launch, pid) async {
+              if (pid == null) return <String, Object?>{};
+              await Future<void>.delayed(const Duration(seconds: 5));
+              if (!await _sameProcess(launch, pid)) return <String, Object?>{};
+              final facts = observer.read(original.bundleId, pid);
+              if (facts['verified'] != true) return facts;
+              final screen = Map<String, Object?>.from(facts['screen'] as Map);
+              final shot = File(p.join(work.path, 'platform-screen.png'));
+              try {
+                final captured = await control.host.run('xcrun', ['simctl', 'io', control.id, 'screenshot', shot.path], timeout: const Duration(seconds: 15));
+                if (captured?.ok == true && shot.existsSync() && shot.lengthSync() >= 24 && shot.lengthSync() <= 32 * 1024 * 1024) {
+                  final handle = shot.openSync();
+                  try {
+                    final header = handle.readSync(8);
+                    if (base64Encode(header) == 'iVBORw0KGgo=') screen['screenshotsCaptured'] = 1;
+                  } finally { handle.closeSync(); }
+                }
+              } finally { if (shot.existsSync()) shot.deleteSync(); }
+              // Opening Settings only backgrounds the app in the dedicated
+              // Simulator. It does not change a setting or press an app button.
+              final background = await control.host.run('xcrun', ['simctl', 'launch', '--terminate-running-process', control.id, 'com.apple.Preferences'], timeout: const Duration(seconds: 15));
+              if (background?.ok == true) {
+                Map<String, Object?> after = {};
+                for (var attempt = 0; attempt < 16; attempt++) {
+                  await Future<void>.delayed(const Duration(milliseconds: 500));
+                  after = observer.read(original.bundleId, pid);
+                  if (after['phase'] == 'background') break;
+                }
+                if (after['phase'] == 'background') {
+                  screen['backgroundObserved'] = 1;
+                  final state = after['screen'];
+                  if (state is Map) {
+                    screen['backgroundPasswordFields'] = state['passwordFields'];
+                    screen['backgroundUnmaskedPasswordFields'] = state['unmaskedPasswordFields'];
+                  }
+                }
+              }
+              return {...facts, 'screen': screen};
+            }, simulatorLibrary: observer.library, simulatorEnvironment: observer.environment);
+          } catch (_) {
+            log?.call('iOS: platform observation unavailable; coverage remains partial.');
+          }
+        }
       } finally {
         for (final target in installed) {
           try {
@@ -329,6 +385,7 @@ class IosProbeRunner {
         baselineNote: baselineNote,
         baselineNoteAr: baselineNoteAr,
         platform: simulator ? 'ios-simulator' : 'ios',
+        platformObservations: platformObservations,
         results: results,
       ));
     } on Exception catch (e) {

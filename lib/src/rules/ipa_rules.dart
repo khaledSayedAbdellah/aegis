@@ -6,6 +6,7 @@ import '../l10n/messages.g.dart';
 import '../model.dart';
 import '../project.dart';
 import 'rule.dart';
+import 'ipa_hardening_rules.dart';
 
 const _all = {MasProfile.l1, MasProfile.l2, MasProfile.r};
 
@@ -72,4 +73,4 @@ class IpaBundledSecretsRule extends Rule {
   }
 }
 
-const ipaRules = <Rule>[IpaSignatureRule(), IpaBundledSecretsRule()];
+const ipaRules = <Rule>[IpaSignatureRule(), IpaBundledSecretsRule(), ...ipaHardeningRules];
