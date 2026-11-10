@@ -1,6 +1,8 @@
 /// OWASP MASVS v2 controls, used for coverage reporting.
 library;
 
+import 'l10n/messages.g.dart';
+
 import 'model.dart';
 
 class MasvsControl {
@@ -18,116 +20,92 @@ class MasvsControl {
 const List<MasvsControl> masvsControls = [
   MasvsControl(
       'MASVS-STORAGE-1',
-      Bilingual('The app securely stores sensitive data.',
-          'التطبيق بيخزن البيانات الحساسة بشكل آمن.')),
+      Bilingual(En.masvsTheAppSecurelyStoresSensitiveData, Ar.masvsTheAppSecurelyStoresSensitiveData)),
   MasvsControl(
       'MASVS-STORAGE-2',
-      Bilingual('The app prevents leakage of sensitive data.',
-          'التطبيق بيمنع تسريب البيانات الحساسة.')),
+      Bilingual(En.masvsTheAppPreventsLeakageOfSensitiveData, Ar.masvsTheAppPreventsLeakageOfSensitiveData)),
   MasvsControl(
       'MASVS-CRYPTO-1',
-      Bilingual('The app employs current strong cryptography.',
-          'التطبيق بيستخدم تشفير قوي وحديث.')),
+      Bilingual(En.masvsTheAppEmploysCurrentStrongCryptography, Ar.masvsTheAppEmploysCurrentStrongCryptography)),
   MasvsControl(
       'MASVS-CRYPTO-2',
-      Bilingual('The app performs key management according to best practices.',
-          'التطبيق بيدير مفاتيح التشفير بالطريقة الصح.')),
+      Bilingual(En.masvsTheAppPerformsKeyManagementAccordingToBest, Ar.masvsTheAppPerformsKeyManagementAccordingToBest)),
   MasvsControl(
       'MASVS-AUTH-1',
-      Bilingual('The app uses secure authentication and authorization protocols.',
-          'التطبيق بيستخدم بروتوكولات مصادقة وصلاحيات آمنة.')),
+      Bilingual(En.masvsTheAppUsesSecureAuthenticationAndAuthorizationProtocols, Ar.masvsTheAppUsesSecureAuthenticationAndAuthorizationProtocols)),
   MasvsControl(
       'MASVS-AUTH-2',
-      Bilingual('The app performs local authentication securely.',
-          'المصادقة المحلية (زي البصمة) متطبقة بشكل آمن.')),
+      Bilingual(En.masvsTheAppPerformsLocalAuthenticationSecurely, Ar.masvsTheAppPerformsLocalAuthenticationSecurely)),
   MasvsControl(
       'MASVS-AUTH-3',
-      Bilingual('The app secures sensitive operations with additional authentication.',
-          'العمليات الحساسة محمية بمصادقة إضافية.')),
+      Bilingual(En.masvsTheAppSecuresSensitiveOperationsWithAdditionalAuthentication, Ar.masvsTheAppSecuresSensitiveOperationsWithAdditionalAuthentication)),
   MasvsControl(
       'MASVS-NETWORK-1',
-      Bilingual('The app secures all network traffic.',
-          'كل الاتصالات بالشبكة مؤمنة.')),
+      Bilingual(En.masvsTheAppSecuresAllNetworkTraffic, Ar.masvsTheAppSecuresAllNetworkTraffic)),
   MasvsControl(
       'MASVS-NETWORK-2',
-      Bilingual('The app performs identity pinning for endpoints under the developer\'s control.',
-          'التطبيق بيعمل certificate pinning للسيرفرات بتاعته.')),
+      Bilingual(En.masvsTheAppPerformsIdentityPinningForEndpointsUnder, Ar.masvsTheAppPerformsIdentityPinningForEndpointsUnder)),
   MasvsControl(
       'MASVS-PLATFORM-1',
-      Bilingual('The app uses IPC mechanisms securely.',
-          'التطبيق بيستخدم آليات التواصل بين التطبيقات (IPC) بأمان.')),
+      Bilingual(En.masvsTheAppUsesIpcMechanismsSecurely, Ar.masvsTheAppUsesIpcMechanismsSecurely)),
   MasvsControl(
       'MASVS-PLATFORM-2',
-      Bilingual('The app uses WebViews securely.',
-          'التطبيق بيستخدم الـ WebView بأمان.')),
+      Bilingual(En.masvsTheAppUsesWebviewsSecurely, Ar.masvsTheAppUsesWebviewsSecurely)),
   MasvsControl(
       'MASVS-PLATFORM-3',
-      Bilingual('The app uses the user interface securely.',
-          'الواجهة مش بتكشف بيانات حساسة.')),
+      Bilingual(En.masvsTheAppUsesTheUserInterfaceSecurely, Ar.masvsTheAppUsesTheUserInterfaceSecurely)),
   MasvsControl(
       'MASVS-CODE-1',
-      Bilingual('The app requires an up-to-date platform version.',
-          'التطبيق بيطلب إصدار نظام تشغيل حديث.')),
+      Bilingual(En.masvsTheAppRequiresAnUpToDatePlatformVersion, Ar.masvsTheAppRequiresAnUpToDatePlatformVersion)),
   MasvsControl(
       'MASVS-CODE-2',
-      Bilingual('The app has a mechanism for enforcing app updates.',
-          'فيه آلية لإجبار المستخدم على التحديث.')),
+      Bilingual(En.masvsTheAppHasAMechanismForEnforcingApp, Ar.masvsTheAppHasAMechanismForEnforcingApp)),
   MasvsControl(
       'MASVS-CODE-3',
-      Bilingual('The app only uses software components without known vulnerabilities.',
-          'المكتبات المستخدمة مفيهاش ثغرات معروفة.')),
+      Bilingual(En.masvsTheAppOnlyUsesSoftwareComponentsWithoutKnown, Ar.masvsTheAppOnlyUsesSoftwareComponentsWithoutKnown)),
   MasvsControl(
       'MASVS-CODE-4',
-      Bilingual('The app validates and sanitizes all untrusted inputs.',
-          'التطبيق بيتحقق من أي مدخلات غير موثوقة.')),
+      Bilingual(En.masvsTheAppValidatesAndSanitizesAllUntrustedInputs, Ar.masvsTheAppValidatesAndSanitizesAllUntrustedInputs)),
   MasvsControl(
       'MASVS-RESILIENCE-1',
-      Bilingual('The app validates the integrity of the platform.',
-          'التطبيق بيتأكد إن الجهاز سليم (مش rooted أو jailbroken).'),
+      Bilingual(En.masvsTheAppValidatesTheIntegrityOfThePlatform, Ar.masvsTheAppValidatesTheIntegrityOfThePlatform),
       resilienceOnly: true),
   MasvsControl(
       'MASVS-RESILIENCE-2',
-      Bilingual('The app implements anti-tampering mechanisms.',
-          'التطبيق بيكشف لو حد عدّل عليه أو أعاد توقيعه.'),
+      Bilingual(En.masvsTheAppImplementsAntiTamperingMechanisms, Ar.masvsTheAppImplementsAntiTamperingMechanisms),
       resilienceOnly: true),
   MasvsControl(
       'MASVS-RESILIENCE-3',
-      Bilingual('The app implements anti-static analysis mechanisms.',
-          'التطبيق صعب يتحلل ويتفك (obfuscation).'),
+      Bilingual(En.masvsTheAppImplementsAntiStaticAnalysisMechanisms, Ar.masvsTheAppImplementsAntiStaticAnalysisMechanisms),
       resilienceOnly: true),
   MasvsControl(
       'MASVS-RESILIENCE-4',
-      Bilingual('The app implements anti-dynamic analysis techniques.',
-          'التطبيق بيكشف الـ debugging والـ hooking وقت التشغيل.'),
+      Bilingual(En.masvsTheAppImplementsAntiDynamicAnalysisTechniques, Ar.masvsTheAppImplementsAntiDynamicAnalysisTechniques),
       resilienceOnly: true),
   MasvsControl(
       'MASVS-PRIVACY-1',
-      Bilingual('The app minimizes access to sensitive data and resources.',
-          'التطبيق بيطلب أقل صلاحيات وبيانات ممكنة.')),
+      Bilingual(En.masvsTheAppMinimizesAccessToSensitiveDataAnd, Ar.masvsTheAppMinimizesAccessToSensitiveDataAnd)),
   MasvsControl(
       'MASVS-PRIVACY-2',
-      Bilingual('The app prevents identification of the user.',
-          'التطبيق بيمنع التعرف على هوية المستخدم بدون داعي.')),
+      Bilingual(En.masvsTheAppPreventsIdentificationOfTheUser, Ar.masvsTheAppPreventsIdentificationOfTheUser)),
   MasvsControl(
       'MASVS-PRIVACY-3',
-      Bilingual('The app is transparent about data collection and usage.',
-          'التطبيق واضح في البيانات اللي بيجمعها.')),
+      Bilingual(En.masvsTheAppIsTransparentAboutDataCollectionAnd, Ar.masvsTheAppIsTransparentAboutDataCollectionAnd)),
   MasvsControl(
       'MASVS-PRIVACY-4',
-      Bilingual('The app offers user control over their data.',
-          'المستخدم يقدر يتحكم في بياناته.')),
+      Bilingual(En.masvsTheAppOffersUserControlOverTheirData, Ar.masvsTheAppOffersUserControlOverTheirData)),
 ];
 
 /// Category display names.
 const Map<String, Bilingual> masvsCategories = {
-  'STORAGE': Bilingual('Storage', 'التخزين'),
-  'CRYPTO': Bilingual('Cryptography', 'التشفير'),
-  'AUTH': Bilingual('Authentication', 'المصادقة'),
-  'NETWORK': Bilingual('Network', 'الشبكة'),
-  'PLATFORM': Bilingual('Platform', 'المنصة'),
-  'CODE': Bilingual('Code & dependencies', 'الكود والمكتبات'),
-  'RESILIENCE': Bilingual('Resilience', 'مقاومة الاختراق'),
-  'PRIVACY': Bilingual('Privacy', 'الخصوصية'),
+  'STORAGE': Bilingual(En.masvsStorage, Ar.masvsStorage),
+  'CRYPTO': Bilingual(En.masvsCryptography, Ar.masvsCryptography),
+  'AUTH': Bilingual(En.masvsAuthentication, Ar.masvsAuthentication),
+  'NETWORK': Bilingual(En.masvsNetwork, Ar.masvsNetwork),
+  'PLATFORM': Bilingual(En.masvsPlatform, Ar.masvsPlatform),
+  'CODE': Bilingual(En.masvsCodeDependencies, Ar.masvsCodeDependencies),
+  'RESILIENCE': Bilingual(En.masvsResilience, Ar.masvsResilience),
+  'PRIVACY': Bilingual(En.masvsPrivacy, Ar.masvsPrivacy),
 };
 
 /// Things no static tool can verify. Listed in every report so a clean score
@@ -145,50 +123,37 @@ const List<ManualCheck> manualChecks = [
   ManualCheck(
       'AEG-M01',
       'MASVS-AUTH-1',
-      Bilingual(
-          'The backend enforces authorization on every endpoint (never trust the client).',
-          'الـ backend بيتحقق من الصلاحيات في كل endpoint (متثقش في التطبيق أبداً).')),
+      Bilingual(En.masvsTheBackendEnforcesAuthorizationOnEveryEndpointNever, Ar.masvsTheBackendEnforcesAuthorizationOnEveryEndpointNever)),
   ManualCheck(
       'AEG-M02',
       'MASVS-AUTH-1',
-      Bilingual('Sessions/tokens expire and are revoked on logout on the server.',
-          'الـ tokens بتنتهي صلاحيتها وبتتلغي من السيرفر عند تسجيل الخروج.')),
+      Bilingual(En.masvsSessionsTokensExpireAndAreRevokedOnLogoutOn, Ar.masvsSessionsTokensExpireAndAreRevokedOnLogoutOn)),
   ManualCheck(
       'AEG-M03',
       'MASVS-RESILIENCE-2',
-      Bilingual(
-          'Attestation verdicts (Play Integrity / App Attest / App Check) are verified on the server, and App Check enforcement is ON in the Firebase console.',
-          'نتيجة الـ attestation بيتم التحقق منها على السيرفر، والـ enforcement مفعّل في Firebase Console.'),
+      Bilingual(En.masvsAttestationVerdictsPlayIntegrityAppAttest, Ar.masvsAttestationVerdictsPlayIntegrityAppAttest),
       profiles: {MasProfile.l2, MasProfile.r}),
   ManualCheck(
       'AEG-M04',
       'MASVS-RESILIENCE-2',
-      Bilingual(
-          'The Play App Signing certificate hash (from Play Console) is included in your RASP config, not only the upload key.',
-          'الـ hash بتاع Play App Signing (من Play Console) موجود في إعدادات الـ RASP، مش upload key بس.'),
+      Bilingual(En.masvsThePlayAppSigningCertificateHashFromPlay, Ar.masvsThePlayAppSigningCertificateHashFromPlay),
       profiles: {MasProfile.r}),
   ManualCheck(
       'AEG-M05',
       'MASVS-RESILIENCE-3',
-      Bilingual(
-          'The shipped binary is really obfuscated (verify the release APK/IPA, not just the build flag).',
-          'الـ binary اللي اتشحن فعلاً عليه obfuscation (اتأكد من الـ APK/IPA نفسه، مش الـ flag بس).'),
+      Bilingual(En.masvsTheShippedBinaryIsReallyObfuscatedVerifyThe, Ar.masvsTheShippedBinaryIsReallyObfuscatedVerifyThe),
       profiles: {MasProfile.r}),
   ManualCheck(
       'AEG-M06',
       'MASVS-PRIVACY-3',
-      Bilingual(
-          'Store privacy labels / Data safety form match the SDKs the app actually ships.',
-          'بيانات الخصوصية في المتاجر (Data safety / Privacy labels) مطابقة للمكتبات اللي في التطبيق.')),
+      Bilingual(En.masvsStorePrivacyLabelsDataSafetyFormMatch, Ar.masvsStorePrivacyLabelsDataSafetyFormMatch)),
   ManualCheck(
       'AEG-M07',
       'MASVS-CODE-2',
-      Bilingual('A forced-update mechanism exists for critical security fixes.',
-          'فيه آلية تجبر المستخدم يحدّث لو فيه إصلاح أمني مهم.'),
+      Bilingual(En.masvsAForcedUpdateMechanismExistsForCriticalSecurityFixes, Ar.masvsAForcedUpdateMechanismExistsForCriticalSecurityFixes),
       profiles: {MasProfile.l2}),
   ManualCheck(
       'AEG-M08',
       'MASVS-CODE-4',
-      Bilingual('Deep links and push payloads are validated before use.',
-          'الـ deep links والـ push notifications بيتم التحقق منها قبل الاستخدام.')),
+      Bilingual(En.masvsDeepLinksAndPushPayloadsAreValidatedBefore, Ar.masvsDeepLinksAndPushPayloadsAreValidatedBefore)),
 ];

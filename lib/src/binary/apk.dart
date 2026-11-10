@@ -28,7 +28,7 @@ class ApkContext {
   static ApkContext load(String path) {
     final lower = path.toLowerCase();
     if (lower.endsWith('.ipa')) {
-      throw const FormatException('IPA scanning is not supported yet.');
+      throw const FormatException('Use --ipa to audit an iOS application archive.');
     }
     final archive = ZipReader.file(path);
     if (archive.contains('base/manifest/AndroidManifest.xml')) {

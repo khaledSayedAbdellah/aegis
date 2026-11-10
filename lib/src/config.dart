@@ -24,6 +24,14 @@ class AegisConfig {
     this.file,
     this.apk,
     this.aab,
+    this.ipa,
+    this.iosControlDevice,
+    this.iosJailbreakDevice,
+    this.iosResignedIpa,
+    this.iosSimulator,
+    this.iosSimulatorApp,
+    this.iosSimulatorFlavor,
+    this.iosSimulatorTarget,
     this.probeApk,
     this.probeCertSha256,
   });
@@ -62,6 +70,14 @@ class AegisConfig {
 
   /// The release App Bundle, for `--mode aab|all`. Same rules as [apk].
   final String? aab;
+  final String? ipa;
+  final String? iosControlDevice;
+  final String? iosJailbreakDevice;
+  final String? iosResignedIpa;
+  final String? iosSimulator;
+  final String? iosSimulatorApp;
+  final String? iosSimulatorFlavor;
+  final String? iosSimulatorTarget;
 
   /// Companion APK for the AAB probe, relative to the project or absolute.
   final String? probeApk;
@@ -135,11 +151,19 @@ class AegisConfig {
       exclude: exclude,
       severityOverrides: overrides,
       scanPackages: doc['scan_packages'] != false,
-      baseline: doc['baseline']?.toString(),
+      baseline: _path(doc['baseline']),
       langSet: doc['lang'] != null,
       file: file,
       apk: _path(doc['apk']),
       aab: _path(doc['aab']),
+      ipa: _path(doc['ipa']),
+      iosControlDevice: _path(doc['ios_control_device']),
+      iosJailbreakDevice: _path(doc['ios_jailbreak_device']),
+      iosResignedIpa: _path(doc['ios_resigned_ipa']),
+      iosSimulator: _path(doc['ios_simulator']),
+      iosSimulatorApp: _path(doc['ios_simulator_app']),
+      iosSimulatorFlavor: _path(doc['ios_simulator_flavor']),
+      iosSimulatorTarget: _path(doc['ios_simulator_target']),
       probeApk: _path(doc['probe_apk']),
       probeCertSha256: _path(doc['probe_cert_sha256']),
     );
@@ -147,7 +171,11 @@ class AegisConfig {
 
   static String? _path(Object? v) {
     final s = v?.toString().trim();
-    return s == null || s.isEmpty ? null : s;
+    // init includes editable placeholders for optional paths, IDs and flavors.
+    // They must not select a device or become a literal filesystem path.
+    return s == null || s.isEmpty || RegExp(r'^<[a-z][a-z0-9-]*>$').hasMatch(s)
+        ? null
+        : s;
   }
 
   static Object? _loadYaml(String text) {
@@ -178,6 +206,14 @@ class AegisConfig {
         file: file,
         apk: apk,
         aab: aab,
+        ipa: ipa,
+        iosControlDevice: iosControlDevice,
+        iosJailbreakDevice: iosJailbreakDevice,
+        iosResignedIpa: iosResignedIpa,
+        iosSimulator: iosSimulator,
+        iosSimulatorApp: iosSimulatorApp,
+        iosSimulatorFlavor: iosSimulatorFlavor,
+        iosSimulatorTarget: iosSimulatorTarget,
         probeApk: probeApk,
         probeCertSha256: probeCertSha256,
       );

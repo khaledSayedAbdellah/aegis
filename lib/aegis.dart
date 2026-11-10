@@ -8,6 +8,7 @@ library;
 
 export 'src/baseline.dart' show Baseline, BaselineEntry, defaultBaselineFile;
 export 'src/binary/apk.dart' show ApkContext;
+export 'src/binary/ipa.dart' show IpaContext;
 export 'src/binary/locate.dart' show findBuiltBinary, findNewestBinary, flutterApkDir, flutterBundleDir, projectOf;
 export 'src/binary/signing.dart' show SigningCert;
 export 'src/config.dart' show AegisConfig;

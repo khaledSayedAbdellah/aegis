@@ -1,4 +1,4 @@
-/// Orchestrates `aegis probe` (docs/plans/probe.md §2–3): boot, baseline gate,
+/// Orchestrates `aegis probe` (doc/plans/probe.md §2–3): boot, baseline gate,
 /// then each resilience check, each judged only from what was observed.
 ///
 /// Pure orchestration over the [ProbeDevice] seam and [observation.dart], so
@@ -8,6 +8,7 @@
 library;
 
 import 'device.dart';
+import '../l10n/messages.g.dart';
 import 'observation.dart';
 import 'probe_model.dart';
 
@@ -42,7 +43,8 @@ class ProbeRunner {
   }) async {
     final emit = log ?? (_) {};
     ProbeReport allInconclusive(String note,
-            {bool baselineAlive = false,
+            {String? noteAr,
+            bool baselineAlive = false,
             String? emulatorError,
             String? baselineNote}) =>
         ProbeReport(
@@ -54,7 +56,7 @@ class ProbeRunner {
           results: [
             for (final c in probeChecks)
               if (c.id != 'baseline' && (only == null || only.contains(c.id)))
-                ProbeResult(c, ProbeStatus.inconclusive, note: note),
+                ProbeResult(c, ProbeStatus.inconclusive, note: note, noteAr: noteAr),
           ],
         );
 
@@ -101,16 +103,17 @@ class ProbeRunner {
           await dev.pidOf(package) != pid ||
           logcatShowsAppDeath(baselineLog, pid: pid, package: package)) {
         return allInconclusive(
-            'the app did not stay alive in the control launch',
+            En.androidControlStopped, noteAr: Ar.androidControlStopped,
             baselineNote: '${launchOut.trim()}\n${_tail(baselineLog)}');
       }
 
       final results = <ProbeResult>[
         ProbeResult(checkById('baseline'), ProbeStatus.notBlocked,
-            evidence: 'same process stayed alive for ${wait.inSeconds}s',
+            evidence: En.androidBaselineAlive(seconds: wait.inSeconds),
+            evidenceAr: Ar.androidBaselineAlive(seconds: wait.inSeconds),
             note: baselineRoot
-                ? 'Root was already available in the control environment.'
-                : null),
+                ? En.androidControlRoot : null,
+            noteAr: baselineRoot ? Ar.androidControlRoot : null),
       ];
 
       Future<void> check(
@@ -121,8 +124,7 @@ class ProbeRunner {
         try {
           if (appProbeVerdict(baselineLog, package, id, pid: pid) != null) {
             results.add(ProbeResult(check, ProbeStatus.inconclusive,
-                note:
-                    'The app emitted a verdict for this condition during the control launch.'));
+                note: En.androidControlVerdict, noteAr: Ar.androidControlVerdict));
             return;
           }
           results.add(await run(check));
@@ -134,12 +136,12 @@ class ProbeRunner {
       await check('root', (check) async {
         if (baselineRoot) {
           return ProbeResult(check, ProbeStatus.inconclusive,
-              note: 'Root was already available in the control environment.');
+              note: En.androidControlRoot, noteAr: Ar.androidControlRoot);
         }
         final rooted = rootDevice;
         if (rooted == null) {
           return ProbeResult(check, ProbeStatus.inconclusive,
-              note: 'Supply a separate rooted emulator with --root-avd.');
+              note: En.androidRootDeviceMissing, noteAr: Ar.androidRootDeviceMissing);
         }
         final boot = await rooted.bootEmulator(
             log: emit, logPath: '$workDir/root-emulator.log');
@@ -148,8 +150,7 @@ class ProbeRunner {
         }
         if (!await rooted.rootAvailable()) {
           return ProbeResult(check, ProbeStatus.inconclusive,
-              note:
-                  'Root availability could not be demonstrated on the rooted emulator.');
+              note: En.androidRootUnverified, noteAr: Ar.androidRootUnverified);
         }
         await rooted.uninstall(package);
         final error = await _install(rooted, rootApks);
@@ -165,7 +166,7 @@ class ProbeRunner {
       await check('debugger', (check) async {
         if (debuggable == false) {
           return ProbeResult(check, ProbeStatus.inconclusive,
-              applicable: false, note: 'The installed APK is not debuggable.');
+              applicable: false, note: En.androidNotDebuggable, noteAr: Ar.androidNotDebuggable);
         }
         try {
           return await _observe(dev, check, package,
@@ -224,7 +225,7 @@ class ProbeRunner {
       await check('repackage', (check) async {
         if (!controlRestored) {
           return ProbeResult(check, ProbeStatus.inconclusive,
-              note: 'Could not restore the control environment after Frida.');
+              note: En.androidControlRestoreFailed, noteAr: Ar.androidControlRestoreFailed);
         }
         return _repackage(check, controlApks, package, workDir);
       });
@@ -232,7 +233,7 @@ class ProbeRunner {
           app: appLabel ?? appPath, apkIdentity: apkIdentity,
           baselineAlive: true, results: results);
     } catch (e) {
-      return allInconclusive('Probe setup or control launch failed: $e',
+      return allInconclusive(En.androidSetupFailed(error: e), noteAr: Ar.androidSetupFailed(error: e),
           emulatorError: '$e');
     } finally {
       if (installedOnControl) await dev.uninstall(package);
@@ -255,7 +256,7 @@ class ProbeRunner {
     if (apply != null) {
       if (pid == null) {
         return ProbeResult(check, ProbeStatus.inconclusive,
-            note: 'App process unavailable: ${_short(launch)}');
+            note: En.androidProcessUnavailable(detail: _short(launch)), noteAr: Ar.androidProcessUnavailable(detail: _short(launch)));
       }
       if (verifyBeforeAttach) {
         await _sleep(wait);
@@ -264,8 +265,7 @@ class ProbeRunner {
             logcatShowsAppDeath(logs, pid: pid, package: package) ||
             appProbeVerdict(logs, package, check.id, pid: pid) != null) {
           return ProbeResult(check, ProbeStatus.inconclusive,
-              note:
-                  'The app did not establish a clean Frida baseline on the rooted emulator.');
+              note: En.androidFridaBaselineFailed, noteAr: Ar.androidFridaBaselineFailed);
         }
       }
       // A reaction to startup alone cannot prove that an attachment was detected.
@@ -283,7 +283,7 @@ class ProbeRunner {
     final status = appProbeVerdict(logs, package, check.id, pid: pid);
     if (status == ProbeStatus.inconclusive) {
       return ProbeResult(check, ProbeStatus.inconclusive,
-          note: 'The app emitted conflicting outcomes for this condition.');
+          note: En.androidConflictingOutcomes, noteAr: Ar.androidConflictingOutcomes);
     }
     if (status != null && (status == ProbeStatus.blocked || alive && !death)) {
       final outcome = status == ProbeStatus.blocked ? 'blocked' : 'not-blocked';
@@ -293,19 +293,22 @@ class ProbeRunner {
     if (status == null && alive && !death) {
       return ProbeResult(check, ProbeStatus.notBlocked,
           processOnly: true,
-          evidence: 'The same app process stayed alive after the condition was verified.');
+          evidence: En.androidProcessAliveVerified, evidenceAr: Ar.androidProcessAliveVerified);
     }
 
     String? detail;
+    String? detailAr;
     var boundService = false;
     if (check.id == 'repackage' && (death || !alive)) {
       final cause = classifyRepackageReaction(logs, package: package, pid: pid);
       if (cause == CrashCause.boundService) {
         boundService = true;
-        detail = 'A certificate-bound service failed.';
+        detail = En.androidBoundServiceFailed;
+        detailAr = Ar.androidBoundServiceFailed;
       }
       if (cause == CrashCause.integrityCheck) {
-        detail = 'Logs mention an integrity check.';
+        detail = En.androidIntegrityMentioned;
+        detailAr = Ar.androidIntegrityMentioned;
       }
     }
     final observedPid = pid ?? appPids(logs, package).singleOrNull;
@@ -314,19 +317,21 @@ class ProbeRunner {
       final exits = await dev.exitInfo(package);
       if (exits != null && observedSelfExit(earlierExits, exits, package, observedPid)) {
         return ProbeResult(check, ProbeStatus.blocked, processOnly: true,
-            evidence: 'Android recorded that the observed app process exited on its own after the condition.');
+            evidence: En.androidSelfExitVerified, evidenceAr: Ar.androidSelfExitVerified);
       }
     }
     final started = appStarted(logs, package, pid: pid);
     return ProbeResult(check, ProbeStatus.inconclusive,
         evidence: death
-            ? 'app crashed or was killed'
+            ? En.androidAppCrashed
             : alive
-                ? 'app process stayed alive'
-                : 'app process unavailable',
+                ? En.androidProcessStayedAlive
+                : En.androidProcessMissing,
+        evidenceAr: death ? Ar.androidAppCrashed : alive ? Ar.androidProcessStayedAlive : Ar.androidProcessMissing,
+        noteAr: detailAr ?? (started ? Ar.androidExitUnattributed : Ar.androidProcessNotObserved),
         note: detail ?? (started
-            ? 'The app exit could not be attributed to the tested condition.'
-            : 'No app process was observed under the tested condition.'));
+            ? En.androidExitUnattributed
+            : En.androidProcessNotObserved));
   }
 
   Future<String?> _install(ProbeDevice device, List<String> apks) =>
@@ -348,7 +353,7 @@ class ProbeRunner {
     final installErr = await _install(dev, resigned);
     if (installErr != null) {
       return ProbeResult(check, ProbeStatus.inconclusive,
-          note: 'could not install the re-signed build: $installErr');
+          note: En.androidResignedInstallFailed(error: installErr), noteAr: Ar.androidResignedInstallFailed(error: installErr));
     }
     return _observe(dev, check, package);
   }

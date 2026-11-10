@@ -2,6 +2,8 @@
 /// each check observed, and why something could not be judged.
 library;
 
+import '../l10n/messages.g.dart';
+
 import '../engine.dart';
 import '../probe/probe_model.dart';
 import '../probe/probe_report.dart';
@@ -12,6 +14,10 @@ const probeRuleIds = {
   'hooking': 'AEG-R02',
   'debugger': 'AEG-R03',
   'repackage': 'AEG-R04',
+  'jailbreak': 'AEG-R05',
+  'ios-hooking': 'AEG-R06',
+  'ios-debugger': 'AEG-R07',
+  'ios-repackage': 'AEG-R08',
 };
 
 class ProbeLine {
@@ -56,22 +62,25 @@ class ProbeView {
   static ProbeView? of(AuditReport r, String lang) {
     final o = r.probe;
     if (o == null) return null;
-    String t(String en, String ar) => lang == 'ar' ? ar : en;
+
+    final ios = r.binary?.kind == 'IPA';
     final caveats = [
-      t('Automatic observations cover process behavior. App events describe the tested operation.',
-          'الفحص التلقائي بيرصد حالة العملية، وإشارات التطبيق بتوضح نتيجة الإجراء المختبَر.'),
-      t('This shows what happened on this emulator with this build, not a proof of security.',
-          'ده اللي حصل على الإيموليتر ده بالنسخة دي، مش إثبات أمان.'),
+      L10n(lang).probeViewAutomaticObservationsCoverProcessBehaviorAppEventsDescribe,
+      if (!ios) L10n(lang).probeViewThisShowsWhatHappenedOnThisEmulatorWith,
     ];
     final report = o.report;
-    final heading = t('Resilience probe (emulator)', 'اختبار الحماية على الإيموليتر') +
+    if (report?.platform == 'ios-simulator') {
+      caveats.add(L10n(lang).probeViewSimulatorObservationsApplyOnlyToThisSimulatorBuild);
+    }
+    final heading = (ios ? L10n(lang).probeViewIosResilienceProbe :
+        L10n(lang).probeViewResilienceProbeEmulator) +
         (report == null ? '' : ' — ${report.app.split(RegExp(r'[\\/]')).last}');
     if (report == null) {
       return ProbeView(
           heading: heading,
           lines: const [],
           caveats: const [],
-          message: t('Skipped: ${o.skipped}', 'اتخطّى: ${o.skipped}'));
+          message: L10n(lang).probeViewSkipped(value1: o.skippedOf(lang)));
     }
     if (report.emulatorError != null) {
       return ProbeView(
@@ -79,20 +88,17 @@ class ProbeView {
           lines: const [],
           caveats: const [],
           details: probeApkIdentityLines(report, lang),
-          message: t('Could not run: ${report.emulatorError}',
-              'مقدرش يشتغل: ${report.emulatorError}'));
+          message: L10n(lang).probeViewCouldNotRun(value1: report.emulatorError));
     }
     if (!report.baselineAlive) {
       return ProbeView(
         heading: heading,
         lines: const [],
         caveats: caveats,
-        message: t(
-            'The app did not stay alive on a clean emulator, so no check could be judged (emulator detection, a crash or a slow first launch).',
-            'التطبيق مكمّلش شغّال على إيموليتر نضيف، فمفيش فحص اتحكم عليه (كشف إيموليتر أو كراش أو تشغيل أول بطيء).'),
+        message: ios ? L10n(lang).probeViewTheIosControlProcessDidNotStayAlive : L10n(lang).probeViewTheAppDidNotStayAliveOnA,
         details: [
           ...probeApkIdentityLines(report, lang),
-          for (final l in (report.baselineNote ?? '').split('\n'))
+          for (final l in (report.baselineNoteOf(lang) ?? '').split('\n'))
             if (l.trim().isNotEmpty) l.trimRight(),
         ],
       );
@@ -107,17 +113,17 @@ class ProbeView {
       details: probeApkIdentityLines(report, lang),
       baseline: base == null
           ? null
-          : '✅ ${probeCheckTitle(base.check, lang)}: ${probeEvidence(base, lang)}${base.note == null ? '' : ' · ${base.note}'}',
+          : '✅ ${probeCheckTitle(base.check, lang)}: ${probeEvidence(base, lang)}${base.note == null ? '' : ' · ${probeNote(base, lang)}'}',
       lines: [
         for (final x in report.scored)
           ProbeLine(
             x.status,
-            probeMark(x.status).trim(),
-            probeCheckTitle(x.check, lang),
+            probeResultMark(x).trim(),
+            probeResultTitle(x, lang),
             probeEvidence(x, lang),
             [x.check.masvs, x.check.mastg].whereType<String>().join(' · '),
             probeRuleIds[x.check.id],
-            note: x.note,
+            note: probeNote(x, lang),
           ),
       ],
     );

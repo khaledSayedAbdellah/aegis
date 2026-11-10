@@ -1,5 +1,7 @@
-/// Data types for `aegis probe` (docs/plans/probe.md). No I/O.
+/// Data types for `aegis probe` (doc/plans/probe.md). No I/O.
 library;
+
+import '../l10n/messages.g.dart';
 
 /// The outcome of one resilience check.
 enum ProbeStatus {
@@ -31,14 +33,14 @@ class ProbeCheck {
 
 /// The checks the probe runs, in order. `baseline` is the gate, not scored.
 const probeChecks = <ProbeCheck>[
-  ProbeCheck('baseline', 'Baseline launch'),
-  ProbeCheck('root', 'Root detection',
+  ProbeCheck('baseline', En.checkBaseline),
+  ProbeCheck('root', En.checkRoot,
       masvs: 'MASVS-RESILIENCE-1', mastg: 'MASTG-TEST-0325'),
-  ProbeCheck('debugger', 'Debugger detection',
+  ProbeCheck('debugger', En.checkDebugger,
       masvs: 'MASVS-RESILIENCE-4', mastg: 'MASTG-TEST-0353'),
-  ProbeCheck('hooking', 'Instrumentation (Frida) detection',
+  ProbeCheck('hooking', En.checkHooking,
       masvs: 'MASVS-RESILIENCE-4', mastg: 'MASTG-TEST-0341'),
-  ProbeCheck('repackage', 'Repackaging / integrity detection',
+  ProbeCheck('repackage', En.checkRepackage,
       masvs: 'MASVS-RESILIENCE-2'),
 ];
 
@@ -46,8 +48,17 @@ ProbeCheck checkById(String id) => probeChecks.firstWhere((c) => c.id == id);
 
 /// The result of one check.
 class ProbeResult {
-  ProbeResult(this.check, this.status, {this.evidence = '', this.note, this.applicable = true,
-      this.processOnly = false});
+  ProbeResult(this.check, this.status, {this.evidence = '', this.evidenceAr, this.note, this.noteAr, this.applicable = true,
+      this.processOnly = false}) : partialStatus = null;
+
+  /// The observation is useful but cannot decide the full iOS condition.
+  ProbeResult.partial(this.check, {required ProbeStatus observation,
+      required this.evidence, this.evidenceAr, required this.note, required this.noteAr,
+      this.processOnly = false})
+      : status = ProbeStatus.inconclusive, applicable = true,
+        partialStatus = observation;
+  final ProbeStatus? partialStatus;
+  final String? noteAr;
   final ProbeCheck check;
   final ProbeStatus status;
   final bool applicable;
@@ -57,6 +68,7 @@ class ProbeResult {
 
   /// What was observed, for the report ("process gone after 8s", ...).
   final String evidence;
+  final String? evidenceAr;
 
   /// An extra caveat for this line (e.g. a report-only RASP note).
   final String? note;
@@ -85,11 +97,14 @@ class ProbeReport {
     required this.results,
     this.emulatorError,
     this.baselineNote,
+    this.baselineNoteAr,
     this.apkIdentity,
+    this.platform = 'android',
   });
 
   /// The app that was probed (file name).
   final String app;
+  final String platform;
   final ProbeApkIdentity? apkIdentity;
 
   /// Set when the emulator or install could not run at all (a tooling
@@ -103,6 +118,8 @@ class ProbeReport {
 
   /// A diagnostic (logcat tail) shown when [baselineAlive] is false.
   final String? baselineNote;
+  final String? baselineNoteAr;
+  String? baselineNoteOf(String lang) => lang == 'ar' ? baselineNoteAr ?? baselineNote : baselineNote;
 
   final List<ProbeResult> results;
 
@@ -118,11 +135,13 @@ class ProbeReport {
 /// What an audit knows about the probe: its report, or why it did not run
 /// (no emulator tools, --no-probe, ...). Rules AEG-R01..R04 read it.
 class ProbeOutcome {
-  const ProbeOutcome.ran(ProbeReport this.report) : skipped = null, requested = true;
-  const ProbeOutcome.skipped(String this.skipped, {this.requested = true}) : report = null;
+  const ProbeOutcome.ran(ProbeReport this.report) : skipped = null, skippedAr = null, requested = true;
+  const ProbeOutcome.skipped(String this.skipped, {this.requested = true, this.skippedAr}) : report = null;
 
   final ProbeReport? report;
   final String? skipped;
+  final String? skippedAr;
+  String? skippedOf(String lang) => lang == 'ar' ? skippedAr ?? skipped : skipped;
   final bool requested;
 
   /// Whether a requested probe was skipped or left an applicable check undecided.

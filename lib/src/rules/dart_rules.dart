@@ -1,6 +1,8 @@
 /// Rules that analyze Dart source code.
 library;
 
+import '../l10n/messages.g.dart';
+
 import 'dart:convert';
 
 import '../dart_scanner.dart';
@@ -101,13 +103,9 @@ class HardcodedSecretRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D01',
-        title: Bilingual('Hardcoded secret in Dart code', 'سر (secret) مكتوب في كود Dart'),
-        description: Bilingual(
-            'Strings are stored in plain text inside libapp.so. --obfuscate does not hide them; `strings` on the APK reveals them in seconds.',
-            'الـ strings بتتخزن زي ما هي جوه libapp.so. الـ --obfuscate مش بيخفيها، وأمر strings على الـ APK بيطلعها في ثواني.'),
-        fix: Bilingual(
-            'Move secrets to your backend. Keys that must ship (Maps, Firebase) should be restricted by package name/SHA-1 and bundle id in their console.',
-            'انقل الأسرار للـ backend. والمفاتيح اللي لازم تكون في التطبيق (Maps أو Firebase) اقفلها على الـ package name والـ SHA-1 والـ bundle id من الـ console بتاعها.'),
+        title: Bilingual(En.dartRulesHardcodedSecretInDartCode, Ar.dartRulesHardcodedSecretInDartCode),
+        description: Bilingual(En.dartRulesStringsAreStoredInPlainTextInsideLibappSo, Ar.dartRulesStringsAreStoredInPlainTextInsideLibappSo),
+        fix: Bilingual(En.dartRulesMoveSecretsToYourBackendKeysThatMust, Ar.dartRulesMoveSecretsToYourBackendKeysThatMust),
         severity: Severity.high,
         masvs: ['MASVS-STORAGE-1'],
         maswe: ['MASWE-0004'],
@@ -136,8 +134,8 @@ class HardcodedSecretRule extends Rule {
             final next = f.at(i + 1);
             if (!pemBodyFollows(v, m.end, next: next != null && next.isString ? next.value : null)) break;
           }
-          out.add(at(f, i, '${pat.name} found.',
-              messageAr: 'لقيت ${pat.name}.',
+          out.add(at(f, i, En.dartRulesFound(value1: pat.name),
+              messageAr: Ar.dartRulesFound(value1: pat.name),
               snippet: redact(m.group(0)!)));
           break;
         }
@@ -162,8 +160,8 @@ class HardcodedSecretRule extends Rule {
         if (v.contains(' ') || (v.contains('/') && !v.contains('+'))) continue;
         if (_looksLikePlaceholder(v) || _isWordLike(v)) continue;
         if (shannonEntropy(v) < 3.0) continue;
-        out.add(at(f, i, 'Possible secret assigned to "$name".',
-            messageAr: 'غالباً ده سر متخزن في "$name".',
+        out.add(at(f, i, En.dartRulesPossibleSecretAssignedTo(name: name),
+            messageAr: Ar.dartRulesPossibleSecretAssignedTo(name: name),
             snippet: '$name = ${redact(v)}'));
       }
     }
@@ -197,11 +195,9 @@ class CleartextUrlRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D02',
-        title: Bilingual('Cleartext http:// URL in code', 'لينك http:// غير مشفر في الكود'),
-        description: Bilingual(
-            'Requests to http:// URLs can be read and modified by anyone on the same network.',
-            'أي request لـ http:// ممكن يتقرا ويتعدل من أي حد على نفس الشبكة.'),
-        fix: Bilingual('Use https:// for every endpoint.', 'استخدم https:// لكل الـ endpoints.'),
+        title: Bilingual(En.dartRulesCleartextHttpUrlInCode, Ar.dartRulesCleartextHttpUrlInCode),
+        description: Bilingual(En.dartRulesRequestsToHttpUrlsCanBeReadAnd, Ar.dartRulesRequestsToHttpUrlsCanBeReadAnd),
+        fix: Bilingual(En.dartRulesUseHttpsForEveryEndpoint, Ar.dartRulesUseHttpsForEveryEndpoint),
         severity: Severity.medium,
         l2Severity: Severity.high,
         masvs: ['MASVS-NETWORK-1'],
@@ -220,8 +216,8 @@ class CleartextUrlRule extends Rule {
         // A bare scheme ('http://') is a prefix check, not a URL.
         if (v.length == 'http://'.length) continue;
         if (_safeHttpHosts.hasMatch(v)) continue;
-        out.add(at(f, i, 'Cleartext URL: ${shorten(v, 80)}',
-            messageAr: 'لينك غير مشفر: ${shorten(v, 80)}'));
+        out.add(at(f, i, En.dartRulesCleartextUrl(value1: shorten(v, 80)),
+            messageAr: Ar.dartRulesCleartextUrl(value1: shorten(v, 80))));
       }
     }
     return RuleCheck(out);
@@ -234,13 +230,9 @@ class TlsBypassRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D03',
-        title: Bilingual('TLS certificate validation disabled', 'التحقق من شهادة TLS مقفول'),
-        description: Bilingual(
-            'A certificate callback that always returns true accepts any certificate, so any proxy (Burp, mitmproxy) can read all traffic.',
-            'الـ callback اللي بيرجع true دايماً بيقبل أي شهادة، يعني أي proxy (زي Burp أو mitmproxy) يقدر يقرا كل الترافيك.'),
-        fix: Bilingual(
-            'Remove the callback. For self-signed dev servers use a debug-only override guarded by kDebugMode, or pin the expected certificate.',
-            'شيل الـ callback ده. لو عندك سيرفر تطوير بشهادة self-signed، خليه في الـ debug بس بشرط kDebugMode، أو اعمل pinning للشهادة المتوقعة.'),
+        title: Bilingual(En.dartRulesTlsCertificateValidationDisabled, Ar.dartRulesTlsCertificateValidationDisabled),
+        description: Bilingual(En.dartRulesACertificateCallbackThatAlwaysReturnsTrueAccepts, Ar.dartRulesACertificateCallbackThatAlwaysReturnsTrueAccepts),
+        fix: Bilingual(En.dartRulesRemoveTheCallbackForSelfSignedDevServersUse, Ar.dartRulesRemoveTheCallbackForSelfSignedDevServersUse),
         severity: Severity.critical,
         masvs: ['MASVS-NETWORK-1'],
         maswe: ['MASWE-0027'],
@@ -261,8 +253,8 @@ class TlsBypassRule extends Rule {
         if (!(op.isPunct('=') || op.isPunct(':'))) continue;
         if (alwaysReturnsTrue(f, i + 2)) {
           if (_guardedByDebug(f, i)) continue;
-          out.add(at(f, i, '${t.text} accepts every certificate.',
-              messageAr: '${t.text} بيقبل أي شهادة.'));
+          out.add(at(f, i, En.dartRulesAcceptsEveryCertificate(value1: t.text),
+              messageAr: Ar.dartRulesAcceptsEveryCertificate(value1: t.text)));
         }
       }
     }
@@ -339,13 +331,9 @@ class InsecureStorageRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D04',
-        title: Bilingual('Sensitive data in plain storage', 'بيانات حساسة متخزنة من غير تشفير'),
-        description: Bilingual(
-            'SharedPreferences, GetStorage and plain Hive boxes are unencrypted files. On a rooted device or through a backup they can be read directly.',
-            'الـ SharedPreferences و GetStorage و Hive العادي ملفات مش متشفرة. على جهاز rooted أو من الـ backup ممكن تتقري على طول.'),
-        fix: Bilingual(
-            'Store tokens, passwords and PINs in flutter_secure_storage (Keychain / Keystore), or an encrypted Hive box with a key kept in secure storage.',
-            'خزّن الـ tokens والباسوردات والـ PIN في flutter_secure_storage (Keychain و Keystore)، أو Hive متشفر والمفتاح بتاعه في الـ secure storage.'),
+        title: Bilingual(En.dartRulesSensitiveDataInPlainStorage, Ar.dartRulesSensitiveDataInPlainStorage),
+        description: Bilingual(En.dartRulesSharedpreferencesGetstorageAndPlainHiveBoxesAreUnencrypted, Ar.dartRulesSharedpreferencesGetstorageAndPlainHiveBoxesAreUnencrypted),
+        fix: Bilingual(En.dartRulesStoreTokensPasswordsAndPinsInFlutterSecureStorageKeychain, Ar.dartRulesStoreTokensPasswordsAndPinsInFlutterSecureStorageKeychain),
         severity: Severity.medium,
         l2Severity: Severity.high,
         masvs: ['MASVS-STORAGE-1'],
@@ -410,13 +398,9 @@ class WeakCryptoRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D05',
-        title: Bilingual('Weak cryptography', 'تشفير ضعيف'),
-        description: Bilingual(
-            'MD5/SHA-1 are broken for security use, and ECB mode leaks patterns of the plaintext.',
-            'MD5 و SHA-1 مكسورين لأي استخدام أمني، و ECB mode بيكشف أنماط البيانات الأصلية.'),
-        fix: Bilingual(
-            'Use SHA-256 or better for hashing, Argon2/PBKDF2 for passwords and AES-GCM for encryption.',
-            'استخدم SHA-256 أو أقوى للـ hashing، و Argon2 أو PBKDF2 للباسوردات، و AES-GCM للتشفير.'),
+        title: Bilingual(En.dartRulesWeakCryptography, Ar.dartRulesWeakCryptography),
+        description: Bilingual(En.dartRulesMd5Sha1AreBrokenForSecurityUseAndEcb, Ar.dartRulesMd5Sha1AreBrokenForSecurityUseAndEcb),
+        fix: Bilingual(En.dartRulesUseSha256OrBetterForHashingArgon2Pbkdf2For, Ar.dartRulesUseSha256OrBetterForHashingArgon2Pbkdf2For),
         severity: Severity.medium,
         masvs: ['MASVS-CRYPTO-1'],
         maswe: ['MASWE-0007', 'MASWE-0008'],
@@ -431,25 +415,25 @@ class WeakCryptoRule extends Rule {
       for (final c in f.calls({'convert'})) {
         final r = c.receiver;
         if (r == 'md5' || r == 'sha1') {
-          out.add(at(f, c.nameIndex, '$r is used for hashing.',
-              messageAr: 'مستخدم $r في الـ hashing.'));
+          out.add(at(f, c.nameIndex, En.dartRulesIsUsedForHashing(r: r),
+              messageAr: Ar.dartRulesIsUsedForHashing(r: r)));
         }
       }
       for (var i = 0; i + 2 < f.tokens.length; i++) {
         final t = f.tokens[i];
         if (t.isIdent && t.text == 'AESMode' && f.tokens[i + 1].isPunct('.') &&
             f.tokens[i + 2].text == 'ecb') {
-          out.add(at(f, i, 'AES in ECB mode.', messageAr: 'AES بنظام ECB.'));
+          out.add(at(f, i, En.dartRulesAesInEcbMode, messageAr: Ar.dartRulesAesInEcbMode));
         }
         if (t.isIdent && (t.text == 'MD5Digest' || t.text == 'SHA1Digest' || t.text == 'DESedeEngine' || t.text == 'DESEngine' || t.text == 'RC4Engine')) {
-          out.add(at(f, i, '${t.text} is a weak algorithm.',
-              messageAr: '${t.text} خوارزمية ضعيفة.'));
+          out.add(at(f, i, En.dartRulesIsAWeakAlgorithm(value1: t.text),
+              messageAr: Ar.dartRulesIsAWeakAlgorithm(value1: t.text)));
         }
         if (t.isString) {
           final v = (t.value ?? '').toUpperCase();
           if (RegExp(r'^(AES/ECB|DES/|DESEDE/|RC4(/|$)|AES/CBC/NOPADDING)').hasMatch(v)) {
-            out.add(at(f, i, 'Weak cipher transformation "${t.value}".',
-                messageAr: 'تشفير ضعيف "${t.value}".'));
+            out.add(at(f, i, En.dartRulesWeakCipherTransformation(value1: t.value),
+                messageAr: Ar.dartRulesWeakCipherTransformation(value1: t.value)));
           }
         }
       }
@@ -464,13 +448,9 @@ class StaticKeyRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D06',
-        title: Bilingual('Hardcoded encryption key or IV', 'مفتاح تشفير أو IV ثابت في الكود'),
-        description: Bilingual(
-            'A key or IV written in the code is the same in every install and can be extracted from the binary, so the encryption protects nothing.',
-            'المفتاح أو الـ IV المكتوب في الكود واحد في كل الأجهزة وممكن يتطلع من الـ binary، يعني التشفير مش بيحمي حاجة.'),
-        fix: Bilingual(
-            'Generate keys at runtime (Key.fromSecureRandom / Random.secure()), keep them in flutter_secure_storage, and use a fresh random IV for every encryption.',
-            'اعمل المفاتيح وقت التشغيل (Key.fromSecureRandom أو Random.secure())، وخزنها في flutter_secure_storage، واستخدم IV عشوائي جديد مع كل عملية تشفير.'),
+        title: Bilingual(En.dartRulesHardcodedEncryptionKeyOrIv, Ar.dartRulesHardcodedEncryptionKeyOrIv),
+        description: Bilingual(En.dartRulesAKeyOrIvWrittenInTheCode, Ar.dartRulesAKeyOrIvWrittenInTheCode),
+        fix: Bilingual(En.dartRulesGenerateKeysAtRuntimeKeyFromsecurerandomRandomSecureKeep, Ar.dartRulesGenerateKeysAtRuntimeKeyFromsecurerandomRandomSecureKeep),
         severity: Severity.high,
         masvs: ['MASVS-CRYPTO-2'],
         maswe: ['MASWE-0013', 'MASWE-0014'],
@@ -489,8 +469,8 @@ class StaticKeyRule extends Rule {
         if (args.isEmpty) continue;
         final a = args.first;
         if (a.start == a.end && f.tokens[a.start].isString) {
-          out.add(at(f, c.nameIndex, '$r.${c.name}() is called with a literal.',
-              messageAr: '$r.${c.name}() متنادي بقيمة ثابتة.',
+          out.add(at(f, c.nameIndex, En.dartRulesIsCalledWithALiteral(r: r, value2: c.name),
+              messageAr: Ar.dartRulesIsCalledWithALiteral(r: r, value2: c.name),
               snippet: '$r.${c.name}(${redact(f.tokens[a.start].value ?? '')})'));
         }
       }
@@ -499,8 +479,8 @@ class StaticKeyRule extends Rule {
         if (args.isEmpty) continue;
         final txt = f.text(args.first.start, args.first.end).replaceAll(' ', '');
         if (RegExp(r'^Uint8List\(\d+\)$').hasMatch(txt)) {
-          out.add(at(f, c.nameIndex, 'IV made of zero bytes ($txt).',
-              messageAr: 'الـ IV كله أصفار ($txt).'));
+          out.add(at(f, c.nameIndex, En.dartRulesIvMadeOfZeroBytes(txt: txt),
+              messageAr: Ar.dartRulesIvMadeOfZeroBytes(txt: txt)));
         }
       }
     }
@@ -514,12 +494,9 @@ class InsecureRandomRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D07',
-        title: Bilingual('Predictable random for security values', 'أرقام عشوائية متوقعة لقيم أمنية'),
-        description: Bilingual(
-            'Random() is not cryptographically secure; tokens, OTPs, nonces or keys made with it can be predicted.',
-            'Random() مش آمن للتشفير، والـ tokens أو الـ OTP أو المفاتيح اللي بتتعمل بيه ممكن تتوقع.'),
-        fix: Bilingual('Use Random.secure() for anything security-related.',
-            'استخدم Random.secure() لأي حاجة ليها علاقة بالأمان.'),
+        title: Bilingual(En.dartRulesPredictableRandomForSecurityValues, Ar.dartRulesPredictableRandomForSecurityValues),
+        description: Bilingual(En.dartRulesRandomIsNotCryptographicallySecureTokensOtpsNonces, Ar.dartRulesRandomIsNotCryptographicallySecureTokensOtpsNonces),
+        fix: Bilingual(En.dartRulesUseRandomSecureForAnythingSecurityRelated, Ar.dartRulesUseRandomSecureForAnythingSecurityRelated),
         severity: Severity.medium,
         masvs: ['MASVS-CRYPTO-1'],
         maswe: ['MASWE-0012'],
@@ -541,8 +518,8 @@ class InsecureRandomRule extends Rule {
         final window = [for (var l = line - 3; l <= line + 3; l++) f.lineText(l)].join(' ');
         if (_securityContext.hasMatch(window)) {
           out.add(at(f, c.nameIndex,
-              'Random() used near security-sensitive code.',
-              messageAr: 'Random() مستخدم جنب كود حساس أمنياً.'));
+              En.dartRulesRandomUsedNearSecuritySensitiveCode,
+              messageAr: Ar.dartRulesRandomUsedNearSecuritySensitiveCode));
         }
       }
     }
@@ -556,13 +533,9 @@ class SensitiveLoggingRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D08',
-        title: Bilingual('Sensitive data written to logs', 'بيانات حساسة بتتكتب في الـ logs'),
-        description: Bilingual(
-            'Logs survive in logcat, crash reports and device logs. Tokens and passwords printed there leak to anyone with USB access or to third-party SDKs. Dio\'s LogInterceptor prints Authorization headers.',
-            'الـ logs بتفضل في logcat وتقارير الـ crash. أي token أو باسورد بيتطبع فيها بيتسرب لأي حد عنده USB أو لأي SDK تاني. والـ LogInterceptor بتاع Dio بيطبع الـ Authorization header.'),
-        fix: Bilingual(
-            'Never log secrets. Wrap debug logging in `if (kDebugMode)` and add LogInterceptor only in debug builds.',
-            'متطبعش أسرار في الـ logs أبداً. حط أي logging جوه `if (kDebugMode)`، وضيف LogInterceptor في الـ debug بس.'),
+        title: Bilingual(En.dartRulesSensitiveDataWrittenToLogs, Ar.dartRulesSensitiveDataWrittenToLogs),
+        description: Bilingual(En.dartRulesLogsSurviveInLogcatCrashReportsAndDevice, Ar.dartRulesLogsSurviveInLogcatCrashReportsAndDevice),
+        fix: Bilingual(En.dartRulesNeverLogSecretsWrapDebugLoggingInIf, Ar.dartRulesNeverLogSecretsWrapDebugLoggingInIf),
         severity: Severity.medium,
         masvs: ['MASVS-STORAGE-2'],
         maswe: ['MASWE-0005'],
@@ -607,8 +580,8 @@ class SensitiveLoggingRule extends Rule {
           continue;
         }
         out.add(at(f, c.nameIndex,
-            '${c.name} is added without a kDebugMode guard and logs headers (Authorization).',
-            messageAr: '${c.name} متضاف من غير شرط kDebugMode وبيطبع الـ headers (زي Authorization).'));
+            En.dartRulesIsAddedWithoutAKdebugmodeGuardAnd(value1: c.name),
+            messageAr: Ar.dartRulesIsAddedWithoutAKdebugmodeGuardAnd(value1: c.name)));
       }
     }
     return RuleCheck(out);
@@ -643,13 +616,9 @@ class BundledSecretsRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D09',
-        title: Bilingual('Secret file bundled as an asset', 'ملف أسرار متضاف كـ asset'),
-        description: Bilingual(
-            'Assets are plain files inside the APK/IPA. A bundled .env, service-account JSON or private key can be unzipped by anyone.',
-            'الـ assets ملفات عادية جوه الـ APK/IPA. أي ملف .env أو service-account أو private key متضاف ممكن أي حد يفك الضغط ويقراه.'),
-        fix: Bilingual(
-            'Remove the file from flutter: assets. Use --dart-define for non-secret config and keep real secrets on the server.',
-            'شيل الملف من flutter: assets. استخدم --dart-define للإعدادات العادية، وخلي الأسرار الحقيقية على السيرفر.'),
+        title: Bilingual(En.dartRulesSecretFileBundledAsAnAsset, Ar.dartRulesSecretFileBundledAsAnAsset),
+        description: Bilingual(En.dartRulesAssetsArePlainFilesInsideTheApkIpaA, Ar.dartRulesAssetsArePlainFilesInsideTheApkIpaA),
+        fix: Bilingual(En.dartRulesRemoveTheFileFromFlutterAssetsUseDartDefine, Ar.dartRulesRemoveTheFileFromFlutterAssetsUseDartDefine),
         severity: Severity.high,
         masvs: ['MASVS-STORAGE-1'],
         maswe: ['MASWE-0004'],
@@ -663,11 +632,11 @@ class BundledSecretsRule extends Rule {
     final out = <Finding>[];
     for (final (path, folder) in riskyAssetPaths(project)) {
       if (folder == null) {
-        out.add(inFile('pubspec.yaml', null, '$path is bundled as an asset.',
-            messageAr: '$path متضاف كـ asset.'));
+        out.add(inFile('pubspec.yaml', null, En.dartRulesIsBundledAsAnAsset(path: path),
+            messageAr: Ar.dartRulesIsBundledAsAnAsset(path: path)));
       } else {
-        out.add(inFile(path, null, '$path is bundled through the "$folder" asset folder.',
-            messageAr: '$path متضاف عن طريق فولدر الـ assets "$folder".'));
+        out.add(inFile(path, null, En.dartRulesIsBundledThroughTheAsset(path: path, folder: folder),
+            messageAr: Ar.dartRulesIsBundledThroughTheAsset(path: path, folder: folder)));
       }
     }
     return RuleCheck(out);
@@ -680,13 +649,9 @@ class WebViewRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D10',
-        title: Bilingual('WebView exposes native bridge or debugging', 'الـ WebView بيفتح bridge أو debugging'),
-        description: Bilingual(
-            'A JavaScript channel without navigation restrictions lets any page the WebView reaches call into your app. Enabled WebView debugging lets anyone inspect it over USB.',
-            'الـ JavaScript channel من غير قيود على التنقل بيخلي أي صفحة يوصلها الـ WebView تنادي على كود التطبيق. وتفعيل الـ debugging بيخلي أي حد يفحص الـ WebView عن طريق USB.'),
-        fix: Bilingual(
-            'Restrict navigation with NavigationDelegate.onNavigationRequest (or shouldOverrideUrlLoading) to your own hosts, and enable WebView debugging only under kDebugMode.',
-            'اقفل التنقل على السيرفرات بتاعتك بـ onNavigationRequest أو shouldOverrideUrlLoading، وفعّل الـ debugging في الـ debug بس.'),
+        title: Bilingual(En.dartRulesWebviewExposesNativeBridgeOrDebugging, Ar.dartRulesWebviewExposesNativeBridgeOrDebugging),
+        description: Bilingual(En.dartRulesAJavascriptChannelWithoutNavigationRestrictionsLetsAny, Ar.dartRulesAJavascriptChannelWithoutNavigationRestrictionsLetsAny),
+        fix: Bilingual(En.dartRulesRestrictNavigationWithNavigationdelegateOnnavigationrequestOrShouldoverrideurlloadingToYour, Ar.dartRulesRestrictNavigationWithNavigationdelegateOnnavigationrequestOrShouldoverrideurlloadingToYour),
         severity: Severity.medium,
         masvs: ['MASVS-PLATFORM-2'],
         maswe: ['MASWE-0033', 'MASWE-0035'],
@@ -704,8 +669,8 @@ class WebViewRule extends Rule {
             f.source.contains('shouldOverrideUrlLoading');
         if (!restricted) {
           out.add(at(f, bridges.first.nameIndex,
-              'JavaScript bridge (${bridges.first.name}) without navigation restrictions.',
-              messageAr: 'JavaScript bridge (${bridges.first.name}) من غير قيود على التنقل.'));
+              En.dartRulesJavascriptBridgeWithoutNavigationRestrictions(value1: bridges.first.name),
+              messageAr: Ar.dartRulesJavascriptBridgeWithoutNavigationRestrictions(value1: bridges.first.name)));
         }
       }
       for (var i = 0; i + 2 < f.tokens.length; i++) {
@@ -715,8 +680,8 @@ class WebViewRule extends Rule {
         if (!isFlag) continue;
         final window = f.text(i, (i + 4).clamp(0, f.tokens.length - 1).toInt());
         if (window.contains('true') && !_guardedByDebug(f, i)) {
-          out.add(at(f, i, 'WebView debugging is enabled (${t.text}).',
-              messageAr: 'الـ debugging بتاع الـ WebView مفعّل (${t.text}).'));
+          out.add(at(f, i, En.dartRulesWebviewDebuggingIsEnabled(value1: t.text),
+              messageAr: Ar.dartRulesWebviewDebuggingIsEnabled(value1: t.text)));
         }
       }
     }
@@ -724,8 +689,8 @@ class WebViewRule extends Rule {
       final m = RegExp(r'setWebContentsDebuggingEnabled\s*\(\s*true\s*\)').firstMatch(s.text);
       if (m != null && !s.text.contains('BuildConfig.DEBUG')) {
         out.add(inFile(s.path, lineAt(s.text, m.start),
-            'WebView.setWebContentsDebuggingEnabled(true) in native code.',
-            messageAr: 'WebView.setWebContentsDebuggingEnabled(true) في الكود الـ native.'));
+            En.dartRulesWebviewSetwebcontentsdebuggingenabledTrueInNativeCode,
+            messageAr: Ar.dartRulesWebviewSetwebcontentsdebuggingenabledTrueInNativeCode));
       }
     }
     return RuleCheck(out);

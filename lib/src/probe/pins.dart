@@ -1,7 +1,7 @@
 /// Every version `aegis setup` installs, so results are the same on every
 /// machine and upgrading is one edit here.
 ///
-/// To upgrade (see docs/plans/probe-toolchain.md §5.2): take the newest
+/// To upgrade (see doc/plans/probe-toolchain.md §5.2): take the newest
 /// `frida` on PyPI, a `frida-tools` whose `Requires-Dist` accepts it, and
 /// check that `frida-server-<v>-android-arm64.xz` and
 /// `bundletool-all-<v>.jar` exist in the GitHub releases.
@@ -45,6 +45,17 @@ String fridaServerUrl(String arch) =>
     'https://github.com/frida/frida/releases/download/$fridaVersion/'
     '${fridaServerName(arch)}.xz';
 
+String get iosGadgetUrl =>
+    'https://github.com/frida/frida/releases/download/$fridaVersion/'
+    'frida-gadget-$fridaVersion-ios-universal.dylib.xz';
+
+/// The Simulator Gadget is pinned separately for Darwin loader compatibility.
+const iosSimulatorGadgetVersion = '16.5.9';
+
+String get iosSimulatorGadgetUrl =>
+    'https://github.com/frida/frida/releases/download/$iosSimulatorGadgetVersion/'
+    'frida-gadget-$iosSimulatorGadgetVersion-ios-simulator-universal.dylib.xz';
+
 String get bundletoolName => 'bundletool-$bundletoolVersion.jar';
 
 String get bundletoolUrl =>
@@ -68,6 +79,14 @@ const _fridaServerPins = <String, Pinned>{
 
 /// The pin for the frida-server `.xz` of [arch].
 Pinned fridaServerPin(String arch) => _fridaServerPins[arch]!;
+
+const iosGadgetPin = Pinned(
+    '511a3fdbc97be296a68b71d6e8ef381ddf614291352aa9a4d0a800e49809abce',
+    17036584);
+
+const iosSimulatorGadgetPin = Pinned(
+    'ea56e6bdc4ddb51f8b6a952b50eb0e4806b32ae386eabc629665b3cd25461c7a',
+    13165472);
 
 const bundletoolPin = Pinned(
     'a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29', 32520401);

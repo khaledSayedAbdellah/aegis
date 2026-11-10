@@ -7,6 +7,8 @@
 /// nothing is counted twice.
 library;
 
+import '../l10n/messages.g.dart';
+
 import 'dart:convert';
 
 import 'package:xml/xml.dart';
@@ -57,12 +59,9 @@ class DebugBuildRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-B01',
-        title: Bilingual('A debug (JIT) Flutter build was shipped', 'نسخة Flutter debug (JIT) هي اللي اتبنت'),
-        description: Bilingual(
-            'Debug builds contain kernel_blob.bin, the whole Dart program in an easy-to-decompile form with all names, and run with debugging services enabled.',
-            'نسخ الـ debug فيها kernel_blob.bin، وده برنامج Dart كله بصيغة سهل تتفك وبكل الأسماء، وكمان خدمات الـ debugging بتبقى شغالة.'),
-        fix: Bilingual('Distribute only builds made with flutter build apk --release (or appbundle).',
-            'متوزعش غير النسخ اللي اتعملت بـ flutter build apk --release أو appbundle.'),
+        title: Bilingual(En.binaryRulesADebugJitFlutterBuildWasShipped, Ar.binaryRulesADebugJitFlutterBuildWasShipped),
+        description: Bilingual(En.binaryRulesDebugBuildsContainKernelBlobBinTheWholeDartProgram, Ar.binaryRulesDebugBuildsContainKernelBlobBinTheWholeDartProgram),
+        fix: Bilingual(En.binaryRulesDistributeOnlyBuildsMadeWithFlutterBuildApk, Ar.binaryRulesDistributeOnlyBuildsMadeWithFlutterBuildApk),
         severity: Severity.critical,
         masvs: ['MASVS-RESILIENCE-4', 'MASVS-RESILIENCE-3'],
         maswe: ['MASWE-0061'],
@@ -78,8 +77,8 @@ class DebugBuildRule extends Rule {
     if (!apk.isDebugFlutterBuild) return RuleCheck([]);
     return RuleCheck([
       inFile(apk.location('assets/flutter_assets/kernel_blob.bin'), null,
-          'kernel_blob.bin is present: this is a debug build, not a release build.',
-          messageAr: 'kernel_blob.bin موجود: دي نسخة debug مش release.')
+          En.binaryRulesKernelBlobBinIsPresentThisIsADebugBuild,
+          messageAr: Ar.binaryRulesKernelBlobBinIsPresentThisIsADebugBuild)
     ]);
   }
 }
@@ -90,13 +89,9 @@ class BinaryDebuggableRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-B02',
-        title: Bilingual('The APK is debuggable', 'الـ APK قابل للـ debugging'),
-        description: Bilingual(
-            'The final manifest inside the APK has android:debuggable="true", so anyone can attach a debugger to the installed app.',
-            'الـ manifest النهائي جوه الـ APK فيه android:debuggable="true"، يعني أي حد يقدر يوصل debugger بالتطبيق بعد ما يتثبت.'),
-        fix: Bilingual(
-            'Find what sets it (a build type, flavor or library manifest) and remove it from release builds.',
-            'دوّر على اللي بيحطه (build type أو flavor أو manifest بتاع مكتبة) وشيله من الـ release.'),
+        title: Bilingual(En.binaryRulesTheApkIsDebuggable, Ar.binaryRulesTheApkIsDebuggable),
+        description: Bilingual(En.binaryRulesTheFinalManifestInsideTheApkHasAndroidDebuggableTrue, Ar.binaryRulesTheFinalManifestInsideTheApkHasAndroidDebuggableTrue),
+        fix: Bilingual(En.binaryRulesFindWhatSetsItABuildTypeFlavor, Ar.binaryRulesFindWhatSetsItABuildTypeFlavor),
         severity: Severity.critical,
         masvs: ['MASVS-RESILIENCE-4'],
         maswe: ['MASWE-0063'],
@@ -116,8 +111,8 @@ class BinaryDebuggableRule extends Rule {
     }
     return RuleCheck([
       inFile(apk.location('AndroidManifest.xml'), null,
-          'android:debuggable="true" in the final manifest.${_notInSource(project, 'It is not in your source manifest, so the build configuration or a library adds it.')}',
-          messageAr: 'android:debuggable="true" موجود في الـ manifest النهائي.${project.hasSource ? ' ومش موجود في الـ manifest بتاعك، يعني إعدادات البيلد أو مكتبة هي اللي ضافته.' : ''}')
+          En.binaryRulesAndroidDebuggableTrueInTheFinalManifest(value1: _notInSource(project, 'It is not in your source manifest, so the build configuration or a library adds it.')),
+          messageAr: Ar.binaryRulesAndroidDebuggableTrueInTheFinalManifest(value1: project.hasSource ? ' ومش موجود في الـ manifest بتاعك، يعني إعدادات البيلد أو مكتبة هي اللي ضافته.' : ''))
     ]);
   }
 }
@@ -128,13 +123,9 @@ class BinaryManifestNetworkRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-B03',
-        title: Bilingual('Final manifest weakens backup or network security', 'الـ manifest النهائي بيضعّف الـ backup أو أمان الشبكة'),
-        description: Bilingual(
-            'Libraries can merge attributes such as usesCleartextTraffic or allowBackup into your manifest, and a network security config from a library can relax TLS rules. What ships is the merged result.',
-            'المكتبات ممكن تضيف attributes زي usesCleartextTraffic أو allowBackup للـ manifest، وممكن network security config من مكتبة يخفف قواعد الـ TLS. واللي بيتشحن هو النتيجة النهائية بعد الدمج.'),
-        fix: Bilingual(
-            'Override the merged value in your manifest with tools:replace (for example tools:replace="android:usesCleartextTraffic") and set the safe value.',
-            'اعمل override للقيمة في الـ manifest بتاعك بـ tools:replace (مثلاً tools:replace="android:usesCleartextTraffic") وحط القيمة الآمنة.'),
+        title: Bilingual(En.binaryRulesFinalManifestWeakensBackupOrNetworkSecurity, Ar.binaryRulesFinalManifestWeakensBackupOrNetworkSecurity),
+        description: Bilingual(En.binaryRulesLibrariesCanMergeAttributesSuchAsUsescleartexttrafficOr, Ar.binaryRulesLibrariesCanMergeAttributesSuchAsUsescleartexttrafficOr),
+        fix: Bilingual(En.binaryRulesOverrideTheMergedValueInYourManifestWith, Ar.binaryRulesOverrideTheMergedValueInYourManifestWith),
         severity: Severity.high,
         masvs: ['MASVS-NETWORK-1', 'MASVS-STORAGE-2'],
         maswe: ['MASWE-0026', 'MASWE-0006'],
@@ -161,14 +152,14 @@ class BinaryManifestNetworkRule extends Rule {
           !hasRules &&
           !await reportedBySource(const AllowBackupRule(), project, profile)) {
         out.add(inFile(manifestLoc, null,
-            'Backup is enabled in the final manifest (allowBackup=${backup ?? 'default true'}).$suffix',
-            messageAr: 'الـ backup شغال في الـ manifest النهائي (allowBackup=${backup ?? 'true افتراضياً'}).$suffixAr'));
+            En.binaryRulesBackupIsEnabledInTheFinalManifestAllowbackup(value1: backup ?? 'default true', suffix: suffix),
+            messageAr: Ar.binaryRulesBackupIsEnabledInTheFinalManifestAllowbackup(value1: backup ?? 'true افتراضياً', suffix: suffixAr)));
       }
       if (androidAttr(app, 'usesCleartextTraffic') == 'true' &&
           !await reportedBySource(const CleartextManifestRule(), project, profile)) {
         out.add(inFile(manifestLoc, null,
-            'usesCleartextTraffic="true" in the final manifest.$suffix',
-            messageAr: 'usesCleartextTraffic="true" في الـ manifest النهائي.$suffixAr'));
+            En.binaryRulesUsescleartexttrafficTrueInTheFinalManifest(suffix: suffix),
+            messageAr: Ar.binaryRulesUsescleartexttrafficTrueInTheFinalManifest(suffix: suffixAr)));
       }
     }
 
@@ -176,7 +167,7 @@ class BinaryManifestNetworkRule extends Rule {
     try {
       configs = apk.networkSecurityConfigs;
     } catch (e) {
-      return RuleCheck.incomplete('Could not inspect the shipped network security config: $e', out);
+      return RuleCheck.incompleteLocalized(En.binaryNetworkConfigUnreadable(error: e), Ar.binaryNetworkConfigUnreadable(error: e), out);
     }
     // Each packaged variant may differ from the source and from the other variants.
     for (final (entry, doc) in configs) {
@@ -184,8 +175,8 @@ class BinaryManifestNetworkRule extends Rule {
       for (final tag in const ['base-config', 'domain-config']) {
         for (final e in doc.findAllElements(tag)) {
           if (e.getAttribute('cleartextTrafficPermitted') == 'true') {
-            out.add(inFile(loc, null, '<$tag cleartextTrafficPermitted="true"> in the shipped network security config.',
-                messageAr: '<$tag cleartextTrafficPermitted="true"> في الـ network security config اللي اتشحن.'));
+            out.add(inFile(loc, null, En.binaryRulesCleartexttrafficpermittedTrueInTheShippedNetworkSecurityConfig(tag: tag),
+                messageAr: Ar.binaryRulesCleartexttrafficpermittedTrueInTheShippedNetworkSecurityConfig(tag: tag)));
           }
         }
       }
@@ -193,8 +184,8 @@ class BinaryManifestNetworkRule extends Rule {
         if (c.getAttribute('src') != 'user') continue;
         final inDebug = c.ancestors.whereType<XmlElement>().any((a) => a.name.local == 'debug-overrides');
         if (!inDebug) {
-          out.add(inFile(loc, null, 'The shipped network security config trusts user-installed CAs.',
-              messageAr: 'الـ network security config اللي اتشحن بيثق في شهادات المستخدم.'));
+          out.add(inFile(loc, null, En.binaryRulesTheShippedNetworkSecurityConfigTrustsUserInstalledCas,
+              messageAr: Ar.binaryRulesTheShippedNetworkSecurityConfigTrustsUserInstalledCas));
         }
       }
     }
@@ -230,13 +221,9 @@ class PluginExportedComponentRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-B04',
-        title: Bilingual('Library adds an exported component without permission', 'مكتبة بتضيف مكوّن exported من غير permission'),
-        description: Bilingual(
-            'Plugins merge their own activities, services, receivers and providers into your app. An exported one without a permission can be started by any app on the device.',
-            'الـ plugins بتضيف activities و services و receivers و providers بتاعتها لتطبيقك. ولو واحد منهم exported من غير permission، أي تطبيق على الجهاز يقدر يشغّله.'),
-        fix: Bilingual(
-            'Check whether the component must be public. If not, override it in your manifest with android:exported="false" and tools:replace="android:exported", or update the plugin.',
-            'اتأكد إن المكوّن لازم يكون public. لو لأ، اعمله override في الـ manifest بتاعك بـ android:exported="false" و tools:replace="android:exported"، أو حدّث الـ plugin.'),
+        title: Bilingual(En.binaryRulesLibraryAddsAnExportedComponentWithoutPermission, Ar.binaryRulesLibraryAddsAnExportedComponentWithoutPermission),
+        description: Bilingual(En.binaryRulesPluginsMergeTheirOwnActivitiesServicesReceiversAnd, Ar.binaryRulesPluginsMergeTheirOwnActivitiesServicesReceiversAnd),
+        fix: Bilingual(En.binaryRulesCheckWhetherTheComponentMustBePublicIf, Ar.binaryRulesCheckWhetherTheComponentMustBePublicIf),
         severity: Severity.medium,
         masvs: ['MASVS-PLATFORM-1'],
         maswe: ['MASWE-0018'],
@@ -272,8 +259,8 @@ class PluginExportedComponentRule extends Rule {
         final name = androidAttr(e, 'name') ?? tag;
         if (project.hasSource && _declaredInSource(name, sourceNames)) continue;
         out.add(inFile(apk.location('AndroidManifest.xml'), null,
-            '<$tag $name> is exported without a permission${project.hasSource ? ' (added by a library)' : ''}.',
-            messageAr: '<$tag $name> متعمله export من غير permission${project.hasSource ? ' (ضافته مكتبة)' : ''}.'));
+            En.binaryRulesIsExportedWithoutAPermission(tag: tag, name: name, value3: project.hasSource ? ' (added by a library)' : ''),
+            messageAr: Ar.binaryRulesIsExportedWithoutAPermission(tag: tag, name: name, value3: project.hasSource ? ' (ضافته مكتبة)' : '')));
       }
     }
     return RuleCheck(out);
@@ -317,13 +304,9 @@ class PluginPermissionsRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-B05',
-        title: Bilingual('Sensitive permissions added by libraries', 'صلاحيات حساسة ضافتها مكتبات'),
-        description: Bilingual(
-            'Plugins can merge permissions you never asked for. Each sensitive permission widens what an attacker gets if the app is compromised, and Google Play may reject or restrict apps that request them without a reason.',
-            'الـ plugins ممكن تضيف صلاحيات انت مطلبتهاش. كل صلاحية حساسة بتوسّع اللي المهاجم ياخده لو التطبيق اتخترق، وكمان Google Play ممكن يرفض أو يقيّد التطبيق لو طالبها من غير سبب.'),
-        fix: Bilingual(
-            'Remove unneeded permissions in your manifest with <uses-permission android:name="..." tools:node="remove"/>.',
-            'شيل الصلاحيات اللي مش محتاجها من الـ manifest بتاعك بـ <uses-permission android:name="..." tools:node="remove"/>.'),
+        title: Bilingual(En.binaryRulesSensitivePermissionsAddedByLibraries, Ar.binaryRulesSensitivePermissionsAddedByLibraries),
+        description: Bilingual(En.binaryRulesPluginsCanMergePermissionsYouNeverAskedFor, Ar.binaryRulesPluginsCanMergePermissionsYouNeverAskedFor),
+        fix: Bilingual(En.binaryRulesRemoveUnneededPermissionsInYourManifestWithUsesPermission, Ar.binaryRulesRemoveUnneededPermissionsInYourManifestWithUsesPermission),
         severity: Severity.low,
         l2Severity: Severity.medium,
         masvs: ['MASVS-PRIVACY-1'],
@@ -381,13 +364,9 @@ class BinarySecretsRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-B06',
-        title: Bilingual('Secret inside the APK', 'سر (secret) جوه الـ APK'),
-        description: Bilingual(
-            'Values passed with --dart-define, --dart-define-from-file or generated by tools such as envied are compiled into libapp.so as plain strings. They never appear in your source, so source scanners miss them, but `strings` on the APK reveals them.',
-            'القيم اللي بتتبعت بـ --dart-define أو --dart-define-from-file أو اللي بتعملها أدوات زي envied، بتتحط في libapp.so كـ strings عادية. مش بتظهر في السورس فأدوات فحص السورس مش بتشوفها، لكن أمر strings على الـ APK بيطلعها.'),
-        fix: Bilingual(
-            'Do not ship secret keys in the app at all. Call your backend, which holds the key, or use short-lived tokens issued per user.',
-            'متحطش مفاتيح سرية في التطبيق خالص. خلي التطبيق ينادي الـ backend اللي معاه المفتاح، أو استخدم tokens قصيرة العمر لكل مستخدم.'),
+        title: Bilingual(En.binaryRulesSecretInsideTheApk, Ar.binaryRulesSecretInsideTheApk),
+        description: Bilingual(En.binaryRulesValuesPassedWithDartDefineDartDefineFromFileOrGeneratedBy, Ar.binaryRulesValuesPassedWithDartDefineDartDefineFromFileOrGeneratedBy),
+        fix: Bilingual(En.binaryRulesDoNotShipSecretKeysInTheApp, Ar.binaryRulesDoNotShipSecretKeysInTheApp),
         severity: Severity.high,
         masvs: ['MASVS-STORAGE-1'],
         maswe: ['MASWE-0004'],
@@ -476,8 +455,8 @@ class BinarySecretsRule extends Rule {
         where = 'in the bundled file $entry';
         whereAr = 'في الملف المتضاف $entry';
     }
-    out.add(inFile(apk.location(entry), null, '$name found $where.',
-        messageAr: 'لقيت $name $whereAr.', snippet: redact(value)));
+    out.add(inFile(apk.location(entry), null, En.binaryRulesFound(name: name, where: where),
+        messageAr: Ar.binaryRulesFound(name: name, where: whereAr), snippet: redact(value)));
   }
 }
 
@@ -504,13 +483,9 @@ class ObfuscationAppliedRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-B07',
-        title: Bilingual('The shipped Dart code is not obfuscated', 'كود Dart اللي اتشحن مش متعمله obfuscation'),
-        description: Bilingual(
-            'Readable class names in libapp.so mean the release was built without --obfuscate, so tools like blutter recover a readable map of your code, including your security checks.',
-            'وجود أسماء كلاسات مقروءة في libapp.so معناه إن الـ release اتبنى من غير --obfuscate، فأدوات زي blutter بتطلع خريطة مقروءة للكود بتاعك، ومنها فحوصات الأمان.'),
-        fix: Bilingual(
-            'Build with flutter build apk --release --obfuscate --split-debug-info=build/symbols and keep the symbols for crash reports.',
-            'اعمل البيلد بـ flutter build apk --release --obfuscate --split-debug-info=build/symbols، واحتفظ بالـ symbols عشان تقرا تقارير الـ crash.'),
+        title: Bilingual(En.binaryRulesTheShippedDartCodeIsNotObfuscated, Ar.binaryRulesTheShippedDartCodeIsNotObfuscated),
+        description: Bilingual(En.binaryRulesReadableClassNamesInLibappSoMeanTheRelease, Ar.binaryRulesReadableClassNamesInLibappSoMeanTheRelease),
+        fix: Bilingual(En.binaryRulesBuildWithFlutterBuildApkReleaseObfuscateSplitDebugInfoBuildSymbols, Ar.binaryRulesBuildWithFlutterBuildApkReleaseObfuscateSplitDebugInfoBuildSymbols),
         severity: Severity.low,
         l2Severity: Severity.medium,
         masvs: ['MASVS-RESILIENCE-3'],
@@ -558,8 +533,8 @@ class ObfuscationAppliedRule extends Rule {
       final examples = [...frameworkHits.take(3), ...ownHits.take(3)].join(', ');
       return RuleCheck([
         inFile(apk.location(apk.libappEntry!), null,
-            'Readable class names in libapp.so ($examples${ownHits.isEmpty ? '' : '; ${ownHits.length} of your ${own.length} classes'}).',
-            messageAr: 'فيه أسماء كلاسات مقروءة في libapp.so ($examples${ownHits.isEmpty ? '' : '؛ ${ownHits.length} من ${own.length} كلاس بتوعك'}).')
+            En.binaryRulesReadableClassNamesInLibappSo(examples: examples, value2: ownHits.isEmpty ? '' : '; ${ownHits.length} of your ${own.length} classes'),
+            messageAr: Ar.binaryRulesReadableClassNamesInLibappSo(examples: examples, value2: ownHits.isEmpty ? '' : '؛ ${ownHits.length} من ${own.length} كلاس بتوعك'))
       ]);
     }
     if (obfuscated) return RuleCheck([]);
@@ -574,12 +549,9 @@ class BundledSecretFilesRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-B08',
-        title: Bilingual('Secret file shipped inside the APK', 'ملف أسرار جوه الـ APK'),
-        description: Bilingual(
-            'Files under flutter_assets are stored as-is. A .env, private key or service-account file in the APK can be extracted by unzipping it.',
-            'الملفات اللي جوه flutter_assets بتتخزن زي ما هي. أي ملف .env أو private key أو service-account جوه الـ APK ممكن يتطلع بمجرد فك الضغط.'),
-        fix: Bilingual('Remove the file from the assets and keep secrets on the server.',
-            'شيل الملف من الـ assets وخلي الأسرار على السيرفر.'),
+        title: Bilingual(En.binaryRulesSecretFileShippedInsideTheApk, Ar.binaryRulesSecretFileShippedInsideTheApk),
+        description: Bilingual(En.binaryRulesFilesUnderFlutterAssetsAreStoredAsIsAEnv, Ar.binaryRulesFilesUnderFlutterAssetsAreStoredAsIsAEnv),
+        fix: Bilingual(En.binaryRulesRemoveTheFileFromTheAssetsAndKeep, Ar.binaryRulesRemoveTheFileFromTheAssetsAndKeep),
         severity: Severity.high,
         masvs: ['MASVS-STORAGE-1'],
         maswe: ['MASWE-0004'],
@@ -600,8 +572,8 @@ class BundledSecretFilesRule extends Rule {
       final rel = entry.substring('assets/flutter_assets/'.length);
       if (!riskyAssetFile.hasMatch(rel)) continue;
       if (sourceReported.contains(rel)) continue; // AEG-D09 reports it
-      out.add(inFile(apk.location(entry), null, '$rel is inside the APK.',
-          messageAr: '$rel موجود جوه الـ APK.'));
+      out.add(inFile(apk.location(entry), null, En.binaryRulesIsInsideTheApk(rel: rel),
+          messageAr: Ar.binaryRulesIsInsideTheApk(rel: rel)));
     }
     return RuleCheck(out);
   }
@@ -613,12 +585,9 @@ class DebugCertificateRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-B09',
-        title: Bilingual('APK signed with the Android debug certificate', 'الـ APK متوقع بشهادة Android Debug'),
-        description: Bilingual(
-            'The debug keystore is shared by every developer machine. Anyone can sign a modified copy with the same certificate, and stores reject debug-signed apps.',
-            'الـ debug keystore موجود على أي جهاز مطور. أي حد يقدر يوقّع نسخة معدّلة بنفس الشهادة، والمتاجر بترفض التطبيقات المتوقعة بيه.'),
-        fix: Bilingual('Sign release builds with your own release/upload keystore.',
-            'وقّع نسخ الـ release بالـ keystore بتاعك (release أو upload).'),
+        title: Bilingual(En.binaryRulesApkSignedWithTheAndroidDebugCertificate, Ar.binaryRulesApkSignedWithTheAndroidDebugCertificate),
+        description: Bilingual(En.binaryRulesTheDebugKeystoreIsSharedByEveryDeveloper, Ar.binaryRulesTheDebugKeystoreIsSharedByEveryDeveloper),
+        fix: Bilingual(En.binaryRulesSignReleaseBuildsWithYourOwnReleaseUploadKeystore, Ar.binaryRulesSignReleaseBuildsWithYourOwnReleaseUploadKeystore),
         severity: Severity.high,
         masvs: ['MASVS-RESILIENCE-2'],
         cwe: 'CWE-321',
@@ -638,8 +607,8 @@ class DebugCertificateRule extends Rule {
     }
     return RuleCheck([
       inFile(apk.location('META-INF'), null,
-          'Signed with CN=Android Debug (${debug.first.scheme}).',
-          messageAr: 'متوقع بشهادة CN=Android Debug (${debug.first.scheme}).')
+          En.binaryRulesSignedWithCnAndroidDebug(value1: debug.first.scheme),
+          messageAr: Ar.binaryRulesSignedWithCnAndroidDebug(value1: debug.first.scheme))
     ]);
   }
 }
@@ -650,13 +619,9 @@ class RaspSigningHashRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-B10',
-        title: Bilingual('freeRASP does not know this APK\'s certificate', 'freeRASP مش عارف شهادة الـ APK ده'),
-        description: Bilingual(
-            'freeRASP compares the running app\'s signing certificate with signingCertHashes. If the certificate that signed this APK is missing, every install of it triggers onAppIntegrity, and if your reaction blocks the app, real users are locked out.',
-            'freeRASP بيقارن شهادة التوقيع بتاعة التطبيق بالـ signingCertHashes. لو الشهادة اللي وقّعت الـ APK ده مش موجودة، كل تثبيت ليه هيشغّل onAppIntegrity، ولو رد الفعل بيقفل التطبيق، المستخدمين الحقيقيين هيتقفل عليهم.'),
-        fix: Bilingual(
-            'Add the Base64 SHA-256 shown in the finding to signingCertHashes. For Google Play, also add the Play App Signing certificate hash from Play Console.',
-            'ضيف الـ SHA-256 بصيغة Base64 اللي ظاهر في النتيجة لـ signingCertHashes. ولو على Google Play، ضيف كمان hash شهادة Play App Signing من Play Console.'),
+        title: Bilingual(En.binaryRulesFreeraspDoesNotKnowThisApkSCertificate, Ar.binaryRulesFreeraspDoesNotKnowThisApkSCertificate),
+        description: Bilingual(En.binaryRulesFreeraspComparesTheRunningAppSSigningCertificateWith, Ar.binaryRulesFreeraspComparesTheRunningAppSSigningCertificateWith),
+        fix: Bilingual(En.binaryRulesAddTheBase64Sha256ShownInTheFinding, Ar.binaryRulesAddTheBase64Sha256ShownInTheFinding),
         severity: Severity.high,
         masvs: ['MASVS-RESILIENCE-2'],
         maswe: ['MASWE-0057'],
@@ -706,23 +671,19 @@ class RaspSigningHashRule extends Rule {
       final others = configured.where((h) => !apkHashes.contains(h));
       if (signerConfigured && others.isEmpty) {
         out.add(inFile(loc, line,
-            'signingCertHashes only has the upload key that signed ${apk.fileName} ("${c.commonName ?? 'unknown'}", ${c.sha256Base64}). '
-                'Google Play re-signs the app with the app signing key, so every install from Play will trigger onAppIntegrity. '
-                'Add the app signing key SHA-256 from Play Console (Test and release > App integrity > App signing), converted to Base64.',
-            messageAr: 'الـ signingCertHashes فيها بس الـ upload key اللي وقّع ${apk.fileName} ("${c.commonName ?? 'unknown'}"، ${c.sha256Base64}). '
-                'Google Play بيعيد توقيع التطبيق بالـ app signing key، فكل تثبيت من Play هيشغّل onAppIntegrity. '
-                'ضيف الـ SHA-256 بتاع الـ app signing key من Play Console (Test and release > App integrity > App signing) بعد تحويله لـ Base64.'));
+            En.binaryRulesSigningcerthashesOnlyHasTheUploadKeyThatSigned(value1: apk.fileName, value2: c.commonName ?? 'unknown', value3: c.sha256Base64),
+            messageAr: Ar.binaryRulesSigningcerthashesOnlyHasTheUploadKeyThatSigned(value1: apk.fileName, value2: c.commonName ?? 'unknown', value3: c.sha256Base64)));
       }
     } else if (!signerConfigured) {
       final c = apk.certificates.first;
       out.add(inFile(loc, line,
-          '${apk.fileName} is signed by "${c.commonName ?? 'unknown'}" with SHA-256 ${c.sha256Base64}, which is not in signingCertHashes.',
-          messageAr: '${apk.fileName} متوقع بشهادة "${c.commonName ?? 'unknown'}" والـ SHA-256 بتاعها ${c.sha256Base64}، وده مش موجود في signingCertHashes.'));
+          En.binaryRulesIsSignedByWithSha256(value1: apk.fileName, value2: c.commonName ?? 'unknown', value3: c.sha256Base64),
+          messageAr: Ar.binaryRulesIsSignedByWithSha256(value1: apk.fileName, value2: c.commonName ?? 'unknown', value3: c.sha256Base64)));
     }
     if (packageName != null && apk.packageName != null && packageName != apk.packageName) {
       out.add(inFile(loc, line,
-          'freeRASP packageName "$packageName" differs from the APK package "${apk.packageName}".',
-          messageAr: 'الـ packageName في freeRASP "$packageName" مختلف عن package الـ APK "${apk.packageName}".'));
+          En.binaryRulesFreeraspPackagenameDiffersFromTheApk(packageName: packageName, value2: apk.packageName),
+          messageAr: Ar.binaryRulesFreeraspPackagenameDiffersFromTheApk(packageName: packageName, value2: apk.packageName)));
     }
     if (out.isEmpty && apk.isBundle && !signerConfigured) {
       return RuleCheck.notApplicable(
@@ -738,12 +699,9 @@ class BinarySdkLevelsRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-B11',
-        title: Bilingual('Old Android SDK levels in the APK', 'إصدارات Android SDK قديمة في الـ APK'),
-        description: Bilingual(
-            'A low targetSdk keeps old, less secure platform behaviors switched on, and a minSdk below 24 lets the app run on Android versions without important security fixes.',
-            'الـ targetSdk القديم بيخلي سلوكيات قديمة وأقل أماناً شغالة، والـ minSdk الأقل من 24 بيسمح للتطبيق يشتغل على إصدارات Android ناقصها إصلاحات أمنية مهمة.'),
-        fix: Bilingual('Raise targetSdk to the latest level required by Google Play and minSdk to 24 or higher.',
-            'ارفع الـ targetSdk لآخر إصدار مطلوب في Google Play، والـ minSdk لـ 24 أو أكتر.'),
+        title: Bilingual(En.binaryRulesOldAndroidSdkLevelsInTheApk, Ar.binaryRulesOldAndroidSdkLevelsInTheApk),
+        description: Bilingual(En.binaryRulesALowTargetsdkKeepsOldLessSecurePlatform, Ar.binaryRulesALowTargetsdkKeepsOldLessSecurePlatform),
+        fix: Bilingual(En.binaryRulesRaiseTargetsdkToTheLatestLevelRequiredBy, Ar.binaryRulesRaiseTargetsdkToTheLatestLevelRequiredBy),
         severity: Severity.medium,
         masvs: ['MASVS-CODE-1'],
         maswe: ['MASWE-0041', 'MASWE-0042'],
@@ -762,10 +720,10 @@ class BinarySdkLevelsRule extends Rule {
     if (target == null && min == null) return RuleCheck.notApplicable('No uses-sdk in the manifest');
     final loc = apk.location('AndroidManifest.xml');
     if (target != null && target < 34) {
-      out.add(inFile(loc, null, 'targetSdk is $target.', messageAr: 'الـ targetSdk = $target.'));
+      out.add(inFile(loc, null, En.binaryRulesTargetsdkIs(target: target), messageAr: Ar.binaryRulesTargetsdkIs(target: target)));
     }
     if (min != null && min < 24 && !await reportedBySource(const MinSdkRule(), project, profile)) {
-      out.add(inFile(loc, null, 'minSdk is $min.', messageAr: 'الـ minSdk = $min.'));
+      out.add(inFile(loc, null, En.binaryRulesMinsdkIs(min: min), messageAr: Ar.binaryRulesMinsdkIs(min: min)));
     }
     return RuleCheck(out);
   }

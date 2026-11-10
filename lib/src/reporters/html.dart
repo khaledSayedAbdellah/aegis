@@ -1,6 +1,7 @@
 /// Self-contained HTML report to share with people who don't use a terminal.
 library;
 
+import '../l10n/messages.g.dart';
 import 'dart:convert';
 
 import '../engine.dart';
@@ -26,7 +27,7 @@ String _binaryHtml(AuditReport r, Strings t) {
   if (bin == null) return pkgs;
   final b = StringBuffer('$pkgs<div class="muted">${_e(t.binaryKind(bin.kind))}: <code>${_e(bin.file)}</code> ${_e(bin.packageName ?? '')} ${_e(bin.versionName ?? '')}</div>');
   for (final c in bin.certificates) {
-    b.write('<div class="muted">${_e(t.signer)}: ${_e(c.commonName ?? '?')} (${c.scheme})${bin.kind == 'AAB' ? ' · ${_e(t.uploadKey)}' : ''}<br>${_e(t.certHash)}: <code>${_e(c.sha256Base64)}</code></div>');
+    b.write('<div class="muted">${_e(t.signer)}: ${_e(c.commonName ?? '?')} (${c.scheme})${bin.kind == 'AAB' ? ' · ${_e(t.uploadKey)}' : ''}<br>${_e(t.certHash(bin.kind))}: <code>${_e(c.sha256Base64)}</code></div>');
   }
   return b.toString();
 }
@@ -46,7 +47,7 @@ String renderHtml(AuditReport r, {String lang = 'en'}) {
   String findingLi(Finding f) =>
       '<li${f.baselined ? ' class="known"' : ''}>${f.location.isEmpty ? '' : '<code>${_e(f.location)}</code> '}${_e(f.messageOf(lang))}'
       '${f.baselined ? ' <span class="tag">${_e(t.isKnown)}</span>' : ''}'
-      '${f.snippet == null ? '' : '<pre>${_e(f.snippet!)}</pre>'}</li>';
+      '${f.snippet == null ? '' : '<pre>${_e(f.snippetOf(lang)!)}</pre>'}</li>';
 
   final newFailed = r.newFailed.toList();
   final knownOnly = r.failed.where((x) => !x.hasNew).toList();
@@ -127,8 +128,8 @@ String renderHtml(AuditReport r, {String lang = 'en'}) {
   final passed = r.passed.map((x) => '<li>✓ ${_e(x.meta.passTitle.of(lang))} <code>${x.meta.id}</code></li>').join();
   final manual = r.manual.map((m) => '<li>${_e(m.text.of(lang))} <code>${m.masvs}</code></li>').join();
 
-  final incomplete = r.incomplete.isEmpty ? '' : '<h2>${lang == 'ar' ? 'فحوصات غير مكتملة' : 'Incomplete checks'}</h2><ul>'
-      '${r.incomplete.map((res) => '<li>${_e(res.meta.id)} · ${_e(res.note ?? res.meta.title.of(lang))}</li>').join()}</ul>';
+  final incomplete = r.incomplete.isEmpty ? '' : '<h2>${L10n(lang).incompleteChecks}</h2><ul>'
+      '${r.incomplete.map((res) => '<li>${_e(res.meta.id)} · ${_e(res.noteOf(lang) ?? res.meta.title.of(lang))}</li>').join()}</ul>';
   return '''<!doctype html>
 <html lang="$lang" dir="$dir">
 <head>

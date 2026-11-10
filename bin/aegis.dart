@@ -1,3 +1,5 @@
+import 'package:aegis/src/l10n/messages.g.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
@@ -8,22 +10,26 @@ import 'package:aegis/src/probe/apk_set.dart';
 import 'package:aegis/src/probe/pins.dart' show avdName, controlAvdName;
 import 'package:aegis/src/project.dart' show androidAttr;
 import 'package:aegis/src/probe/host.dart';
+import 'package:aegis/src/probe/ios_runner.dart';
 import 'package:aegis/src/probe/messages.dart';
 import 'package:aegis/src/probe/probe_report.dart';
 import 'package:aegis/src/probe/probe_runner.dart';
 import 'package:aegis/src/probe/setup.dart';
+import 'package:aegis/src/probe/setup_platform.dart';
 import 'package:aegis/src/probe/toolchain.dart';
+import 'package:aegis/src/rules/ipa_rules.dart';
+import 'package:aegis/src/rules/probe_rules.dart' show iosProbeRules;
 import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
 
 const _formats = ['console', 'json', 'md', 'html', 'sarif', 'azure'];
 
-const _modes = ['all', 'code', 'apk', 'aab'];
+const _modes = ['all', 'code', 'apk', 'aab', 'ipa'];
 
 /// Options shared by plain `aegis` and `aegis run`. `run` has friendlier
 /// defaults: an HTML report next to the console output, the APK/AAB comes
 /// from apk:/aab: in aegis.yaml, and the resilience probe runs on it.
-ArgParser _parser({bool run = false}) => ArgParser()
+ArgParser _parser({bool run = false}) => _iosOptions(ArgParser()
   ..addOption('profile',
       abbr: 'p',
       help: 'MAS profile: l1, l2, l1+r, l2+r, or a preset '
@@ -32,6 +38,7 @@ ArgParser _parser({bool run = false}) => ArgParser()
       help: 'Also audit a release APK or app bundle (.aab), e.g. build/app/outputs/flutter-apk/app-release.apk '
           'or build/app/outputs/bundle/release/app-release.aab. '
           'Without a pubspec.yaml in the project path, only the APK is audited.')
+  ..addOption('ipa', help: 'Audit a release iOS IPA.')
   ..addOption('lang', abbr: 'l', allowed: ['en', 'ar'], help: 'Report language.')
   ..addMultiOption('format',
       abbr: 'f',
@@ -65,11 +72,12 @@ ArgParser _parser({bool run = false}) => ArgParser()
       defaultsTo: 'all',
       hide: !run,
       allowedHelp: {
-        'all': 'Code + the APK/AAB set in aegis.yaml (apk:, else aab:) with the resilience probe; '
+        'all': 'Code + the artifact set in aegis.yaml (apk:, else aab:, else ipa:) with the resilience probe; '
             'code only when neither is set.',
         'code': 'Dart code, packages and Android/iOS configuration only.',
         'apk': 'Code + the APK at apk: in aegis.yaml + the resilience probe on the two emulators.',
         'aab': 'Code + the AAB at aab: in aegis.yaml + the resilience probe on the two emulators.',
+        'ipa': 'Code + the IPA at ipa: in aegis.yaml + the iOS resilience probe.',
       },
       help: 'What to audit.')
   ..addOption('probe-cert-sha256', hide: !run,
@@ -82,12 +90,12 @@ ArgParser _parser({bool run = false}) => ArgParser()
   ..addFlag('probe',
       defaultsTo: true,
       hide: !run,
-      help: 'Run the resilience probe on the two emulators when an APK/AAB is audited. '
+      help: 'Run the resilience probe for the audited Android or iOS artifact. '
           '--no-probe runs the static checks only.')
   ..addFlag('open',
       defaultsTo: run,
       hide: !run,
-      help: 'Open the HTML report in the browser (only in a terminal, never in CI).');
+      help: 'Open the HTML report in the browser (only in a terminal, never in CI).'), hide: !run);
 
 ArgParser _initParser() => ArgParser()
   ..addOption('profile',
@@ -99,11 +107,14 @@ ArgParser _initParser() => ArgParser()
 ArgParser _toolsParser({bool setup = false}) {
   final a = ArgParser()
     ..addOption('lang', abbr: 'l', allowed: ['en', 'ar'], help: 'Output language (default: system).')
+    ..addFlag('ios', negatable: false, help: 'Check or prepare the iOS probe tools on macOS.')
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
   if (setup) {
     a
-      ..addFlag('yes', abbr: 'y', negatable: false, help: 'Install without asking first.')
-      ..addFlag('aab', negatable: false, help: 'Also install bundletool (for auditing .aab).')
+      ..addFlag('yes', abbr: 'y', negatable: false, help: 'Skip installation confirmation; platform selection is still required.')
+      ..addFlag('android', negatable: false, help: 'Prepare Android only, including bundletool for APK/AAB tests.')
+      ..addFlag('both', negatable: false, help: 'Prepare Android first, then iOS (requires macOS for iOS).')
+      ..addFlag('aab', negatable: false, help: 'Compatibility alias for --android (includes bundletool).')
       ..addFlag('remove', negatable: false, help: "Delete what aegis installed under ~/.aegis and exit.");
   }
   return a;
@@ -116,7 +127,14 @@ ArgParser _rootParser() => _parser()
   ..addCommand('setup', _toolsParser(setup: true))
   ..addCommand('probe', _probeParser());
 
-ArgParser _probeParser() => ArgParser()
+ArgParser _iosOptions(ArgParser parser, {bool hide = false}) => parser
+  ..addOption('ios-control-device', hide: hide, help: 'UDID of the dedicated stock iPhone/iPad.')
+  ..addOption('ios-jailbreak-device', hide: hide, help: 'UDID of the dedicated jailbroken iPhone/iPad.')
+  ..addOption('ios-resigned-ipa', hide: hide, help: 'The same iOS app re-signed with a different Apple certificate.')
+  ..addOption('ios-simulator', hide: hide, help: 'UDID of a booted iOS Simulator for the debugger and Frida checks.')
+  ..addOption('ios-simulator-app', hide: hide, help: 'Matching Simulator .app (automatically built from the Flutter project when missing or mismatched).');
+
+ArgParser _probeParser() => _iosOptions(ArgParser()
   ..addOption('lang', abbr: 'l', allowed: ['en', 'ar'], help: 'Output language (default: system).')
   ..addOption('project',
       help: "The app's Flutter project, for its aegis.yaml (default: found from the APK's location).")
@@ -127,9 +145,9 @@ ArgParser _probeParser() => ArgParser()
   ..addOption('control-avd', help: 'Dedicated Aegis AVD for the control launch.')
   ..addOption('root-avd', help: 'Dedicated rooted Aegis AVD for the root comparison.')
   ..addMultiOption('only',
-      allowed: ['root', 'debugger', 'hooking', 'repackage'],
+      allowed: ['root', 'jailbreak', 'debugger', 'hooking', 'repackage'],
       help: 'Run only these checks.')
-  ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.');
+  ..addFlag('help', abbr: 'h', negatable: false, help: 'Show this help.'));
 
 /// `ar` when the system language is Arabic, else `en`.
 String _systemLang() {
@@ -172,14 +190,14 @@ Future<void> main(List<String> arguments) async {
   if (args['help'] as bool) {
     stdout.writeln('aegis $aegisVersion - security audit for Flutter apps\n');
     if (run) {
-      stdout.writeln('Usage: aegis run [project-path] [--mode all|code|apk|aab] [options]\n');
+      stdout.writeln('Usage: aegis run [project-path] [--mode all|code|apk|aab|ipa] [options]\n');
       stdout.writeln('Audits the project with the settings in aegis.yaml, prints the report and writes');
       stdout.writeln('build/aegis-report.html and opens it (--no-open to skip).\n');
-      stdout.writeln('--mode apk|aab|all audits the file set in aegis.yaml (relative to the project):');
+      stdout.writeln('--mode apk|aab|ipa|all audits the file set in aegis.yaml (relative to the project):');
       stdout.writeln('  apk: build/app/outputs/flutter-apk/app-release.apk');
       stdout.writeln('  aab: build/app/outputs/bundle/release/app-release.aab');
-      stdout.writeln('and first runs the resilience probe on the two Aegis emulators (see');
-      stdout.writeln('"aegis setup"). Its results are rules AEG-R01..R04 in the same report.\n');
+      stdout.writeln('  ipa: build/ios/ipa/app.ipa');
+      stdout.writeln('Android probes use the Aegis emulators. iOS probes use the selected Xcode devices.\n');
       stdout.writeln(parser.commands['run']!.usage);
     } else {
       stdout.writeln('Usage:');
@@ -187,8 +205,8 @@ Future<void> main(List<String> arguments) async {
       stdout.writeln('  aegis setup [--yes]         Install the resilience-probe tools once per machine');
       stdout.writeln('                              (what you already have is skipped).');
       stdout.writeln('  aegis doctor                Check those tools without changing anything.');
-      stdout.writeln('  aegis run [--mode MODE]     Audit with friendly defaults: all, code, apk or aab.');
-      stdout.writeln('  aegis probe                 Only the resilience probe on the apk:/aab: in aegis.yaml.');
+      stdout.writeln('  aegis run [--mode MODE]     Audit with friendly defaults: all, code, apk, aab or ipa.');
+      stdout.writeln('  aegis probe                 Only the resilience probe on the configured APK, AAB or IPA.');
       stdout.writeln('  aegis [project-path] [options]   Full control, for CI.\n');
       stdout.writeln(parser.usage);
     }
@@ -240,31 +258,48 @@ Future<void> main(List<String> arguments) async {
   }
 
   var apkPath = args['apk'] as String?;
-  if (run && apkPath == null) {
+  var ipaPath = args['ipa'] as String?;
+  if (apkPath != null && ipaPath != null) {
+    stderr.writeln('Use one of --apk or --ipa.');
+    exit(2);
+  }
+  if (run && apkPath == null && ipaPath == null) {
     // The file comes from aegis.yaml only: build names and folders change
     // between projects and flavors, so aegis never guesses one from build/.
     final mode = args['mode'] as String;
     final key = switch (mode) {
       'apk' => 'apk',
       'aab' => 'aab',
-      'all' => config.apk != null ? 'apk' : (config.aab != null ? 'aab' : null),
+      'ipa' => 'ipa',
+      'all' => config.apk != null ? 'apk' : config.aab != null ? 'aab' : config.ipa != null ? 'ipa' : null,
       _ => null,
     };
-    final value = key == 'apk' ? config.apk : (key == 'aab' ? config.aab : null);
+    final value = switch (key) {
+      'apk' => config.apk,
+      'aab' => config.aab,
+      'ipa' => config.ipa,
+      _ => null,
+    };
     if (value != null) {
       final resolved = AegisConfig.resolve(p.absolute(path), value)!;
       if (!File(resolved).existsSync()) {
-        final build = key == 'apk' ? 'flutter build apk --release' : 'flutter build appbundle --release';
+        final build = 'flutter build ${key == 'aab' ? 'appbundle' : key} --release';
         stderr.writeln('File not found: $resolved');
         stderr.writeln('(from "$key: $value" in aegis.yaml). Build it ($build) or fix the path.');
         exit(2);
       }
-      apkPath = resolved;
+      if (key == 'ipa') {
+        ipaPath = resolved;
+      } else {
+        apkPath = resolved;
+      }
       stdout.writeln('aegis: auditing the code and ${p.relative(resolved, from: path)}');
-    } else if (mode == 'apk' || mode == 'aab') {
-      final example = mode == 'apk'
-          ? '$flutterApkDir/app-release.apk'
-          : '$flutterBundleDir/release/app-release.aab';
+    } else if (mode == 'apk' || mode == 'aab' || mode == 'ipa') {
+      final example = switch (mode) {
+        'apk' => '$flutterApkDir/app-release.apk',
+        'aab' => '$flutterBundleDir/release/app-release.aab',
+        _ => 'build/ios/ipa/app.ipa',
+      };
       stderr.writeln('--mode $mode needs the file\'s path in aegis.yaml, relative to the project, e.g.:');
       stderr.writeln('  $mode: $example');
       exit(2);
@@ -275,8 +310,9 @@ Future<void> main(List<String> arguments) async {
       stdout.writeln('aegis: no aegis.yaml, using profile ${config.profile}. Run "aegis init" to set your app type.');
     }
   }
-  if (apkPath != null && !File(apkPath).existsSync()) {
-    stderr.writeln('File not found: $apkPath');
+  final artifact = ipaPath ?? apkPath;
+  if (artifact != null && !File(artifact).existsSync()) {
+    stderr.writeln('File not found: $artifact');
     exit(2);
   }
 
@@ -302,20 +338,20 @@ Future<void> main(List<String> arguments) async {
   // `aegis run` with an app runs the resilience probe first; its results are
   // rules AEG-R01..R04 in the same report. Plain `aegis` (CI) never does.
   ProbeOutcome? probe;
-  if (run && apkPath != null && File(apkPath).existsSync()) {
+  if (run && artifact != null) {
     final ar = config.lang == 'ar';
     final outcome = (args['probe'] as bool)
-        ? await _runProbe(apkPath, lang: config.lang, config: config, projectRoot: p.absolute(path),
+        ? ipaPath != null
+            ? await _runIosProbe(ipaPath, args, config, p.absolute(path))
+            : await _runProbe(apkPath!, lang: config.lang, config: config, projectRoot: p.absolute(path),
             signedApk: args['probe-apk'] as String?,
             expectedSigner: args['probe-cert-sha256'] as String?,
             rootAvd: (args['root-avd'] as String?) ?? avdName,
             controlAvd: (args['control-avd'] as String?) ?? controlAvdName)
-        : ProbeOutcome.skipped(ar ? 'اتقفل بـ --no-probe' : 'turned off with --no-probe', requested: false);
+        : ProbeOutcome.skipped(En.aegisTurnedOffWithNoProbe, skippedAr: Ar.aegisTurnedOffWithNoProbe, requested: false);
     probe = outcome;
     if (outcome.skipped != null) {
-      stdout.writeln(ar
-          ? 'aegis: اختبار الحماية اتخطّى (${outcome.skipped})، الفحص الثابت بس'
-          : 'aegis: resilience probe skipped (${outcome.skipped}), static checks only');
+      stdout.writeln(L10n((ar ? 'ar' : 'en')).aegisAegisResilienceProbeSkippedStaticChecks(value1: outcome.skippedOf(config.lang)));
     }
   }
 
@@ -325,14 +361,15 @@ Future<void> main(List<String> arguments) async {
         config: config,
         offline: args['offline'] as bool,
         apkPath: apkPath,
+        ipaPath: ipaPath,
         baseline: baseline,
         probe: probe);
   } on FileSystemException catch (e) {
     stderr.writeln('${e.message}: ${e.path}');
-    if (apkPath == null) stderr.writeln('Tip: use --apk <file> to audit a compiled APK without the source.');
+    if (artifact == null) stderr.writeln('Tip: use --apk <file> or --ipa <file> to audit a binary without source.');
     exit(2);
   } on FormatException catch (e) {
-    stderr.writeln('Could not read ${apkPath ?? 'the file'}: ${e.message}');
+    stderr.writeln('Could not read ${artifact ?? 'the file'}: ${e.message}');
     exit(2);
   }
 
@@ -417,7 +454,7 @@ Future<void> main(List<String> arguments) async {
 }
 
 void _listRules(String lang) {
-  for (final r in [...allRules, ...apkRules]) {
+  for (final r in [...allRules, ...apkRules, ...ipaRules, ...iosProbeRules]) {
     final m = r.meta;
     final profiles = m.profiles.map((x) => x.name.toUpperCase()).join('/');
     stdout.writeln('${m.id.padRight(8)} ${m.severity.name.padRight(8)} ${profiles.padRight(9)} '
@@ -472,13 +509,13 @@ Future<void> _init(ArgResults args) async {
     if (!stdin.hasTerminal) {
       profile = 'l1';
     } else {
-      stdout.writeln(ar ? 'نوع التطبيق إيه؟' : 'What kind of app is it?');
+      stdout.writeln(L10n((ar ? 'ar' : 'en')).aegisWhatKindOfAppIsIt);
       for (var i = 0; i < _appTypes.length; i++) {
         final (id, en, arText) = _appTypes[i];
         stdout.writeln('  ${i + 1}) ${ar ? arText : en}  ($id)');
       }
       while (profile == null) {
-        stdout.write(ar ? 'اختار رقم [1-${_appTypes.length}]: ' : 'Choose [1-${_appTypes.length}]: ');
+        stdout.write(L10n((ar ? 'ar' : 'en')).aegisChoose1(value1: _appTypes.length));
         // Arabic keyboards send ٣ instead of 3, and some terminals send bytes
         // that are not valid UTF-8; neither should crash the prompt.
         String? line;
@@ -499,38 +536,43 @@ Future<void> _init(ArgResults args) async {
 
   file.writeAsStringSync('''
 # aegis settings: https://github.com/khaledSayedAbdellah/aegis
-# l1: any app · l2: sensitive data · +r: resist tampering and reverse engineering
+# All supported YAML settings. Replace <...> values for the checks you use.
+# Unfilled placeholders are treated as unset, including optional iOS targets.
+# File paths can be absolute or relative to this project.
+
+# Audit policy: l1, l2, l1+r, l2+r, or a preset such as banking.
 profile: $profile
 lang: $lang
-# The run fails (exit code 1) on a new finding at or above this severity.
 fail_on: high
-# The release build to audit with `aegis run --mode apk|aab|all` (static checks
-# plus the resilience probe on the emulator). Relative to this folder; update it
-# when the path changes (flavor, version in the file name).
-# apk: build/app/outputs/flutter-apk/app-release.apk
-# aab: build/app/outputs/bundle/release/app-release.aab
-# For the AAB probe, supply the APK for the same build and its expected
-# app-signing certificate fingerprint. CLI flags override these settings.
-# probe_apk: build/app/outputs/flutter-apk/app-release.apk  # Or a signed .apks archive / device-specific APK directory
-# probe_cert_sha256: "your-app-signing-certificate-sha256-in-hex"
+min_score: null  # No minimum score threshold; set a number from 0 to 100.
+scan_packages: true
+exclude: []  # Example: [lib/generated/**]
+rules: {}  # Example: {AEG-D07: false, AEG-C02: medium}
+baseline: aegis-baseline.json  # Used when the file exists.
+
+# Release artifacts for aegis run --mode apk|aab|ipa|all.
+apk: <path-to-file>
+aab: <path-to-file>
+ipa: <path-to-file>
+
+# AAB runtime probe: signed APK, APKS archive, or device-specific APK directory.
+probe_apk: <path-to-file>
+probe_cert_sha256: <sha256-fingerprint>
+
+# Physical iOS targets. For stock-device Frida, use a Development IPA
+# and run aegis setup --ios. Use physical targets OR the Simulator.
+ios_control_device: <stock-device-udid>
+ios_jailbreak_device: <jailbroken-device-udid>
+ios_resigned_ipa: <path-to-file>
+
+# Simulator Frida/LLDB probes. Select a dedicated booted Simulator.
+# run automatically builds a matching app from Flutter source when needed.
+ios_simulator: <simulator-udid>
+ios_simulator_app: <path-to-file>  # Optional .app directory; automatic if unset.
+ios_simulator_flavor: <flavor>  # Optional; uses the project's build settings.
+ios_simulator_target: <path-to-file>  # Optional Dart entry point; automatic if unset.
 ''');
-  stdout.writeln(ar
-      ? '''اتعمل ${file.path}.
-
-الخطوات الجاية:
-  1. aegis setup   مرة واحدة على الجهاز: بيسطّب الإيموليتر والأدوات اللي اختبار الحماية
-                   (probe) محتاجها، وبيتخطّى أي حاجة موجودة. من غيره aegis run بيعمل
-                   الفحص الثابت بس للـ APK/AAB.
-  2. حط مسار نسخة الـ release في aegis.yaml:  apk: build/app/outputs/flutter-apk/app-release.apk
-  3. aegis run'''
-      : '''Wrote ${file.path}.
-
-Next:
-  1. aegis setup   Once per machine: installs both emulators and the tools the resilience
-                   probe needs, skipping what you already have. Without it, aegis run
-                   does only the static checks of the APK/AAB.
-  2. Set your release build's path in aegis.yaml:  apk: build/app/outputs/flutter-apk/app-release.apk
-  3. aegis run''');
+  stdout.writeln(L10n((ar ? 'ar' : 'en')).aegisWroteNext1AegisSetupOncePer(value1: file.path));
 }
 
 // --- doctor -----------------------------------------------------------------
@@ -573,16 +615,17 @@ void _printChecks(List<ToolCheck> checks, Msg m, Toolchain t) {
 }
 
 Future<int> _doctor(ArgResults a) async {
-  final m = Msg(_toolsLang(a));
+  final ios = a['ios'] as bool;
+  final m = Msg(_toolsLang(a), ios: ios);
   if (a['help'] as bool) {
-    stdout.writeln('Usage: aegis doctor [--lang en|ar]\n');
+    stdout.writeln('Usage: aegis doctor [--ios] [--lang en|ar]\n');
     stdout.writeln('Checks the tools the resilience probe needs. Changes nothing.');
     stdout.writeln('Exit code 0 when everything required is present.\n');
     stdout.writeln(_toolsParser().usage);
     return 0;
   }
   final t = Toolchain(SystemHost());
-  final checks = await t.checkAll();
+  final checks = ios ? await t.checkIos() : await t.checkAll();
   stdout.writeln(m.header);
   _printChecks(checks, m, t);
   stdout.writeln('');
@@ -602,32 +645,84 @@ Future<int> _doctor(ArgResults a) async {
 // --- setup ------------------------------------------------------------------
 
 Future<int> _setup(ArgResults a) async {
-  final m = Msg(_toolsLang(a));
+  final lang = _toolsLang(a);
+  final text = L10n(lang);
+  final m = Msg(lang);
   if (a['help'] as bool) {
-    stdout.writeln('Usage: aegis setup [--yes] [--aab] [--remove] [--lang en|ar]\n');
-    stdout.writeln('Installs what "aegis doctor" reports as missing. Tools already present are');
-    stdout.writeln('skipped. Asks once before installing; --yes skips the question.');
+    stdout.writeln('Usage: aegis setup [--android | --ios | --both | --remove] [--yes] [--lang en|ar]\n');
+    stdout.writeln(text.setupHelpScope);
+    stdout.writeln(text.setupHelpConfirmation);
     stdout.writeln('--remove deletes what aegis installed (never your Java or Android SDK).\n');
     stdout.writeln(_toolsParser(setup: true).usage);
     return 0;
   }
-  final aab = a['aab'] as bool;
-  final t = Toolchain(SystemHost());
-  final setup = Setup(t);
-
+  SetupTarget? target;
+  try {
+    target = setupTargetFromFlags(android: a['android'] as bool,
+        ios: a['ios'] as bool, both: a['both'] as bool, aab: a['aab'] as bool);
+    if (a['remove'] as bool && target != null) {
+      throw const FormatException('Separate removal from installation.');
+    }
+  } on FormatException {
+    stderr.writeln(text.setupPlatformConflict);
+    return 2;
+  }
   if (a['remove'] as bool) {
-    final removed = await setup.remove();
+    final removed = await Setup(Toolchain(SystemHost())).remove();
     if (removed.isEmpty) {
       stdout.writeln(m.nothingToRemove);
     } else {
       stdout.writeln(m.removed);
-      for (final r in removed) {
-        stdout.writeln('  🗑  $r');
-      }
+      for (final r in removed) { stdout.writeln('  🗑  $r'); }
     }
     return 0;
   }
-  var checks = await t.checkAll(aab: aab);
+  if (target == null) {
+    if (!stdin.hasTerminal) {
+      stderr.writeln(text.setupPlatformRequired);
+      return 2;
+    }
+    stdout.writeln(text.setupChoosePlatform);
+    stdout.writeln('  1) Android (APK + AAB)');
+    stdout.writeln('  2) iOS');
+    stdout.writeln('  3) Both (Android + iOS)');
+    while (target == null) {
+      stdout.write(text.setupPlatformPrompt);
+      String? answer;
+      try { answer = stdin.readLineSync(encoding: const Utf8Codec(allowMalformed: true)); } catch (_) {}
+      if (answer == null || ['q', 'quit', 'cancel'].contains(answer.trim().toLowerCase())) {
+        stdout.writeln(m.cancelled);
+        return 1;
+      }
+      target = parseSetupTarget(answer);
+      if (target == null) stdout.writeln(text.setupInvalidPlatform);
+    }
+  }
+  String? os;
+  try { os = Platform.operatingSystem; } catch (_) {}
+  final results = await runSetupPlatforms(target,
+      hostOs: os,
+      prepare: (platform) async {
+        stdout.writeln('\n${text.setupPreparingPlatform(platform: platform.label)}');
+        return _setupPlatform(a, platform);
+      },
+      iosUnsupported: () => stderr.writeln(text.setupIosUnsupported),
+      failed: (platform, error) => stderr.writeln(text.setupPlatformFailed(platform: platform.label, error: error)));
+  stdout.writeln('\n${m.result}');
+  for (final result in results.entries) {
+    stdout.writeln(result.value == 0
+        ? text.setupPlatformReady(platform: result.key.label)
+        : text.setupPlatformIncomplete(platform: result.key.label));
+  }
+  return setupExitCode(results);
+}
+
+Future<int> _setupPlatform(ArgResults a, SetupPlatform platform) async {
+  final ios = platform == SetupPlatform.ios;
+  final m = Msg(_toolsLang(a), ios: ios);
+  final t = Toolchain(SystemHost());
+  final setup = Setup(t);
+  var checks = await checkSetupPlatform(t, platform);
   final plan = setup.buildPlan(checks);
 
   for (final c in plan.present) {
@@ -639,14 +734,12 @@ Future<int> _setup(ArgResults a) async {
   for (final e in plan.blocked.entries) {
     stdout.writeln('  ⏸️  ${m.title(e.key)}: ${m.waitingFor(e.value)}');
   }
-  if (!aab) {
-    for (final c in plan.optional) {
-      stdout.writeln('  ℹ️  ${m.title(c.id)}: ${m.issue(c)}');
-    }
+  for (final c in plan.optional) {
+    stdout.writeln('  ℹ️  ${m.title(c.id)}: ${m.issue(c)}');
   }
 
   if (plan.nothingToDo) {
-    setup.writeToolsJson(checks);
+    if (!ios) setup.writeToolsJson(checks);
     stdout.writeln('');
     stdout.writeln(plan.coversEverything ? m.allPresent : m.someManual);
     return plan.coversEverything ? 0 : 1;
@@ -699,13 +792,13 @@ Future<int> _setup(ArgResults a) async {
     }
   }
 
-  checks = await t.checkAll(aab: aab);
-  setup.writeToolsJson(checks);
+  checks = await checkSetupPlatform(t, platform);
+  if (!ios) setup.writeToolsJson(checks);
   stdout.writeln('\n${m.result}');
   _printChecks(checks, m, t);
   final ok = checks.where((c) => c.state != ToolState.optional).every((c) => c.ok);
   stdout.writeln('');
-  stdout.writeln(ok ? m.savedTo(t.toolsJsonPath) : m.stillMissing);
+  stdout.writeln(ok ? (ios ? m.allPresent : m.savedTo(t.toolsJsonPath)) : m.stillMissing);
   return ok ? 0 : 1;
 }
 
@@ -715,17 +808,15 @@ Future<int> _probe(ArgResults a) async {
   final lang = (a['lang'] as String?) ?? _systemLang();
   final ar = lang == 'ar';
   if (a['help'] as bool) {
-    stdout.writeln('Usage: aegis probe [app.apk|app.aab] [--project DIR] [--profile P] [--only root,hooking] [--lang en|ar]\n');
-    stdout.writeln('Runs only the resilience probe: the app on the aegis-probe emulator, checking');
-    stdout.writeln('whether its own anti-tampering reacts to the standard MASTG conditions.');
-    stdout.writeln('The app is apk: (else aab:) in the project\'s aegis.yaml, unless a path is given.');
-    stdout.writeln('"aegis run --mode apk" runs the same probe and puts it in the full report.');
-    stdout.writeln('Run "aegis setup" first to install the emulator and tools.\n');
+    stdout.writeln('Usage: aegis probe [app.apk|app.aab|app.ipa] [--project DIR] [--profile P] [--only root,hooking] [--lang en|ar]\n');
+    stdout.writeln('Runs the resilience probe on an Android emulator or selected iOS target.');
+    stdout.writeln('Use an app path or configure apk:, aab: or ipa: in aegis.yaml.');
+    stdout.writeln('iOS target options select ipa: when no path is given.\n');
     stdout.writeln(_probeParser().usage);
     return 0;
   }
 
-  // The app: a positional path, else apk:/aab: in the project's aegis.yaml.
+  // An explicit path wins over the configured artifact.
   // The project is --project, else the one the given file sits in, else the
   // current folder; its aegis.yaml also gives the profile.
   final projectArg = a['project'] as String?;
@@ -738,12 +829,16 @@ Future<int> _probe(ArgResults a) async {
     stderr.writeln(e.message);
     return 2;
   }
+  final only = (a['only'] as List<String>).toSet();
+  final wantsIos = only.contains('jailbreak') ||
+      ['ios-control-device', 'ios-jailbreak-device', 'ios-resigned-ipa',
+        'ios-simulator', 'ios-simulator-app'].any((option) => a[option] != null);
   if (appPath == null) {
-    final value = config.apk ?? config.aab;
+    final value = wantsIos ? config.ipa : config.apk ?? config.aab ?? config.ipa;
     if (value == null) {
-      stderr.writeln(ar
-          ? 'حدّد مسار التطبيق في aegis.yaml (نسبةً للمشروع)، مثلًا:\n  apk: $flutterApkDir/app-release.apk\nأو مرّره: aegis probe path/to/app.apk'
-          : 'Set the app\'s path in aegis.yaml (relative to the project), e.g.:\n  apk: $flutterApkDir/app-release.apk\nor pass it: aegis probe path/to/app.apk');
+      stderr.writeln(wantsIos
+          ? (L10n((ar ? 'ar' : 'en')).aegisSetIpaInAegisYamlOrPassTheIpa)
+          : L10n((ar ? 'ar' : 'en')).aegisSetTheAppSPathInAegisYamlRelativeTo(flutterApkDir: flutterApkDir));
       return 2;
     }
     appPath = AegisConfig.resolve(p.absolute(projectDir), value)!;
@@ -764,10 +859,24 @@ Future<int> _probe(ArgResults a) async {
   }
   final profileFrom = profileArg != null
       ? '--profile'
-      : (config.file != null ? p.relative(config.file!) : (ar ? 'الافتراضي' : 'default'));
-  stdout.writeln(ar
-      ? 'الـ profile: ${config.profile} (من $profileFrom)'
-      : 'Profile: ${config.profile} (from $profileFrom)');
+      : (config.file != null ? p.relative(config.file!) : (L10n((ar ? 'ar' : 'en')).aegisDefault));
+  stdout.writeln(L10n((ar ? 'ar' : 'en')).aegisProfileFrom(value1: config.profile, profileFrom: profileFrom));
+
+  if (appPath.toLowerCase().endsWith('.ipa')) {
+    final outcome = await _runIosProbe(appPath, a, config, p.absolute(projectDir),
+        only: only.isEmpty ? null : only);
+    final report = outcome.report;
+    if (report == null) {
+      stderr.writeln(outcome.skippedOf(lang));
+      return 2;
+    }
+    stdout.write(renderProbe(report, lang: lang, resilienceProfile: config.profile.resilience));
+    return probeExitCode(report, resilienceProfile: config.profile.resilience);
+  }
+  if (wantsIos) {
+    stderr.writeln(L10n((ar ? 'ar' : 'en')).aegisIosProbeOptionsRequireAnIpa);
+    return 2;
+  }
 
   bool? obfuscated;
   try {
@@ -777,13 +886,12 @@ Future<int> _probe(ArgResults a) async {
     return 2;
   }
 
-  final only = (a['only'] as List<String>).toSet();
   final outcome = await _runProbe(appPath, lang: lang, config: config, projectRoot: p.absolute(projectDir),
       only: only.isEmpty ? null : only,
       signedApk: a['probe-apk'] as String?, expectedSigner: a['probe-cert-sha256'] as String?, rootAvd: a['root-avd'] as String?, controlAvd: a['control-avd'] as String?);
   final report = outcome.report;
   if (report == null) {
-    stderr.writeln(outcome.skipped);
+    stderr.writeln(outcome.skippedOf(lang));
     return 2;
   }
   stdout.writeln('');
@@ -792,14 +900,33 @@ Future<int> _probe(ArgResults a) async {
     final mode = appPath.toLowerCase().endsWith('.aab') ? 'aab' : 'apk';
     stdout.writeln('');
     stdout.writeln(obfuscated
-        ? (ar
-            ? 'ثابت (هندسة عكسية): النسخة دي معمولّها obfuscation ✅'
-            : 'Static (reverse engineering): this build is obfuscated ✅')
-        : (ar
-            ? 'ثابت (هندسة عكسية): النسخة دي مش معمولّها obfuscation ❌ — كود Dart مقروء. شغّل "aegis run --mode $mode" للتقرير الكامل (AEG-B07).'
-            : 'Static (reverse engineering): this build is NOT obfuscated ❌ — the Dart code is readable. Run "aegis run --mode $mode" for the full report (AEG-B07).'));
+        ? (L10n((ar ? 'ar' : 'en')).aegisStaticReverseEngineeringThisBuildIsObfuscated)
+        : (L10n((ar ? 'ar' : 'en')).aegisStaticReverseEngineeringThisBuildIsNotObfuscated(mode: mode)));
   }
   return probeExitCode(report, resilienceProfile: config.profile.resilience);
+}
+
+Future<ProbeOutcome> _runIosProbe(String path, ArgResults args, AegisConfig config,
+    String project, {Set<String>? only}) {
+  final physicalOverride = ['ios-control-device', 'ios-jailbreak-device',
+    'ios-resigned-ipa'].any((option) => args[option] != null);
+  final simulator = (args['ios-simulator'] as String?) ??
+      (physicalOverride ? null : config.iosSimulator);
+  final simulatorApp = (args['ios-simulator-app'] as String?) ??
+      (physicalOverride ? null : AegisConfig.resolve(project, config.iosSimulatorApp));
+  final physical = simulator == null && simulatorApp == null;
+  return IosProbeRunner().run(path,
+    controlId: (args['ios-control-device'] as String?) ?? (physical ? config.iosControlDevice : null),
+    jailbreakId: (args['ios-jailbreak-device'] as String?) ?? (physical ? config.iosJailbreakDevice : null),
+    resignedIpa: (args['ios-resigned-ipa'] as String?) ?? (physical ? AegisConfig.resolve(project, config.iosResignedIpa) : null),
+    simulatorId: simulator,
+    simulatorApp: simulatorApp,
+    projectRoot: project,
+    simulatorFlavor: config.iosSimulatorFlavor,
+    simulatorTarget: config.iosSimulatorTarget,
+    only: only,
+    log: (message) => stdout.writeln('  · $message'),
+  );
 }
 
 /// Runs the probe on an installable APK with its original signing identity.
@@ -828,12 +955,12 @@ Future<ProbeOutcome> _runProbe(String appPath, {
         expectedDigest = normalizeCertificateSha256(expectedSigner);
         if (expectedDigest == null) {
           return const ProbeOutcome.skipped(
-              '--probe-cert-sha256 or probe_cert_sha256 must be a SHA-256 certificate fingerprint in hex.');
+              En.aabSignerFingerprintInvalid, skippedAr: Ar.aabSignerFingerprintInvalid);
         }
       }
       if (signedApk == null) {
         return const ProbeOutcome.skipped(
-            'For an AAB, supply the corresponding signed APK or APK set with --probe-apk or probe_apk in aegis.yaml.');
+            En.aabCompanionRequired, skippedAr: Ar.aabCompanionRequired);
       }
       useApkDirectory = Directory(signedApk).existsSync();
       useApkArchive = !useApkDirectory && signedApk.toLowerCase().endsWith('.apks');
@@ -843,13 +970,13 @@ Future<ProbeOutcome> _runProbe(String appPath, {
             apk.versionCode == null || apk.versionCode != input.versionCode ||
             apk.manifest!.rootElement.getAttribute('split')?.isNotEmpty == true) {
           return const ProbeOutcome.skipped(
-              '--probe-apk must have the same package name and version code as the AAB. Supply all splits as a .apks archive or a device-specific APK directory.');
+              En.aabCompanionMismatch, skippedAr: Ar.aabCompanionMismatch);
         }
         companion = apk;
       }
     } else {
       if (signedApk != null || expectedSigner != null) {
-        return const ProbeOutcome.skipped('--probe-apk and --probe-cert-sha256 are only used when auditing an AAB.');
+        return const ProbeOutcome.skipped(En.aabOptionsOnly, skippedAr: Ar.aabOptionsOnly);
       }
     }
   } on FileSystemException catch (e) {
@@ -860,7 +987,7 @@ Future<ProbeOutcome> _runProbe(String appPath, {
   final dedicatedName = RegExp(r'^aegis-probe(?:-[\w-]+)?$');
   if ([rootAvd, controlAvd].whereType<String>().any((name) => !dedicatedName.hasMatch(name)) ||
       rootAvd == (controlAvd ?? avdName)) {
-    return const ProbeOutcome.skipped('Use distinct, dedicated aegis-probe emulator names.');
+    return const ProbeOutcome.skipped(En.androidDedicatedAvdsRequired, skippedAr: Ar.androidDedicatedAvdsRequired);
   }
 
   final host = SystemHost();
@@ -873,9 +1000,7 @@ Future<ProbeOutcome> _runProbe(String appPath, {
   if (useApkArchive && !host.fileExists(toolchain.bundletoolPath)) missing.add('bundletool');
   if (useApkArchive && tools.javaHome == null) missing.add('Java');
   if (missing.isNotEmpty) {
-    return ProbeOutcome.skipped(ar
-        ? 'ناقص ${missing.join('، ')}؛ شغّل "aegis setup${useApkArchive ? ' --aab' : ''}"'
-        : 'missing ${missing.join(', ')}; run "aegis setup${useApkArchive ? ' --aab' : ''}"');
+    return ProbeOutcome.skipped(En.aegisMissingRunAegisSetup(value1: missing.join(', '), value2: ' --android'), skippedAr: Ar.aegisMissingRunAegisSetup(value1: missing.join('، '), value2: ' --android'));
   }
 
   final work = Directory.systemTemp.createTempSync('aegis-probe-');
@@ -888,7 +1013,7 @@ Future<ProbeOutcome> _runProbe(String appPath, {
   } on FileSystemException {
     guard?.closeSync();
     work.deleteSync(recursive: true);
-    return const ProbeOutcome.skipped('Could not lock the probe emulators; another probe may be running.');
+    return const ProbeOutcome.skipped(En.androidProbeLockUnavailable, skippedAr: Ar.androidProbeLockUnavailable);
   }
   try {
     final device = Device(host, tools, avdName: controlAvd);
@@ -918,7 +1043,7 @@ Future<ProbeOutcome> _runProbe(String appPath, {
                 p.join(work.path, 'rooted-apks'), bundle: input,
                 bundletool: bundletool, expectedSigner: expectedDigest, log: log);
             if (!sameApkSigners(control.identity, rooted.identity)) {
-              return const ProbeOutcome.skipped('The emulator APK sets have different signing certificates.');
+              return const ProbeOutcome.skipped(En.androidApkSetSignersDiffer, skippedAr: Ar.androidApkSetSignersDiffer);
             }
             rootedApks = [rooted.base.path, ...rooted.splits];
           }
@@ -938,16 +1063,14 @@ Future<ProbeOutcome> _runProbe(String appPath, {
       } on FormatException catch (e) {
         return ProbeOutcome.skipped(e.message);
       } on FileSystemException catch (e) {
-        return ProbeOutcome.skipped('Could not stage the probe APK files: ${e.message}');
+        return ProbeOutcome.skipped(En.androidStageApksFailed(error: e.message), skippedAr: Ar.androidStageApksFailed(error: e.message));
       } on StateError catch (e) {
         return ProbeOutcome.skipped(e.message);
       }
     }
     final package = installed.packageName!;
     final controlName = controlAvd ?? tools.avdName;
-    stdout.writeln(ar
-        ? 'بيشغّل $package على إيموليتر $controlName… (ممكن ياخد دقيقة)'
-        : 'Running $package on the $controlName emulator… (this can take a minute)');
+    stdout.writeln(L10n((ar ? 'ar' : 'en')).aegisRunningOnTheEmulatorThisCanTakeA(package: package, controlName: controlName));
     final app = installed.application;
     final report = await ProbeRunner(device, rootDevice: rootDevice).run(
         appPath: runtimePath,

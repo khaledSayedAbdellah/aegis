@@ -1,4 +1,4 @@
-/// Finds the tools the resilience probe will need (docs/plans/probe-toolchain.md
+/// Finds the tools the resilience probe will need (doc/plans/probe-toolchain.md
 /// §3–4). Android SDK and Java are resolved in the same order Flutter uses, so
 /// aegis works with exactly the tools the app is built with.
 ///
@@ -39,6 +39,7 @@ enum Issue {
   pythonOld,
   pythonNoVenv,
   fridaOtherVersion,
+  xcodeMissing,
   optionalAab,
 }
 
@@ -132,6 +133,10 @@ class Toolchain {
 
   String get fridaServerPath =>
       _p.join(toolsDir, pins.fridaServerName(fridaArch));
+  String get iosFridaCache => _p.join(toolsDir, 'ios-${pins.fridaVersion}');
+  String get iosGadgetPath => _p.join(iosFridaCache, 'frida', 'gadget-ios.dylib');
+  String get iosSimulatorGadgetPath => _p.join(
+      toolsDir, 'ios-simulator-gadget-${pins.iosSimulatorGadgetVersion}.dylib');
   String get bundletoolPath => _p.join(toolsDir, pins.bundletoolName);
 
   String venvExe(String name) => _win
@@ -565,7 +570,30 @@ class Toolchain {
         issue: aab ? Issue.missing : Issue.optionalAab);
   }
 
-  /// Every component, in [toolIds] order. [aab] makes bundletool required.
+  ToolCheck checkIosGadget({bool simulator = false}) {
+    final path = simulator ? iosSimulatorGadgetPath : iosGadgetPath;
+    return ToolCheck(
+        simulator ? 'ios-simulator-gadget' : 'ios-gadget',
+        host.fileExists(path) ? ToolState.present : ToolState.installable,
+        path: path,
+        version: simulator ? pins.iosSimulatorGadgetVersion : pins.fridaVersion);
+  }
+
+  Future<List<ToolCheck>> checkIos() async {
+    final xcode = await host.run('xcrun', ['--find', 'devicectl']);
+    if (xcode?.ok != true) {
+      return [ToolCheck('xcode', ToolState.manual, issue: Issue.xcodeMissing)];
+    }
+    return [
+      ToolCheck('xcode', ToolState.present, path: xcode!.out),
+      await checkPython(),
+      await checkFrida(),
+      checkIosGadget(),
+      checkIosGadget(simulator: true),
+    ];
+  }
+
+  /// Every Android component, in [toolIds] order. [aab] requires bundletool.
   Future<List<ToolCheck>> checkAll({bool aab = false}) async {
     final flutter = await checkFlutter();
     final sdk = await checkAndroidSdk();

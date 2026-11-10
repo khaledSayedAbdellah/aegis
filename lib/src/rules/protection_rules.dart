@@ -5,6 +5,8 @@
 /// a detected threat triggers a real reaction.
 library;
 
+import '../l10n/messages.g.dart';
+
 import 'dart:io';
 
 import 'package:xml/xml.dart';
@@ -153,13 +155,9 @@ class RaspPresenceRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P01',
-        title: Bilingual('No runtime protection (RASP)', 'مفيش حماية وقت التشغيل (RASP)'),
-        description: Bilingual(
-            'Without RASP the app cannot tell when it runs on a rooted/jailbroken device, under a debugger, with Frida hooks, or after being repackaged.',
-            'من غير RASP التطبيق مش هيعرف لو شغال على جهاز rooted أو jailbroken، أو عليه debugger أو Frida، أو لو حد عدّل عليه وأعاد توقيعه.'),
-        fix: Bilingual(
-            'Add a RASP SDK such as freerasp, start it in main(), and react to threats (block sensitive features, wipe secrets, notify the backend).',
-            'ضيف RASP SDK زي freerasp، وشغّله في main()، واعمل رد فعل حقيقي (اقفل الخصائص الحساسة، امسح الأسرار، بلّغ السيرفر).'),
+        title: Bilingual(En.protectionRulesNoRuntimeProtectionRasp, Ar.protectionRulesNoRuntimeProtectionRasp),
+        description: Bilingual(En.protectionRulesWithoutRaspTheAppCannotTellWhenIt, Ar.protectionRulesWithoutRaspTheAppCannotTellWhenIt),
+        fix: Bilingual(En.protectionRulesAddARaspSdkSuchAsFreeraspStart, Ar.protectionRulesAddARaspSdkSuchAsFreeraspStart),
         severity: Severity.high,
         masvs: ['MASVS-RESILIENCE-1', 'MASVS-RESILIENCE-4'],
         maswe: ['MASWE-0051', 'MASWE-0064', 'MASWE-0065'],
@@ -173,8 +171,8 @@ class RaspPresenceRule extends Rule {
     final has = raspPackages.any(project.usesPackage);
     if (has) return RuleCheck([]);
     return RuleCheck([
-      inFile('pubspec.yaml', null, 'No RASP package found in dependencies.',
-          messageAr: 'مفيش أي مكتبة RASP في الـ dependencies.')
+      inFile('pubspec.yaml', null, En.protectionRulesNoRaspPackageFoundInDependencies,
+          messageAr: Ar.protectionRulesNoRaspPackageFoundInDependencies)
     ]);
   }
 }
@@ -185,13 +183,9 @@ class FreeRaspWiringRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P02',
-        title: Bilingual('Missing freeRASP startup wiring', 'استدعاءات تشغيل freeRASP ناقصة'),
-        description: Bilingual(
-            'freeRASP only protects the app after Talsec.instance.start(config) runs and a ThreatCallback is attached. Otherwise it is dead weight that gives a false sense of security.',
-            'freeRASP مش بيحمي غير بعد ما Talsec.instance.start(config) يتنادى ويتربط ThreatCallback. غير كده هو مجرد مكتبة زيادة بتدي إحساس كاذب بالأمان.'),
-        fix: Bilingual(
-            'In main(): WidgetsFlutterBinding.ensureInitialized(); Talsec.instance.attachListener(callback); await Talsec.instance.start(config);',
-            'في main(): نادي WidgetsFlutterBinding.ensureInitialized()، وبعدين Talsec.instance.attachListener(callback)، وبعدين await Talsec.instance.start(config).'),
+        title: Bilingual(En.protectionRulesMissingFreeraspStartupWiring, Ar.protectionRulesMissingFreeraspStartupWiring),
+        description: Bilingual(En.protectionRulesFreeraspOnlyProtectsTheAppAfterTalsecInstanceStartConfigRuns, Ar.protectionRulesFreeraspOnlyProtectsTheAppAfterTalsecInstanceStartConfigRuns),
+        fix: Bilingual(En.protectionRulesInMainWidgetsflutterbindingEnsureinitializedTalsecInstanceAttachlistenerCallbackAwaitTalsecInstanceStartConfig, Ar.protectionRulesInMainWidgetsflutterbindingEnsureinitializedTalsecInstanceAttachlistenerCallbackAwaitTalsecInstanceStartConfig),
         severity: Severity.critical,
         masvs: ['MASVS-RESILIENCE-1'],
         maswe: ['MASWE-0051'],
@@ -266,20 +260,19 @@ class FreeRaspWiringRule extends Rule {
     final found = candidates.map((c) => c.$2.name).toSet();
     final findings = [
       if (!found.contains('start'))
-        inFile('pubspec.yaml', null, 'No freeRASP start call was found in the scanned source.',
-            messageAr: 'ملقيناش استدعاء لتشغيل freeRASP في الكود اللي اتفحص.'),
+        inFile('pubspec.yaml', null, En.protectionRulesNoFreeraspStartCallWasFoundInThe,
+            messageAr: Ar.protectionRulesNoFreeraspStartCallWasFoundInThe),
       if (!found.contains('attachListener'))
-        inFile('pubspec.yaml', null, 'No freeRASP listener registration was found in the scanned source.',
-            messageAr: 'ملقيناش تسجيل للـ listener في الكود اللي اتفحص.'),
+        inFile('pubspec.yaml', null, En.protectionRulesNoFreeraspListenerRegistrationWasFoundInThe,
+            messageAr: Ar.protectionRulesNoFreeraspListenerRegistrationWasFoundInThe),
     ];
     final indirect = candidates.isEmpty &&
         project.dartFiles.any((f) => f.tokens.any((t) => t.isIdent && t.text == 'Talsec'));
     if (indirect) {
-      return RuleCheck.incomplete('Could not resolve the indirect freeRASP startup calls.');
+      return RuleCheck.incompleteLocalized(En.raspIndirectUnresolved, Ar.raspIndirectUnresolved);
     }
     if (body == null || direct.length != found.length || findings.isEmpty) {
-      return RuleCheck.incomplete(
-          'Could not verify the freeRASP listener and startup order in lib/main.dart.', findings);
+      return RuleCheck.incompleteLocalized(En.raspOrderUnverified, Ar.raspOrderUnverified, findings);
     }
     return RuleCheck(findings);
   }
@@ -291,13 +284,9 @@ class FreeRaspConfigRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P03',
-        title: Bilingual('freeRASP is misconfigured', 'إعدادات freeRASP غلط'),
-        description: Bilingual(
-            'freeRASP checks the app against the package name, signing certificate hashes and bundle ids you give it. Wrong, empty or copied-from-docs values make tamper detection fire on everyone or on no one, and isProd=false switches to dev mode in release.',
-            'freeRASP بيقارن التطبيق بالـ package name والـ signing hashes والـ bundle ids اللي بتديهاله. لو القيم غلط أو فاضية أو منقولة من الـ docs، كشف التعديل هيشتغل على الكل أو مش هيشتغل خالص. و isProd=false بيخليه في وضع التطوير في الـ release.'),
-        fix: Bilingual(
-            'Use your real applicationId / bundle ids, the Base64 SHA-256 of your upload AND Play App Signing certificates, your Apple team id, and isProd: kReleaseMode.',
-            'استخدم الـ applicationId والـ bundle ids الحقيقيين، والـ SHA-256 بصيغة Base64 لشهادة الـ upload وشهادة Play App Signing، والـ team id بتاعك، و isProd: kReleaseMode.'),
+        title: Bilingual(En.protectionRulesFreeraspIsMisconfigured, Ar.protectionRulesFreeraspIsMisconfigured),
+        description: Bilingual(En.protectionRulesFreeraspChecksTheAppAgainstThePackageName, Ar.protectionRulesFreeraspChecksTheAppAgainstThePackageName),
+        fix: Bilingual(En.protectionRulesUseYourRealApplicationidBundleIdsThe, Ar.protectionRulesUseYourRealApplicationidBundleIdsThe),
         severity: Severity.high,
         masvs: ['MASVS-RESILIENCE-2'],
         maswe: ['MASWE-0057'],
@@ -332,8 +321,8 @@ class FreeRaspConfigRule extends Rule {
       if (isProd != null) {
         final v = f.text(isProd.start, isProd.end).replaceAll(' ', '');
         if (v == 'false' || v == 'kDebugMode' || v == '!kReleaseMode' || v == 'kProfileMode') {
-          out.add(at(f, isProd.start, 'isProd is "$v", so release builds run freeRASP in dev mode.',
-              messageAr: 'isProd قيمته "$v"، يعني الـ release هيشغّل freeRASP في وضع التطوير.'));
+          out.add(at(f, isProd.start, En.protectionRulesIsprodIsSoReleaseBuildsRun(v: v),
+              messageAr: Ar.protectionRulesIsprodIsSoReleaseBuildsRun(v: v)));
         }
       }
     }
@@ -346,40 +335,40 @@ class FreeRaspConfigRule extends Rule {
         final values = _stringList(f, pkg);
         final v = values.isEmpty ? '' : values.first;
         if (values.isNotEmpty && _placeholder(v)) {
-          out.add(at(f, pkg.start, 'packageName "$v" looks like a placeholder or the freeRASP example.',
-              messageAr: 'packageName "$v" شكله قيمة مؤقتة أو منقول من مثال freeRASP.'));
+          out.add(at(f, pkg.start, En.protectionRulesPackagenameLooksLikeAPlaceholderOr(v: v),
+              messageAr: Ar.protectionRulesPackagenameLooksLikeAPlaceholderOr(v: v)));
         } else if (values.isNotEmpty && appId != null && v != appId) {
-          out.add(at(f, pkg.start, 'packageName "$v" does not match applicationId "$appId".',
-              messageAr: 'packageName "$v" مش مطابق للـ applicationId "$appId".'));
+          out.add(at(f, pkg.start, En.protectionRulesPackagenameDoesNotMatchApplicationid(v: v, appId: appId),
+              messageAr: Ar.protectionRulesPackagenameDoesNotMatchApplicationid(v: v, appId: appId)));
         }
       }
       final hashes = f.namedArg(args, 'signingCertHashes');
       if (hashes == null) {
-        out.add(at(f, c.nameIndex, 'AndroidConfig has no signingCertHashes.',
-            messageAr: 'AndroidConfig مفيهوش signingCertHashes.'));
+        out.add(at(f, c.nameIndex, En.protectionRulesAndroidconfigHasNoSigningcerthashes,
+            messageAr: Ar.protectionRulesAndroidconfigHasNoSigningcerthashes));
       } else {
         final hs = _stringList(f, hashes);
         final isLiteralList = f.tokens[hashes.start].isPunct('[');
         if (isLiteralList && hs.isEmpty) {
-          out.add(at(f, hashes.start, 'signingCertHashes is empty.',
-              messageAr: 'signingCertHashes فاضية.'));
+          out.add(at(f, hashes.start, En.protectionRulesSigningcerthashesIsEmpty,
+              messageAr: Ar.protectionRulesSigningcerthashesIsEmpty));
         }
         for (final h in hs) {
           if (_placeholder(h)) {
-            out.add(at(f, hashes.start, 'signingCertHashes contains a placeholder or the documentation example.',
-                messageAr: 'signingCertHashes فيها قيمة مؤقتة أو منقولة من الـ docs.'));
+            out.add(at(f, hashes.start, En.protectionRulesSigningcerthashesContainsAPlaceholderOrTheDocumentationExample,
+                messageAr: Ar.protectionRulesSigningcerthashesContainsAPlaceholderOrTheDocumentationExample));
             break;
           }
           if (RegExp(r'^[0-9A-Fa-f:]{40,}$').hasMatch(h)) {
-            out.add(at(f, hashes.start, 'A signing hash is in hex; freeRASP expects Base64 of the SHA-256.',
-                messageAr: 'فيه hash مكتوب hex، و freeRASP محتاج SHA-256 بصيغة Base64.'));
+            out.add(at(f, hashes.start, En.protectionRulesASigningHashIsInHexFreeraspExpects,
+                messageAr: Ar.protectionRulesASigningHashIsInHexFreeraspExpects));
             break;
           }
         }
         if (isLiteralList && hs.length == 1 && profile.resilience) {
           out.add(at(f, hashes.start,
-              'Only one signing hash is configured. Apps on Google Play need both the upload key and the Play App Signing key hashes.',
-              messageAr: 'فيه signing hash واحد بس. التطبيقات على Google Play محتاجة hash الـ upload key و hash الـ Play App Signing الاتنين.'));
+              En.protectionRulesOnlyOneSigningHashIsConfiguredAppsOn,
+              messageAr: Ar.protectionRulesOnlyOneSigningHashIsConfiguredAppsOn));
         }
       }
     }
@@ -392,11 +381,11 @@ class FreeRaspConfigRule extends Rule {
         final values = _stringList(f, ids);
         for (final v in values) {
           if (_placeholder(v)) {
-            out.add(at(f, ids.start, 'bundleIds contains placeholder "$v".',
-                messageAr: 'bundleIds فيها قيمة مؤقتة "$v".'));
+            out.add(at(f, ids.start, En.protectionRulesBundleidsContainsPlaceholder(v: v),
+                messageAr: Ar.protectionRulesBundleidsContainsPlaceholder(v: v)));
           } else if (bundleIds.isNotEmpty && !bundleIds.contains(v)) {
-            out.add(at(f, ids.start, 'bundle id "$v" is not one of the Runner bundle ids (${bundleIds.join(', ')}).',
-                messageAr: 'الـ bundle id "$v" مش من الـ bundle ids بتاعة Runner (${bundleIds.join(', ')}).'));
+            out.add(at(f, ids.start, En.protectionRulesBundleIdIsNotOneOf(v: v, value2: bundleIds.join(', ')),
+                messageAr: Ar.protectionRulesBundleIdIsNotOneOf(v: v, value2: bundleIds.join(', '))));
           }
         }
       }
@@ -404,8 +393,8 @@ class FreeRaspConfigRule extends Rule {
       if (team != null) {
         final values = _stringList(f, team);
         if (values.isNotEmpty && (_placeholder(values.first) || values.first.length != 10)) {
-          out.add(at(f, team.start, 'teamId "${values.first}" is not a valid 10-character Apple team id.',
-              messageAr: 'teamId "${values.first}" مش team id صحيح (لازم 10 حروف).'));
+          out.add(at(f, team.start, En.protectionRulesTeamidIsNotAValid10Character(value1: values.first),
+              messageAr: Ar.protectionRulesTeamidIsNotAValid10Character(value1: values.first)));
         }
       }
     }
@@ -419,13 +408,9 @@ class FreeRaspReactionRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P04',
-        title: Bilingual('Threats are detected but nothing happens', 'التهديدات بتتكشف بس مفيش رد فعل'),
-        description: Bilingual(
-            'Detection without reaction is not protection. Callbacks that are missing, empty, or only print/log mean a rooted device, Frida or a repackaged app keeps full access.',
-            'الكشف من غير رد فعل مش حماية. لو الـ callbacks مش موجودة أو فاضية أو بتعمل print بس، الجهاز الـ rooted أو Frida أو التطبيق المعدّل هيفضل ليه كل الصلاحيات.'),
-        fix: Bilingual(
-            'For onPrivilegedAccess, onHooks, onAppIntegrity and onDebug: block sensitive features, wipe tokens from secure storage, report to your backend, or exit.',
-            'في onPrivilegedAccess و onHooks و onAppIntegrity و onDebug: اقفل الخصائص الحساسة، امسح الـ tokens من الـ secure storage، بلّغ السيرفر، أو اقفل التطبيق.'),
+        title: Bilingual(En.protectionRulesThreatsAreDetectedButNothingHappens, Ar.protectionRulesThreatsAreDetectedButNothingHappens),
+        description: Bilingual(En.protectionRulesDetectionWithoutReactionIsNotProtectionCallbacksThat, Ar.protectionRulesDetectionWithoutReactionIsNotProtectionCallbacksThat),
+        fix: Bilingual(En.protectionRulesForOnprivilegedaccessOnhooksOnappintegrityAndOndebugBlockSensitive, Ar.protectionRulesForOnprivilegedaccessOnhooksOnappintegrityAndOndebugBlockSensitive),
         severity: Severity.medium,
         l2Severity: Severity.high,
         masvs: ['MASVS-RESILIENCE-1', 'MASVS-RESILIENCE-2', 'MASVS-RESILIENCE-4'],
@@ -453,8 +438,8 @@ class FreeRaspReactionRule extends Rule {
           : critical;
       final missing = wanted.where((n) => !names.contains(n)).toList();
       if (missing.isNotEmpty) {
-        out.add(at(f, c.nameIndex, 'ThreatCallback does not handle: ${missing.join(', ')}.',
-            messageAr: 'الـ ThreatCallback مش بيتعامل مع: ${missing.join(', ')}.'));
+        out.add(at(f, c.nameIndex, En.protectionRulesThreatcallbackDoesNotHandle(value1: missing.join(', ')),
+            messageAr: Ar.protectionRulesThreatcallbackDoesNotHandle(value1: missing.join(', '))));
       }
       final trivial = <String>[];
       for (final a in args) {
@@ -463,8 +448,8 @@ class FreeRaspReactionRule extends Rule {
       }
       if (trivial.isNotEmpty) {
         out.add(at(f, c.nameIndex,
-            'These callbacks only log or do nothing: ${trivial.join(', ')}.',
-            messageAr: 'الـ callbacks دي بتعمل log بس أو مش بتعمل حاجة: ${trivial.join(', ')}.'));
+            En.protectionRulesTheseCallbacksOnlyLogOrDoNothing(value1: trivial.join(', ')),
+            messageAr: Ar.protectionRulesTheseCallbacksOnlyLogOrDoNothing(value1: trivial.join(', '))));
       }
     }
     return RuleCheck(out);
@@ -477,13 +462,9 @@ class AppCheckMissingRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P05',
-        title: Bilingual('Firebase used without App Check', 'Firebase مستخدم من غير App Check'),
-        description: Bilingual(
-            'Without App Check, scripts and modified apps can call your Firestore, Storage, Functions and Auth with the keys inside your APK.',
-            'من غير App Check، أي script أو تطبيق معدّل يقدر ينادي Firestore و Storage و Functions و Auth بتوعك باستخدام المفاتيح اللي جوه الـ APK.'),
-        fix: Bilingual(
-            'Add firebase_app_check with Play Integrity (Android) and App Attest with DeviceCheck fallback (iOS), monitor metrics, then enable enforcement.',
-            'ضيف firebase_app_check بـ Play Integrity على Android و App Attest مع DeviceCheck على iOS، راقب الأرقام، وبعدين فعّل الـ enforcement.'),
+        title: Bilingual(En.protectionRulesFirebaseUsedWithoutAppCheck, Ar.protectionRulesFirebaseUsedWithoutAppCheck),
+        description: Bilingual(En.protectionRulesWithoutAppCheckScriptsAndModifiedAppsCan, Ar.protectionRulesWithoutAppCheckScriptsAndModifiedAppsCan),
+        fix: Bilingual(En.protectionRulesAddFirebaseAppCheckWithPlayIntegrityAndroidAndApp, Ar.protectionRulesAddFirebaseAppCheckWithPlayIntegrityAndroidAndApp),
         severity: Severity.medium,
         masvs: ['MASVS-RESILIENCE-2'],
         maswe: ['MASWE-0056', 'MASWE-0054'],
@@ -498,8 +479,8 @@ class AppCheckMissingRule extends Rule {
     }
     if (project.usesPackage('firebase_app_check')) return RuleCheck([]);
     return RuleCheck([
-      inFile('pubspec.yaml', null, 'firebase_core is used but firebase_app_check is not.',
-          messageAr: 'firebase_core مستخدم بس firebase_app_check مش موجود.')
+      inFile('pubspec.yaml', null, En.protectionRulesFirebaseCoreIsUsedButFirebaseAppCheckIsNot,
+          messageAr: Ar.protectionRulesFirebaseCoreIsUsedButFirebaseAppCheckIsNot)
     ]);
   }
 }
@@ -510,13 +491,9 @@ class AppCheckDebugProviderRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P06',
-        title: Bilingual('App Check debug provider can reach release', 'الـ debug provider بتاع App Check ممكن يوصل للـ release'),
-        description: Bilingual(
-            'The debug provider skips device attestation. If it is not limited to debug builds, App Check protects nothing in production.',
-            'الـ debug provider بيتخطى الـ attestation. لو مش محصور في الـ debug بس، App Check مش هيحمي حاجة في الـ production.'),
-        fix: Bilingual(
-            'Select the provider with kDebugMode, e.g. androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity.',
-            'اختار الـ provider حسب kDebugMode، مثلاً: androidProvider: kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity.'),
+        title: Bilingual(En.protectionRulesAppCheckDebugProviderCanReachRelease, Ar.protectionRulesAppCheckDebugProviderCanReachRelease),
+        description: Bilingual(En.protectionRulesTheDebugProviderSkipsDeviceAttestationIfIt, Ar.protectionRulesTheDebugProviderSkipsDeviceAttestationIfIt),
+        fix: Bilingual(En.protectionRulesSelectTheProviderWithKdebugmodeEGAndroidproviderKdebugmode, Ar.protectionRulesSelectTheProviderWithKdebugmodeEGAndroidproviderKdebugmode),
         severity: Severity.high,
         masvs: ['MASVS-RESILIENCE-2'],
         maswe: ['MASWE-0056'],
@@ -544,8 +521,8 @@ class AppCheckDebugProviderRule extends Rule {
         final window = [for (var l = line - 2; l <= line + 2; l++) f.lineText(l)].join(' ');
         if (RegExp(r'k(Debug|Release|Profile)Mode').hasMatch(window)) continue;
         if (guardedByDebug(f, i)) continue;
-        out.add(at(f, i, '${t.text}${isEnumDebug ? '.debug' : '()'} is used without a kDebugMode guard.',
-            messageAr: '${t.text}${isEnumDebug ? '.debug' : '()'} مستخدم من غير شرط kDebugMode.'));
+        out.add(at(f, i, En.protectionRulesIsUsedWithoutAKdebugmodeGuard(value1: t.text, value2: isEnumDebug ? '.debug' : '()'),
+            messageAr: Ar.protectionRulesIsUsedWithoutAKdebugmodeGuard(value1: t.text, value2: isEnumDebug ? '.debug' : '()')));
       }
     }
     return RuleCheck(out);
@@ -558,13 +535,9 @@ class PinningRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P07',
-        title: Bilingual('No effective certificate pinning', 'مفيش certificate pinning فعّال'),
-        description: Bilingual(
-            'Without pinning, a user-installed or compromised CA lets an attacker read and modify API traffic. Pinning that still trusts system roots can be bypassed the same way.',
-            'من غير pinning، أي CA متثبتة أو مخترقة تسمح للمهاجم يقرا ويعدّل الـ API traffic. والـ pinning اللي لسه بيثق في شهادات النظام ممكن يتخطى بنفس الطريقة.'),
-        fix: Bilingual(
-            'Pin your API hosts: a <pin-set> in network_security_config.xml plus NSPinnedDomains on iOS, or a Dart HttpClient with SecurityContext(withTrustedRoots: false) loaded with your certificate.',
-            'اعمل pinning للسيرفرات بتاعتك: <pin-set> في network_security_config.xml و NSPinnedDomains على iOS، أو HttpClient بـ SecurityContext(withTrustedRoots: false) ومعاه الشهادة بتاعتك.'),
+        title: Bilingual(En.protectionRulesNoEffectiveCertificatePinning, Ar.protectionRulesNoEffectiveCertificatePinning),
+        description: Bilingual(En.protectionRulesWithoutPinningAUserInstalledOrCompromisedCaLets, Ar.protectionRulesWithoutPinningAUserInstalledOrCompromisedCaLets),
+        fix: Bilingual(En.protectionRulesPinYourApiHostsAPinSetInNetworkSecurityConfigXml, Ar.protectionRulesPinYourApiHostsAPinSetInNetworkSecurityConfigXml),
         severity: Severity.medium,
         masvs: ['MASVS-NETWORK-2'],
         maswe: ['MASWE-0028'],
@@ -613,8 +586,8 @@ class PinningRule extends Rule {
           evidence = true;
         } else if (loadsCert && !rootsOff) {
           out.add(at(f, c.nameIndex,
-              'SecurityContext loads your certificate but keeps trusting system roots (withTrustedRoots is not false), so any trusted CA still works.',
-              messageAr: 'الـ SecurityContext بيحمّل الشهادة بتاعتك بس لسه بيثق في شهادات النظام (withTrustedRoots مش false)، فأي CA موثوقة هتشتغل.'));
+              En.protectionRulesSecuritycontextLoadsYourCertificateButKeepsTrustingSystem,
+              messageAr: Ar.protectionRulesSecuritycontextLoadsYourCertificateButKeepsTrustingSystem));
           evidence = true;
         }
       }
@@ -628,8 +601,8 @@ class PinningRule extends Rule {
       }
     }
     if (!evidence) {
-      out.add(inFile(null, null, 'No certificate pinning found for an app that makes network calls.',
-          messageAr: 'مفيش certificate pinning في تطبيق بيعمل network calls.'));
+      out.add(inFile(null, null, En.protectionRulesNoCertificatePinningFoundForAnAppThat,
+          messageAr: Ar.protectionRulesNoCertificatePinningFoundForAnAppThat));
     }
     return RuleCheck(out);
   }
@@ -641,13 +614,9 @@ class LocalAuthRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P08',
-        title: Bilingual('Biometric check is only a boolean', 'البصمة مجرد true/false'),
-        description: Bilingual(
-            'local_auth returns true/false. With Frida that result is flipped in one line, so biometrics that do not unlock a Keystore/Keychain key can be bypassed.',
-            'local_auth بيرجع true أو false بس. بـ Frida النتيجة دي بتتقلب في سطر واحد، فالبصمة اللي مش بتفتح مفتاح في الـ Keystore أو الـ Keychain ممكن تتخطى.'),
-        fix: Bilingual(
-            'Bind biometrics to a key: use biometric_storage or flutter_secure_storage with authentication-required options so the secret is only released after a real biometric match.',
-            'اربط البصمة بمفتاح تشفير: استخدم biometric_storage أو flutter_secure_storage مع خيار authentication required، عشان السر ميطلعش غير بعد بصمة حقيقية.'),
+        title: Bilingual(En.protectionRulesBiometricCheckIsOnlyABoolean, Ar.protectionRulesBiometricCheckIsOnlyABoolean),
+        description: Bilingual(En.protectionRulesLocalAuthReturnsTrueFalseWithFridaThatResultIs, Ar.protectionRulesLocalAuthReturnsTrueFalseWithFridaThatResultIs),
+        fix: Bilingual(En.protectionRulesBindBiometricsToAKeyUseBiometricStorageOr, Ar.protectionRulesBindBiometricsToAKeyUseBiometricStorageOr),
         severity: Severity.medium,
         masvs: ['MASVS-AUTH-2'],
         maswe: ['MASWE-0020', 'MASWE-0021'],
@@ -672,15 +641,15 @@ class LocalAuthRule extends Rule {
     final bound = _cryptoBound.any(project.usesPackage);
     if (!bound) {
       final (f, c) = calls.first;
-      out.add(at(f, c.nameIndex, 'Biometric result is used as a plain boolean (no key bound to it).',
-          messageAr: 'نتيجة البصمة مستخدمة كـ true/false بس (مش مربوطة بمفتاح).'));
+      out.add(at(f, c.nameIndex, En.protectionRulesBiometricResultIsUsedAsAPlainBoolean,
+          messageAr: Ar.protectionRulesBiometricResultIsUsedAsAPlainBoolean));
     }
     for (final (f, c) in calls) {
       final txt = f.text(c.open, c.close).replaceAll(RegExp(r'\s+'), '');
       if (!txt.contains('biometricOnly:true')) {
         out.add(at(f, c.nameIndex,
-            'authenticate() allows falling back to device PIN/passcode (biometricOnly is not true).',
-            messageAr: 'authenticate() بيسمح بالرجوع للـ PIN بتاع الجهاز (biometricOnly مش true).'));
+            En.protectionRulesAuthenticateAllowsFallingBackToDevicePinPasscodeBiometriconly,
+            messageAr: Ar.protectionRulesAuthenticateAllowsFallingBackToDevicePinPasscodeBiometriconly));
       }
     }
     return RuleCheck(out);
@@ -693,13 +662,9 @@ class ScreenProtectionRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P09',
-        title: Bilingual('No screenshot / recording protection', 'مفيش حماية من الـ screenshots والتسجيل'),
-        description: Bilingual(
-            'Sensitive screens (balances, OTPs, cards) can be captured by screenshots, screen recording, casting and the app switcher thumbnail.',
-            'الشاشات الحساسة (الرصيد، الـ OTP، الكروت) ممكن تتصور screenshot أو تتسجل أو تظهر في صورة الـ app switcher.'),
-        fix: Bilingual(
-            'Set FLAG_SECURE on Android (e.g. screen_protector or freeRASP blockScreenCapture) and hide content in the iOS app switcher.',
-            'فعّل FLAG_SECURE على Android (مثلاً بـ screen_protector أو blockScreenCapture بتاع freeRASP)، وخبّي المحتوى في الـ app switcher على iOS.'),
+        title: Bilingual(En.protectionRulesNoScreenshotRecordingProtection, Ar.protectionRulesNoScreenshotRecordingProtection),
+        description: Bilingual(En.protectionRulesSensitiveScreensBalancesOtpsCardsCanBeCaptured, Ar.protectionRulesSensitiveScreensBalancesOtpsCardsCanBeCaptured),
+        fix: Bilingual(En.protectionRulesSetFlagSecureOnAndroidEGScreenProtectorOrFreerasp, Ar.protectionRulesSetFlagSecureOnAndroidEGScreenProtectorOrFreerasp),
         severity: Severity.low,
         masvs: ['MASVS-PLATFORM-3'],
         maswe: ['MASWE-0038'],
@@ -732,8 +697,8 @@ class ScreenProtectionRule extends Rule {
       }
     }
     return RuleCheck([
-      inFile(null, null, 'No screen capture protection found.',
-          messageAr: 'مفيش أي حماية من تصوير الشاشة.')
+      inFile(null, null, En.protectionRulesNoScreenCaptureProtectionFound,
+          messageAr: Ar.protectionRulesNoScreenCaptureProtectionFound)
     ]);
   }
 }
@@ -744,13 +709,9 @@ class ObfuscationBuildRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P10',
-        title: Bilingual('Release builds without --obfuscate', 'بيلد الـ release من غير --obfuscate'),
-        description: Bilingual(
-            'Without --obfuscate, class and method names in libapp.so are readable, which makes finding and patching your security checks easy.',
-            'من غير --obfuscate، أسماء الكلاسات والـ methods في libapp.so بتبقى مقروءة، وده بيسهّل إن حد يلاقي فحوصات الأمان ويعطلها.'),
-        fix: Bilingual(
-            'Build releases with --obfuscate --split-debug-info=build/symbols and keep the symbols to read crash reports.',
-            'اعمل بيلد الـ release بـ --obfuscate --split-debug-info=build/symbols، واحتفظ بالـ symbols عشان تقرا تقارير الـ crash.'),
+        title: Bilingual(En.protectionRulesReleaseBuildsWithoutObfuscate, Ar.protectionRulesReleaseBuildsWithoutObfuscate),
+        description: Bilingual(En.protectionRulesWithoutObfuscateClassAndMethodNamesInLibappSo, Ar.protectionRulesWithoutObfuscateClassAndMethodNamesInLibappSo),
+        fix: Bilingual(En.protectionRulesBuildReleasesWithObfuscateSplitDebugInfoBuildSymbolsAndKeepThe, Ar.protectionRulesBuildReleasesWithObfuscateSplitDebugInfoBuildSymbolsAndKeepThe),
         severity: Severity.medium,
         masvs: ['MASVS-RESILIENCE-3'],
         maswe: ['MASWE-0059'],
@@ -772,8 +733,8 @@ class ObfuscationBuildRule extends Rule {
           final head = m.group(0)!;
           final key = head.length > 18 ? head.substring(0, 18) : head;
           final line = lineOfFirst(s.text, key) ?? lineAt(text, m.start);
-          out.add(inFile(s.path, line, '"${shorten(m.group(0)!.trim(), 70)}" has no --obfuscate.',
-              messageAr: '"${shorten(m.group(0)!.trim(), 70)}" من غير --obfuscate.'));
+          out.add(inFile(s.path, line, En.protectionRulesHasNoObfuscate(value1: shorten(m.group(0)!.trim(), 70)),
+              messageAr: Ar.protectionRulesHasNoObfuscate(value1: shorten(m.group(0)!.trim(), 70))));
         }
       }
     }

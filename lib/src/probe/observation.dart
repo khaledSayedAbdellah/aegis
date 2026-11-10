@@ -1,4 +1,4 @@
-/// Turning a device observation into a [ProbeStatus] (docs/plans/probe.md §3).
+/// Turning a device observation into a [ProbeStatus] (doc/plans/probe.md §3).
 ///
 /// This is where "never decide from memory" lives: a definite verdict is
 /// returned only from what was actually observed on the device. No I/O here —
