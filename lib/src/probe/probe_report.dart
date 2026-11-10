@@ -48,7 +48,7 @@ String probeCheckTitle(ProbeCheck c, String lang) {
   };
 }
 
-String probeResultMark(ProbeResult r) => r.partialStatus == null ? probeMark(r.status) : '🧪';
+String probeResultMark(ProbeResult r) => probeMark(r.observedStatus);
 
 String probeResultTitle(ProbeResult r, String lang) => r.partialStatus == null
     ? probeCheckTitle(r.check, lang)
@@ -58,15 +58,20 @@ String probeResultTitle(ProbeResult r, String lang) => r.partialStatus == null
 
 String? probeNote(ProbeResult r, String lang) => lang == 'ar' ? r.noteAr ?? r.note : r.note;
 
+/// Keep the exercised Simulator verdict distinct from full-device coverage.
+String probeSimulatorVerdict(ProbeResult r, String lang) => switch (r.partialStatus) {
+  ProbeStatus.blocked => L10n(lang).probeReportPartialObservationAppReacted,
+  ProbeStatus.notBlocked => r.check.id == 'jailbreak'
+      ? L10n(lang).simulatorJailbreakNotBlocked
+      : L10n(lang).simulatorSigningNotBlocked,
+  _ => L10n(lang).probeReportPartialObservationInconclusive,
+};
+
 /// What was observed, in [lang].
 String probeEvidence(ProbeResult r, String lang) {
   if (r.partialStatus != null) {
-    final label = switch (r.partialStatus!) {
-      ProbeStatus.blocked => L10n(lang).probeReportPartialObservationAppReacted,
-      ProbeStatus.notBlocked => L10n(lang).probeReportPartialObservationNoProcessBlockObserved,
-      ProbeStatus.inconclusive => L10n(lang).probeReportPartialObservationInconclusive,
-    };
-    return '$label. ${lang == 'ar' ? r.evidenceAr ?? r.evidence : r.evidence}';
+    final label = probeSimulatorVerdict(r, lang);
+    return '$label ${lang == 'ar' ? r.evidenceAr ?? r.evidence : r.evidence}';
   }
   if (lang == 'ar' && r.evidenceAr != null) return r.evidenceAr!;
   if (lang != 'ar' || r.check.id == 'jailbreak' || r.check.id.startsWith('ios-')) return r.evidence;
@@ -137,9 +142,9 @@ String renderProbe(ProbeReport r,
   }
 
   b.writeln('');
-  final reacted = r.blocked.length;
-  final gaps = r.notBlocked.length;
-  final unknown = r.inconclusive.length;
+  final reacted = r.scored.where((x) => x.observedStatus == ProbeStatus.blocked).length;
+  final gaps = r.scored.where((x) => x.observedStatus == ProbeStatus.notBlocked).length;
+  final unknown = r.scored.where((x) => x.observedStatus == ProbeStatus.inconclusive).length;
   final partial = r.scored.where((x) => x.partialStatus != null).length;
   if (partial > 0) { b.writeln(L10n(lang).probeReportPartialSimulatorChecksFullIosConditionsRemain(partial: partial)); }
   b.writeln(L10n(lang).probeReportReactedNoBlockObservedInconclusive(reacted: reacted, gaps: gaps, unknown: unknown));

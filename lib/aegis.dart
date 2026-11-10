@@ -28,3 +28,6 @@ export 'src/rules/rule.dart' show Rule, RuleCheck;
 export 'src/scoring.dart' show Score, Coverage, CategoryScore;
 export 'src/util.dart' show parseMenuChoice;
 export 'src/version.dart' show aegisVersion;
+
+export 'src/security/evidence.dart' show SecurityEvidence;
+export 'src/security/runtime_security.dart' show RuntimeSecurityResult;

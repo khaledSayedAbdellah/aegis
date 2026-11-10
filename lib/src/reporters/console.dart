@@ -9,6 +9,8 @@ import '../probe/probe_model.dart';
 import '../scoring.dart';
 import 'i18n.dart';
 import 'probe_view.dart';
+import 'ios_static_view.dart';
+import 'security_view.dart';
 
 class ConsoleReporter {
   ConsoleReporter({this.lang = 'en', this.color = true, this.verbose = false});
@@ -104,6 +106,9 @@ class ConsoleReporter {
       }
       b.writeln();
     }
+
+    if (r.iosStatic != null) b.write(IosStaticView(r.iosStatic!, lang).console());
+  b.write(SecurityView(r.securityEvidence, lang).console());
 
     final probe = ProbeView.of(r, lang);
     if (probe != null) {

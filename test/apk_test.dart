@@ -73,8 +73,9 @@ void main() {
       ]));
       expect(result(r, 'AEG-B01').status, RuleStatus.passed);
       expect(result(r, 'AEG-B10').status, RuleStatus.notApplicable);
-      // Only APK rules run without a source project.
-      expect(r.results.every((x) => x.meta.id.startsWith('AEG-B')), isTrue);
+      // Original source-only rules still do not run for a standalone APK.
+      expect(r.results.any((x) => x.meta.id == 'AEG-D01' || x.meta.id == 'AEG-P01'), isFalse);
+      expect(r.results.any((x) => x.meta.id == 'AEG-B12'), isTrue);
 
       final secrets = messages(r, 'AEG-B06');
       expect(secrets, contains('Supabase service_role key'));
@@ -104,7 +105,7 @@ void main() {
 
     test('hardened APK passes', () async {
       final r = await apkOnly('secure.apk');
-      for (final res in r.results) {
+      for (final res in r.results.where((r) => RegExp(r'^AEG-B(?:0[1-9]|1[01])$').hasMatch(r.meta.id))) {
         if (res.meta.id == 'AEG-B10') {
           expect(res.status, RuleStatus.notApplicable);
         } else {

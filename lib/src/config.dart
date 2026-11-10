@@ -34,6 +34,8 @@ class AegisConfig {
     this.iosSimulatorTarget,
     this.probeApk,
     this.probeCertSha256,
+    this.trackerSignatures,
+    this.runtimeSecurity = const {},
   });
 
   final ProfileSet profile;
@@ -84,6 +86,8 @@ class AegisConfig {
 
   /// Expected SHA-256 fingerprint of the companion APK's signing certificate.
   final String? probeCertSha256;
+  final String? trackerSignatures;
+  final Map<String, Object?> runtimeSecurity;
 
   /// An artifact path made absolute against [projectRoot], or null when unset.
   static String? resolve(String projectRoot, String? path) {
@@ -166,7 +170,15 @@ class AegisConfig {
       iosSimulatorTarget: _path(doc['ios_simulator_target']),
       probeApk: _path(doc['probe_apk']),
       probeCertSha256: _path(doc['probe_cert_sha256']),
+      trackerSignatures: _path(doc['tracker_signatures']),
+      runtimeSecurity: _runtime(doc['runtime_security']),
     );
+  }
+
+  static Map<String, Object?> _runtime(Object? value) {
+    if (value == null) return const {};
+    if (value is! Map) throw const FormatException('runtime_security must be a map');
+    return value.map((k, v) => MapEntry(k.toString(), v));
   }
 
   static String? _path(Object? v) {
@@ -216,5 +228,7 @@ class AegisConfig {
         iosSimulatorTarget: iosSimulatorTarget,
         probeApk: probeApk,
         probeCertSha256: probeCertSha256,
+        trackerSignatures: trackerSignatures,
+        runtimeSecurity: runtimeSecurity,
       );
 }

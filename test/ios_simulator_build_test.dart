@@ -129,6 +129,35 @@ void main() {
     expect(builds, 2);
   });
 
+  test('failed partial copy cannot be reused through an explicit app path',
+      () async {
+    final failed =
+        IosSimulatorBuilder(command: (exe, args, cwd, output, log) async {
+      writeApp(); // Metadata arrived, but Flutter failed to copy the assets.
+      return 1;
+    });
+    await expectLater(
+        failed.ensure(ipa, project: project.path), throwsStateError);
+    final builder = IosSimulatorBuilder(command: build);
+    expect(await builder.ensure(ipa, project: project.path, app: app), app);
+    expect(builds, 1);
+    expect(await builder.ensure(ipa, project: project.path, app: app), app);
+    expect(builds, 1);
+  });
+
+  test('interrupted build also prevents reuse of its partial output', () async {
+    final interrupted =
+        IosSimulatorBuilder(command: (exe, args, cwd, output, log) async {
+      writeApp();
+      throw const ProcessException('flutter', [], 'interrupted');
+    });
+    await expectLater(interrupted.ensure(ipa, project: project.path),
+        throwsA(isA<ProcessException>()));
+    await IosSimulatorBuilder(command: build)
+        .ensure(ipa, project: project.path);
+    expect(builds, 1);
+  });
+
   test('different build and physical artifacts are rebuilt', () async {
     final builder = IosSimulatorBuilder(command: build);
     writeApp(build: '99');

@@ -12,6 +12,9 @@ import 'binary/apk.dart';
 import 'binary/ipa.dart';
 import 'binary/ios_signature.dart';
 import 'config.dart';
+import 'security/evidence.dart';
+import 'security/android_references.dart';
+import 'security/runtime_security.dart';
 import 'l10n/messages.g.dart';
 import 'dart_scanner.dart';
 import 'plist.dart';
@@ -45,17 +48,20 @@ class Project {
 
   /// When true, rules must not use the network (OSV lookups are skipped).
   bool offline = false;
+  final List<SecurityEvidence> securityEvidence = [];
 
   /// False when only a compiled binary is audited (no pubspec.yaml).
   bool hasSource = true;
 
   /// The release APK to audit alongside the source, if any.
   ApkContext? apk;
+  late final AndroidReferences? nativeAndroidReferences = apk == null ? null : AndroidReferences(apk!);
   IpaContext? ipa;
   IosSignature? iosSignature;
 
   /// The resilience probe's outcome when this run tried it (rules AEG-R01..R04).
   ProbeOutcome? probe;
+  RuntimeSecurityResult? runtimeSecurity;
 
   late final String name;
   Map<dynamic, dynamic> pubspec = {};

@@ -201,7 +201,7 @@ bool _isLauncherOrLink(XmlElement e) {
         cats.contains('android.intent.category.LAUNCHER')) {
       return true;
     }
-    if (actions.contains('android.intent.action.VIEW')) return true;
+    if (actions.contains('android.intent.action.VIEW') && cats.contains('android.intent.category.BROWSABLE')) return true;
   }
   return false;
 }

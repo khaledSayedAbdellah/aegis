@@ -117,7 +117,7 @@ class ProbeView {
       lines: [
         for (final x in report.scored)
           ProbeLine(
-            x.status,
+            x.observedStatus,
             probeResultMark(x).trim(),
             probeResultTitle(x, lang),
             probeEvidence(x, lang),

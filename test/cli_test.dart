@@ -91,8 +91,12 @@ void main() {
     expect(readReport()['complete'], isFalse);
 
     final optedOut = await aegis([...args, '--no-probe']);
-    expect(optedOut.exitCode, 0, reason: '${optedOut.stdout}${optedOut.stderr}');
-    expect(readReport()['complete'], isTrue);
+    // Opting out of probes must not hide the new partial platform inspection.
+    expect(optedOut.exitCode, 2, reason: '${optedOut.stdout}${optedOut.stderr}');
+    expect(readReport()['complete'], isFalse);
+    final rules = (readReport()['rules'] as List).cast<Map>();
+    expect(rules.singleWhere((r) => r['id'] == 'AEG-N05')['status'], 'incomplete');
+    expect(rules.singleWhere((r) => r['id'] == 'AEG-R09')['status'], 'notApplicable');
   });
 
   test('AAB probe resolves the YAML companion path and accepts CLI overrides', () async {
@@ -176,12 +180,15 @@ void main() {
         'rules', 'baseline', 'apk', 'aab', 'ipa', 'probe_apk', 'probe_cert_sha256',
         'ios_control_device', 'ios_jailbreak_device', 'ios_resigned_ipa',
         'ios_simulator', 'ios_simulator_app', 'ios_simulator_flavor',
-        'ios_simulator_target',
+        'ios_simulator_target', 'tracker_signatures', 'runtime_security',
       ]));
       for (final key in ['apk', 'aab', 'ipa', 'probe_apk', 'ios_resigned_ipa',
         'ios_simulator_app', 'ios_simulator_target']) {
         expect(settings[key], '<path-to-file>', reason: key);
       }
+      expect(config.runtimeSecurity['enabled'], isFalse);
+      expect(config.runtimeSecurity['command'], isEmpty);
+      expect(config.trackerSignatures, isNull);
       expect(config.scanPackages, isTrue);
       expect(config.minScore, isNull);
       expect(config.exclude, isEmpty);

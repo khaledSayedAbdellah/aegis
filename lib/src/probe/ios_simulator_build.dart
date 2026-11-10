@@ -19,6 +19,8 @@ typedef SimulatorBuildCommand = Future<int> Function(
     File output,
     void Function(String)? log);
 
+const _incompleteBuildMarker = '.aegis-simulator-build-incomplete';
+
 class IosSimulatorBuilder {
   IosSimulatorBuilder({SimulatorBuildCommand? command})
       : _command = command ?? _build;
@@ -33,6 +35,12 @@ class IosSimulatorBuilder {
       void Function(String)? log}) async {
     String? matching(String? path) {
       if (path == null) return null;
+      // Flutter may leave valid Info.plist/Mach-O files in a partially copied
+      // bundle when rsync fails (for example, on a full disk).
+      if (File(p.join(p.dirname(p.normalize(path)), _incompleteBuildMarker))
+          .existsSync()) {
+        return null;
+      }
       try {
         return matchingSimulatorApp(ipa, path);
       } on FormatException {
@@ -126,6 +134,10 @@ class IosSimulatorBuilder {
         '${selectedFlavor == null ? '' : ' (flavor $selectedFlavor)'}… Log: ${output.path}');
     // A failed build must not leave a receipt authorizing reuse of its output.
     if (receipt.existsSync()) receipt.deleteSync();
+    final incomplete = File(p.join(outputDir, _incompleteBuildMarker));
+    incomplete.parent.createSync(recursive: true);
+    incomplete
+        .writeAsStringSync('Simulator build has not completed verification.\n');
     final code = await _command(
         _flutter(project, generated), args, project, output, log);
     if (code != 0) {
@@ -142,16 +154,24 @@ class IosSimulatorBuilder {
             .where((dir) => dir.path.endsWith('.app'))
         : <Directory>[];
     for (final product in products) {
-      final found = matching(product.path);
-      if (found != null) {
-        receipt.writeAsStringSync(jsonEncode({
-          'app': p.normalize(p.absolute(found)),
-          'inputs': inputs,
-          'artifact': await _artifactDigest(found)
-        }));
-        log?.call('iOS: Simulator build verified against the IPA.');
-        return found;
+      // The marker intentionally rejects reuse until a successful build has
+      // produced an identity-verified artifact and its receipt is saved.
+      final String found;
+      try {
+        found = matchingSimulatorApp(ipa, product.path);
+      } on FormatException {
+        continue;
+      } on FileSystemException {
+        continue;
       }
+      receipt.writeAsStringSync(jsonEncode({
+        'app': p.normalize(p.absolute(found)),
+        'inputs': inputs,
+        'artifact': await _artifactDigest(found)
+      }));
+      incomplete.deleteSync();
+      log?.call('iOS: Simulator build verified against the IPA.');
+      return found;
     }
     throw StateError(
         'Flutter finished but no matching Simulator app was produced in $outputDir. '

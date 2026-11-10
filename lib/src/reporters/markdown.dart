@@ -8,6 +8,8 @@ import '../model.dart';
 import '../scoring.dart';
 import 'i18n.dart';
 import 'probe_view.dart';
+import 'ios_static_view.dart';
+import 'security_view.dart';
 
 String renderMarkdown(AuditReport r, {String lang = 'en'}) {
   final t = Strings(lang);
@@ -64,6 +66,9 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
     }
     b.writeln();
   }
+
+  if (r.iosStatic != null) b.write(IosStaticView(r.iosStatic!, lang).markdown());
+  b.write(SecurityView(r.securityEvidence, lang).markdown());
 
   final probe = ProbeView.of(r, lang);
   if (probe != null) {

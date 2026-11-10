@@ -9,6 +9,7 @@ import 'package:path/path.dart' as p;
 
 import '../plist.dart';
 import 'zip.dart';
+import 'ios_static.dart';
 
 class IpaContext {
   IpaContext._(this.path, this.archive, this.appPath, this.info, this.machO);
@@ -57,6 +58,9 @@ class IpaContext {
   final String appPath;
   final Map<String, Object?> info;
   final List<MachSlice> machO;
+
+  late final IosStaticAnalysis staticAnalysis =
+      analyzeIpaStatic(archive, appPath, executable);
 
   String get bundleId => info['CFBundleIdentifier'] as String;
   String get executable => info['CFBundleExecutable'] as String;

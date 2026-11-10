@@ -107,6 +107,13 @@ class ProbeRunner {
             baselineNote: '${launchOut.trim()}\n${_tail(baselineLog)}');
       }
 
+      Map<String, Object?> platformObservations = {};
+      if (dev is Device) {
+        try {
+          emit('platform: inspecting the control application launch UI…');
+          platformObservations = await (dev as Device).platformObservation(package, pid);
+        } catch (_) { emit('platform: automatic observation unavailable; coverage remains partial.'); }
+      }
       final results = <ProbeResult>[
         ProbeResult(checkById('baseline'), ProbeStatus.notBlocked,
             evidence: En.androidBaselineAlive(seconds: wait.inSeconds),
@@ -199,12 +206,22 @@ class ProbeRunner {
           }
           hasRoot = true;
           if (separate) await fridaDevice.stopFridaServer();
-          return await _observe(fridaDevice, check, package,
+          final observed = await _observe(fridaDevice, check, package,
               verifyBeforeAttach: separate,
               apply: () async =>
                   await fridaDevice.startFridaServer() ??
                   await fridaDevice.fridaAttach(package, wait),
               settleAfterApply: false);
+          if (fridaDevice is Device) {
+            try {
+              final extra = await fridaDevice.instrumentedPlatformObservation(package);
+              if (extra['verified'] == true) {
+                // Preserve the stock launch facts separately from instrumented facts.
+                platformObservations = {...extra, 'control': platformObservations};
+              }
+            } catch (_) { emit('platform: instrumented observation unavailable.'); }
+          }
+          return observed;
         } finally {
           if (!separate) controlRestored = false;
           try {
@@ -231,7 +248,7 @@ class ProbeRunner {
       });
       return ProbeReport(
           app: appLabel ?? appPath, apkIdentity: apkIdentity,
-          baselineAlive: true, results: results);
+          baselineAlive: true, results: results, platformObservations: platformObservations);
     } catch (e) {
       return allInconclusive(En.androidSetupFailed(error: e), noteAr: Ar.androidSetupFailed(error: e),
           emulatorError: '$e');

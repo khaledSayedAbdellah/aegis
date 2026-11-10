@@ -21,6 +21,9 @@ class RuleCheck {
         findings = const [],
         isIncomplete = false;
 
+  RuleCheck.notApplicableLocalized(this.note, this.noteAr)
+      : applicable = false, findings = const [], isIncomplete = false;
+
   RuleCheck.incomplete(this.note, [this.findings = const []])
       : applicable = false,
         noteAr = null,

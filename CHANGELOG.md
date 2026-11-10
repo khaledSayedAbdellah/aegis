@@ -1,5 +1,26 @@
 ## 0.9.0
 
+## Unreleased
+
+- Show verified Simulator jailbreak/signing failure verdicts before coverage limitations in report summaries and probe evidence, consistently in Arabic and English.
+
+- Prevent reuse of incomplete Simulator app bundles after failed or interrupted automatic builds, including disk-full failures during Flutter's final copy.
+- Observe both UIApplication and UIScene background transitions with bounded polling on iOS Simulator.
+
+- Add six generic platform protection check families for screen exposure, backup policy, key access, iOS Universal Links, WebViews and Android obscured-touch filtering. Collect bounded launch-time facts without app-specific inputs; keep partial coverage explicit and host security unchanged.
+
+- Extend offline IPA analysis with built-in Objective-C relationships, Swift context/type-reference metadata, conservative nominal-name demangling and expanded protection references. Reports retain provenance and localized extraction limits; no external backend or runtime verdict changes.
+
+- Show explicit Simulator jailbreak/signing verdicts and scoped failure findings when execution continues; preserve full-iOS coverage limitations and strict incompleteness.
+
+- Add AEG-A11–A13, N01–N04, I10–I11, B12 and T01: final-manifest link/permission checks, bounded domain association verification, native API/configuration analysis, entitlement/ATS review, ELF hardening and tracker inventory.
+- Add bilingual evidence outside scoring/coverage, and bounded ZIP decompression for binary inspection.
+- Add opt-in R09/R10 runtime scenario orchestration, certificate-substitution capture and redacted synthetic-marker collection; absent evidence and unsupported channels remain incomplete.
+- Include all new configuration in `init`; keep terminal output English and report translations in ARB.
+
+
+* Add device-independent IPA Mach-O checks for PIE, executable-memory requests and source debug entries, plus a separate static resilience-reference inventory. Inspect bundled frameworks and extensions; keep runtime verdicts distinct and report encrypted, missing or unreadable evidence.
+
 * Keep terminal messages, menus and console summaries in English regardless of `--lang`, YAML or system locale. HTML and Markdown report files retain the selected language.
 
 * Ask IPA runtime audits to choose iOS Simulator or a physical iPhone/iPad. Add `--ios-target simulator|device` for explicit/CI selection, isolate the chosen environment from the other YAML settings, reject conflicting CLI options and never fall back to another target. Static-only `--no-probe` runs need no target.

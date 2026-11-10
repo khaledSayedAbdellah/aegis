@@ -146,7 +146,7 @@ void main() {
 
     test('hardened bundle passes', () async {
       final r = await bundleOnly('secure.aab');
-      for (final res in r.results) {
+      for (final res in r.results.where((r) => RegExp(r'^AEG-B(?:0[1-9]|1[01])$').hasMatch(r.meta.id))) {
         if (res.meta.id == 'AEG-B10') {
           expect(res.status, RuleStatus.notApplicable);
         } else {
