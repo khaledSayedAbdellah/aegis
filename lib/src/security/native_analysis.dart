@@ -1,43 +1,93 @@
-/// Removes comments while preserving strings and source line offsets.
-String withoutComments(String source) {
-  final chars = source.split('');
+/// Lexes comments and strings without changing source offsets. Supports Kotlin/
+/// Java text blocks, Swift raw/multiline strings and nested Swift/Kotlin comments.
+class NativeLiteral {
+  NativeLiteral(this.start, this.end, this.value);
+  final int start, end;
+  final String value;
+}
+
+({String comments, String code, List<NativeLiteral> literals}) scanNative(
+    String source) {
+  final comments = source.split(''), code = source.split('');
+  final literals = <NativeLiteral>[];
+  void blank(List<String> chars, int start, int end) {
+    for (var k = start; k < end; k++) {
+      if (chars[k] != '\n' && chars[k] != '\r') chars[k] = ' ';
+    }
+  }
+
   var i = 0;
-  while (i < chars.length) {
-    if (chars[i] == '"' || chars[i] == "'") {
-      final quote = chars[i++];
-      while (i < chars.length) {
-        if (chars[i] == '\\') {
-          i += 2;
-          continue;
-        }
-        if (chars[i++] == quote) break;
-      }
-    } else if (i + 1 < chars.length && chars[i] == '/' && chars[i + 1] == '/') {
-      while (i < chars.length && chars[i] != '\n') {
-        chars[i++] = ' ';
-      }
-    } else if (i + 1 < chars.length && chars[i] == '/' && chars[i + 1] == '*') {
-      chars[i++] = ' ';
-      chars[i++] = ' ';
-      while (i < chars.length) {
-        if (i + 1 < chars.length && chars[i] == '*' && chars[i + 1] == '/') {
-          chars[i++] = ' ';
-          chars[i++] = ' ';
-          break;
-        }
-        if (chars[i] != '\n') chars[i] = ' ';
+  while (i < source.length) {
+    final start = i;
+    if (source.startsWith('//', i)) {
+      while (i < source.length && source[i] != '\n') {
         i++;
       }
+      blank(comments, start, i);
+      blank(code, start, i);
+      continue;
+    }
+    if (source.startsWith('/*', i)) {
+      var depth = 1;
+      i += 2;
+      while (i < source.length && depth > 0) {
+        if (source.startsWith('/*', i)) {
+          depth++;
+          i += 2;
+        } else if (source.startsWith('*/', i)) {
+          depth--;
+          i += 2;
+        } else {
+          i++;
+        }
+      }
+      blank(comments, start, i);
+      blank(code, start, i);
+      continue;
+    }
+    var hashes = 0;
+    while (i + hashes < source.length && source[i + hashes] == '#') {
+      hashes++;
+    }
+    final q = i + hashes;
+    if (q < source.length &&
+        (source[q] == '"' || hashes == 0 && source[q] == "'")) {
+      final quote = source[q];
+      final triple = source.startsWith(quote * 3, q);
+      final delimiter = quote * (triple ? 3 : 1);
+      final closing = delimiter + '#' * hashes;
+      i = q + delimiter.length;
+      final content = i;
+      while (i < source.length && !source.startsWith(closing, i)) {
+        if (!triple &&
+            hashes == 0 &&
+            source[i] == r'\' &&
+            i + 1 < source.length) {
+          i += 2;
+        } else {
+          i++;
+        }
+      }
+      final end = i;
+      if (i < source.length) i += closing.length;
+      literals.add(NativeLiteral(start, i, source.substring(content, end)));
+      blank(code, start, i);
     } else {
       i++;
     }
   }
-  return chars.join();
+  return (comments: comments.join(), code: code.join(), literals: literals);
 }
+
+String withoutComments(String source) => scanNative(source).comments;
+String maskNativeLiterals(String source) => scanNative(source).code;
 
 /// Pattern hits are exact configuration evidence, not execution/data-flow proof.
 final nativePatterns = <String, List<RegExp>>{
   'AEG-N01': [
+    RegExp(r'\bHostnameVerifier\s*\{\s*\w+\s*,\s*\w+\s*->\s*true\s*\}'),
+    RegExp(
+        r'\bsetHostnameVerifier\s*\(\s*\(\s*\w+\s*,\s*\w+\s*\)\s*->\s*true\s*\)'),
     RegExp(
         r'\b(?:setAllowsAnyHTTPSCertificate|setAllowsAnyHTTPSCertificateForHost)\s*[:(]\s*(?:YES|true)\b'),
     RegExp(
@@ -49,6 +99,8 @@ final nativePatterns = <String, List<RegExp>>{
         dotAll: true),
   ],
   'AEG-N02': [
+    RegExp(
+        r'\bsetValue\s*:\s*@(?:YES|true)\s+forKey\s*:\s*@"allow(?:UniversalAccessFromFileURLs|FileAccessFromFileURLs)"'),
     RegExp(
         r'\bsetAllow(?:UniversalAccessFromFileURLs|FileAccessFromFileURLs)\s*\(\s*true\s*\)'),
     RegExp(
@@ -68,6 +120,10 @@ final nativePatterns = <String, List<RegExp>>{
   ],
   'AEG-N04': [
     RegExp(
+        r'\bkSecAttrAccessible\s+to\s+kSecAttrAccessibleAlways(?:ThisDeviceOnly)?\b'),
+    RegExp(
+        r'\bkSecAttrAccessible\s+as\s+String\s*:\s*kSecAttrAccessibleAlways(?:ThisDeviceOnly)?\b'),
+    RegExp(
         r'\bkSecAttrAccessible\s*(?:\]|\))?\s*[:=,]\s*kSecAttrAccessibleAlways(?:ThisDeviceOnly)?\b'),
     RegExp(
         r'\b(?:NSFileProtectionKey|FileAttributeKey\.protectionKey)\s*[:=]\s*(?:NSFileProtectionNone|FileProtectionType\.none)\b'),
@@ -85,28 +141,3 @@ final nativeIndicators = <String, RegExp>{
   'AEG-N04': RegExp(
       r'\b(?:kSecAttrAccessibleAlways(?:ThisDeviceOnly)?|kSecAttrAccessControl|biometryAny|userPresence|devicePasscode|NSFileProtectionNone|NSLog|NSLogv|UIPasteboard|generalPasteboard|sqlite3_exec|sqlite3_prepare_v2)\b'),
 };
-
-/// Used only to distinguish code matches from documentation/example literals.
-String maskNativeLiterals(String source) {
-  final chars = source.split('');
-  var i = 0;
-  while (i < chars.length) {
-    if (chars[i] != '"' && chars[i] != "'") {
-      i++;
-      continue;
-    }
-    final quote = chars[i];
-    chars[i++] = ' ';
-    while (i < chars.length) {
-      final ch = chars[i];
-      if (ch != '\n') chars[i] = ' ';
-      i++;
-      if (ch == quote) break;
-      if (ch == '\\' && i < chars.length) {
-        if (chars[i] != '\n') chars[i] = ' ';
-        i++;
-      }
-    }
-  }
-  return chars.join();
-}

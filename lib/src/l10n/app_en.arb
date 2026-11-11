@@ -3701,11 +3701,11 @@
   "@extA13Pass": {
     "description": "Extended security analysis: extA13Pass"
   },
-  "extN01Title": "Native TLS validation bypass configuration",
+  "extN01Title": "TLS validation bypass configuration",
   "@extN01Title": {
     "description": "Extended security analysis: extN01Title"
   },
-  "extN01Description": "Detect explicit trust-all and certificate-error bypass patterns in native sources.",
+  "extN01Description": "Detect explicit trust-all and certificate-error bypass patterns in native and JavaScript/TypeScript source.",
   "@extN01Description": {
     "description": "Extended security analysis: extN01Description"
   },
@@ -3713,7 +3713,7 @@
   "@extN01Fix": {
     "description": "Extended security analysis: extN01Fix"
   },
-  "extN01Pass": "No flagged condition in the inspected scope: Native TLS validation bypass configuration",
+  "extN01Pass": "No TLS bypass patterns matched in inspected source",
   "@extN01Pass": {
     "description": "Extended security analysis: extN01Pass"
   },
@@ -3733,7 +3733,7 @@
   "@extN02Pass": {
     "description": "Extended security analysis: extN02Pass"
   },
-  "extN03Title": "Native cryptography review",
+  "extN03Title": "Source cryptography review",
   "@extN03Title": {
     "description": "Extended security analysis: extN03Title"
   },
@@ -3745,15 +3745,15 @@
   "@extN03Fix": {
     "description": "Extended security analysis: extN03Fix"
   },
-  "extN03Pass": "No flagged condition in the inspected scope: Native cryptography review",
+  "extN03Pass": "No weak cipher patterns matched in inspected source",
   "@extN03Pass": {
     "description": "Extended security analysis: extN03Pass"
   },
-  "extN04Title": "Native storage and Keychain settings",
+  "extN04Title": "Storage and Keychain source settings",
   "@extN04Title": {
     "description": "Extended security analysis: extN04Title"
   },
-  "extN04Description": "Detect weak Keychain accessibility, unprotected files and world-accessible Android storage.",
+  "extN04Description": "Detect weak Keychain accessibility, unprotected files, world-accessible Android storage and direct sensitive-identifier writes to AsyncStorage or web storage.",
   "@extN04Description": {
     "description": "Extended security analysis: extN04Description"
   },
@@ -3761,7 +3761,7 @@
   "@extN04Fix": {
     "description": "Extended security analysis: extN04Fix"
   },
-  "extN04Pass": "No flagged condition in the inspected scope: Native storage and Keychain settings",
+  "extN04Pass": "No unsafe storage patterns matched in inspected source",
   "@extN04Pass": {
     "description": "Extended security analysis: extN04Pass"
   },
@@ -4213,5 +4213,103 @@
   "scoreProvisionalDetail": "This score reflects only resolved findings and checks; it does not establish protection for incomplete checks. Verified failures still reduce the score.",
   "@scoreProvisionalDetail": {
     "description": "Explains provisional scoring without treating unresolved checks as passes or discarding verified failures."
+  },
+  "nativeConfigUnavailable": "Native app configuration could not be resolved. Build the APK/IPA to inspect the final merged/generated configuration.",
+  "@nativeConfigUnavailable": {
+    "description": "Native source audit message."
+  },
+  "nativeSourceScope": "Some source/configuration inputs could not be inspected. Confirmed findings are retained; no complete verdict is available for missing inputs.",
+  "@nativeSourceScope": {
+    "description": "Native source audit message."
+  },
+  "nativeSourceDescription": "Lexical inspection of Kotlin (including KMP), Java, Swift, Objective-C and JavaScript/TypeScript source. Matches identify source patterns, not complete data-flow analysis or verified runtime protection.",
+  "@nativeSourceDescription": {
+    "description": "Native source audit message."
+  },
+  "nativeSecretsTitle": "Potential hardcoded secret in source",
+  "@nativeSecretsTitle": {
+    "description": "Native source audit message."
+  },
+  "nativeLoggingTitle": "Sensitive value referenced in source logging",
+  "@nativeLoggingTitle": {
+    "description": "Native source audit message."
+  },
+  "nativeSecretsFix": "Remove embedded secrets; use server-side credentials or platform secure storage as appropriate.",
+  "@nativeSecretsFix": {
+    "description": "Native source audit message."
+  },
+  "nativeLoggingFix": "Remove sensitive values from logging and review production log access.",
+  "@nativeLoggingFix": {
+    "description": "Native source audit message."
+  },
+  "nativeSecretFound": "Potential hardcoded secret ({kind}); value redacted.",
+  "@nativeSecretFound": {
+    "description": "Native source audit message.",
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "nativeLogFound": "Logging references sensitive identifiers: {names}. Review the data reaching this call.",
+  "@nativeLogFound": {
+    "description": "Native source audit message.",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "nativeLoggingPass": "No sensitive logging patterns matched in inspected source",
+  "@nativeLoggingPass": {
+    "description": "Scoped native source pass title."
+  },
+  "nativeSecretsPass": "No hardcoded secret patterns matched in inspected source",
+  "@nativeSecretsPass": {
+    "description": "Scoped native source pass title."
+  },
+  "sourceCoverageTitle": "Source analysis coverage",
+  "@sourceCoverageTitle": {
+    "description": "Source analysis coverage and cross-platform inspection."
+  },
+  "sourceCoverageScope": "Source-pattern inspection only, not full data-flow or runtime verification. File discovery excludes dependencies, generated output and tests; custom build variants and source-set reachability are not resolved. npm and Gradle dependency vulnerability audits are not supported.",
+  "@sourceCoverageScope": {
+    "description": "Source analysis coverage and cross-platform inspection."
+  },
+  "sourceCoverageFix": "Review the source inventory and unsupported inputs; audit unsupported languages and dependency ecosystems separately.",
+  "@sourceCoverageFix": {
+    "description": "Source analysis coverage and cross-platform inspection."
+  },
+  "sourceCoverageGap": "Source coverage is incomplete: unsupported, unreadable, limited or no supported source inputs were found. Confirmed findings still count; missing coverage is not a pass.",
+  "@sourceCoverageGap": {
+    "description": "Source analysis coverage and cross-platform inspection."
+  },
+  "sourceInventory": "Detected frameworks: {frameworks}. Inspected source files: {files}. Lexical patterns only; not all security controls or dependency vulnerabilities are covered. Unsupported or unreadable inputs (first 20): {gaps}.",
+  "@sourceInventory": {
+    "description": "Source analysis coverage and cross-platform inspection.",
+    "placeholders": {
+      "frameworks": {
+        "type": "String"
+      },
+      "files": {
+        "type": "String"
+      },
+      "gaps": {
+        "type": "String"
+      }
+    }
+  },
+  "scriptScopeLimited": "Some JavaScript/TypeScript syntax could not be fully inspected. Confirmed findings are retained; no complete source verdict is available.",
+  "@scriptScopeLimited": {
+    "description": "Source analysis coverage and cross-platform inspection."
+  },
+  "scriptUnsafeFound": "Explicit unsafe JavaScript/TypeScript source pattern matched by {rule}; review execution context. This is not runtime verification.",
+  "@scriptUnsafeFound": {
+    "description": "Source analysis coverage and cross-platform inspection.",
+    "placeholders": {
+      "rule": {
+        "type": "String"
+      }
+    }
   }
 }

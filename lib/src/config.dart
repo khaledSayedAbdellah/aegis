@@ -32,6 +32,9 @@ class AegisConfig {
     this.iosSimulatorApp,
     this.iosSimulatorFlavor,
     this.iosSimulatorTarget,
+    this.iosXcodeProject,
+    this.iosXcodeScheme,
+    this.iosXcodeConfiguration,
     this.probeApk,
     this.probeCertSha256,
     this.trackerSignatures,
@@ -80,6 +83,9 @@ class AegisConfig {
   final String? iosSimulatorApp;
   final String? iosSimulatorFlavor;
   final String? iosSimulatorTarget;
+  final String? iosXcodeProject;
+  final String? iosXcodeScheme;
+  final String? iosXcodeConfiguration;
 
   /// Companion APK for the AAB probe, relative to the project or absolute.
   final String? probeApk;
@@ -168,6 +174,9 @@ class AegisConfig {
       iosSimulatorApp: _path(doc['ios_simulator_app']),
       iosSimulatorFlavor: _path(doc['ios_simulator_flavor']),
       iosSimulatorTarget: _path(doc['ios_simulator_target']),
+      iosXcodeProject: _path(doc['ios_xcode_project']),
+      iosXcodeScheme: _path(doc['ios_xcode_scheme']),
+      iosXcodeConfiguration: _path(doc['ios_xcode_configuration']),
       probeApk: _path(doc['probe_apk']),
       probeCertSha256: _path(doc['probe_cert_sha256']),
       trackerSignatures: _path(doc['tracker_signatures']),
@@ -226,6 +235,9 @@ class AegisConfig {
         iosSimulatorApp: iosSimulatorApp,
         iosSimulatorFlavor: iosSimulatorFlavor,
         iosSimulatorTarget: iosSimulatorTarget,
+        iosXcodeProject: iosXcodeProject,
+        iosXcodeScheme: iosXcodeScheme,
+        iosXcodeConfiguration: iosXcodeConfiguration,
         probeApk: probeApk,
         probeCertSha256: probeCertSha256,
         trackerSignatures: trackerSignatures,

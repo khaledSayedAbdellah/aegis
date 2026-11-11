@@ -282,7 +282,7 @@ aegis reads APKs and AABs itself (zip, binary XML, protobuf XML, v1/v2/v3 signat
 
 ## iOS IPA audit and resilience probe
 
-`aegis --ipa path/to/app.ipa` audits the packaged application, with source checks when a Flutter project is supplied. It reads the final `Info.plist`, Mach-O architecture and entitlements, and checks ATS, file sharing, debug permissions and potential bundled secret files. On macOS it uses Apple `codesign` to verify the app and nested code. Other hosts report signature verification as incomplete. [Apple code-signing documentation](https://developer.apple.com/documentation/technotes/tn3125-inside-code-signing-provisioning-profiles)
+`aegis --ipa path/to/app.ipa` audits the packaged application, with source checks when a Flutter or native iOS project is supplied. It reads the final `Info.plist`, Mach-O architecture and entitlements, and checks ATS, file sharing, debug permissions and potential bundled secret files. On macOS it uses Apple `codesign` to verify the app and nested code. Other hosts report signature verification as incomplete. [Apple code-signing documentation](https://developer.apple.com/documentation/technotes/tn3125-inside-code-signing-provisioning-profiles)
 
 ```yaml
 ipa: build/ios/ipa/app.ipa
@@ -401,7 +401,7 @@ ios_simulator_app: build/ios/iphonesimulator/Runner.app
 # ios_simulator_target: lib/main_prod.dart
 ```
 
-Automatic building requires the Flutter source project, Flutter SDK and Xcode dependencies. It respects the project's FVM/Flutter SDK, previous `FLUTTER_TARGET` and `DART_DEFINES`, and `flutter.default-flavor`; a matching local Xcode archive can supply the flavor. Use `ios_simulator_flavor` and `ios_simulator_target` to override these inputs. Build output is saved to `.dart_tool/aegis/ios-simulator-build.log`; a failed or mismatched build leaves the runtime checks incomplete. A configured `.app` path is tried first, then Flutter's generated output. Native projects or IPA-only audits need a separately built `ios_simulator_app`. Matching version metadata does not prove identical source or protection settings: runtime results describe the Simulator debug build, while static checks describe the original IPA. [Flutter iOS build modes](https://docs.flutter.dev/testing/build-modes) · [Flutter flavors](https://docs.flutter.dev/deployment/flavors-ios)
+For Flutter, automatic building requires the source project, Flutter SDK and Xcode dependencies. It respects the project's FVM/Flutter SDK, previous `FLUTTER_TARGET` and `DART_DEFINES`, and `flutter.default-flavor`; a matching local Xcode archive can supply the flavor. Use `ios_simulator_flavor` and `ios_simulator_target` to override these inputs. Build output is saved to `.dart_tool/aegis/ios-simulator-build.log`; a failed or mismatched build leaves the runtime checks incomplete. A configured `.app` path is tried first, then Flutter's generated output. Native Xcode projects also build automatically with `xcodebuild`; IPA-only audits without source still need `ios_simulator_app`. See [native projects](doc/native-projects.md) for discovery, scheme overrides and source-scan limits. Matching version metadata does not prove identical source or protection settings: runtime results describe the Simulator debug build, while static checks describe the original IPA. [Flutter iOS build modes](https://docs.flutter.dev/testing/build-modes) · [Flutter flavors](https://docs.flutter.dev/deployment/flavors-ios)
 
 When `ios_simulator_flavor` or `ios_simulator_target` is explicitly set, an
 automatically discovered product is reused only if its recorded Aegis build
@@ -434,6 +434,24 @@ For a disposable test of IPA parsing and LLDB attachment, run `bash tool/ios_pro
 | `l2+r` | banking, payments, government | `banking`, `fintech`, `payments`, `government` |
 
 The profile decides which rules run and how severe some findings are. For example, data in SharedPreferences is *medium* for L1 and *high* for L2, and certificate pinning is only required from L2.
+
+## Cross-platform source projects
+
+`aegis run /path/to/project --mode code` discovers React Native/Expo JavaScript
+and TypeScript (`.js`, `.jsx`, `.ts`, `.tsx` and module variants), plus KMP shared
+and target Kotlin source sets. The same JS/TS checks work on Ionic/Capacitor,
+NativeScript and Cordova source trees, including first-party monorepo packages.
+Native Android/iOS configuration and bridge sources are inspected alongside them.
+No npm install or Gradle execution is needed for source scanning.
+
+The report includes a source inventory and explicit unsupported-input coverage.
+These are scoped lexical checks, not complete framework, dependency or runtime
+analysis. C#/F#/C++/QML and Vue/Svelte single-file components are currently reported
+as unsupported, not silently passed. See [cross-platform coverage](doc/cross-platform.md).
+
+## Native Android and iOS projects
+
+`aegis run --mode code` also scans Kotlin, Java, Swift and Objective-C projects without `pubspec.yaml`. Native Xcode projects can automatically build the matching Simulator `.app` for `aegis run --mode ipa --ios-target simulator`. [Supported checks, setup and limitations](doc/native-projects.md).
 
 ## Score
 

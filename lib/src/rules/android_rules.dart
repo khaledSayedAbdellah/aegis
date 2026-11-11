@@ -390,7 +390,7 @@ class SigningSecretsRule extends Rule {
             snippet: '${m.group(1)} = ${redact(m.group(3)!)}'));
       }
     }
-    final files = project.findFiles('android', (r) =>
+    final files = project.findFiles(project.androidSourceRoot, (r) =>
         r.endsWith('.jks') ||
         r.endsWith('.keystore') ||
         r.endsWith('/key.properties'));

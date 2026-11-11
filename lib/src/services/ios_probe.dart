@@ -26,6 +26,9 @@ Future<ProbeOutcome> runIosProbe(
     projectRoot: projectRoot,
     simulatorFlavor: selection.simulatorFlavor,
     simulatorTarget: selection.simulatorEntryPoint,
+    xcodeProject: selection.xcodeProject,
+    xcodeScheme: selection.xcodeScheme,
+    xcodeConfiguration: selection.xcodeConfiguration,
     only: only,
     log: log,
   );

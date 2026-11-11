@@ -17,7 +17,7 @@ ArgParser auditParser({bool run = false}) => _iosOptions(
           help:
               'Also audit a release APK or app bundle (.aab), e.g. build/app/outputs/flutter-apk/app-release.apk '
               'or build/app/outputs/bundle/release/app-release.aab. '
-              'Without a pubspec.yaml in the project path, only the APK is audited.')
+              'Without supported source in the project path, only the artifact is audited.')
       ..addOption('ipa', help: 'Audit a release iOS IPA.')
       ..addOption('lang',
           abbr: 'l',
@@ -71,7 +71,7 @@ ArgParser auditParser({bool run = false}) => _iosOptions(
           allowed: auditModes,
           hide: !run,
           allowedHelp: {
-            'code': 'Dart code, packages and Android/iOS configuration only.',
+            'code': 'Dart, Kotlin, Java, Swift and Objective-C source plus platform configuration.',
             'apk':
                 'Code + the APK at apk: in aegis.yaml + the resilience probe on the two emulators.',
             'aab':

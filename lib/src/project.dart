@@ -19,6 +19,7 @@ import 'l10n/messages.g.dart';
 import 'dart_scanner.dart';
 import 'plist.dart';
 import 'probe/probe_model.dart';
+import 'project/native_files.dart';
 import 'util.dart';
 
 const androidNs = 'http://schemas.android.com/apk/res/android';
@@ -52,10 +53,26 @@ class Project {
 
   /// False when only a compiled binary is audited (no pubspec.yaml).
   bool hasSource = true;
+  bool nativeOnly = false;
+  bool _nativeAndroid = false;
+  bool _nativeIos = false;
+  final List<Project> nativeContexts = [];
+  final List<String> nativeSourceIssues = [];
+  final List<ProjectFile> sharedNativeSources = [];
+  final List<ProjectFile> scriptSources = [];
+  final Set<String> sourceFrameworks = {};
+  final List<String> unsupportedSources = [];
+  Iterable<ProjectFile> get nativeSources =>
+      [...androidNativeSources, ...iosNativeSources, ...sharedNativeSources];
+  final Map<String, ProjectFile?> _nativeReadCache = {};
+  int _nativeBytes = 0;
+  String androidResourceDir = 'android/app/src/main/res';
+  String androidSourceRoot = 'android';
 
   /// The release APK to audit alongside the source, if any.
   ApkContext? apk;
-  late final AndroidReferences? nativeAndroidReferences = apk == null ? null : AndroidReferences(apk!);
+  late final AndroidReferences? nativeAndroidReferences =
+      apk == null ? null : AndroidReferences(apk!);
   IpaContext? ipa;
   IosSignature? iosSignature;
 
@@ -102,12 +119,14 @@ class Project {
   /// Lines of `.gitignore` files (root, android/, ios/).
   final List<String> gitignore = [];
 
-  bool get hasAndroid => Directory(p.join(root, 'android')).existsSync();
-  bool get hasIos => Directory(p.join(root, 'ios')).existsSync();
+  bool get hasAndroid => nativeOnly
+      ? _nativeAndroid
+      : Directory(p.join(root, 'android')).existsSync();
+  bool get hasIos =>
+      nativeOnly ? _nativeIos : Directory(p.join(root, 'ios')).existsSync();
   bool get isFlutterApp =>
-      dependencies.containsKey('flutter') ||
-      hasAndroid ||
-      hasIos;
+      !nativeOnly &&
+      (dependencies.containsKey('flutter') || hasAndroid || hasIos);
 
   /// Whether [package] is a direct dependency (not dev-only).
   bool dependsOn(String package) => dependencies.containsKey(package);
@@ -127,23 +146,277 @@ class Project {
   static Project load(String path, {AegisConfig? config}) {
     final root = p.normalize(p.absolute(path));
     final pubspecFile = File(p.join(root, 'pubspec.yaml'));
-    if (!pubspecFile.existsSync()) {
-      throw FileSystemException('No pubspec.yaml found', root);
-    }
     final project = Project._(root, config ?? AegisConfig.load(root));
+    if (!pubspecFile.existsSync()) {
+      project._loadNative();
+      project._loadBuildScripts();
+      project._loadGitignore();
+      return project;
+    }
     project._loadPubspec(pubspecFile.readAsStringSync());
     project._loadLock();
     project._loadDart();
     project._loadFirstPartyPackages();
     project._loadAndroid();
     project._loadIos();
+    project._loadCrossPlatform(
+        discoverNativeFiles(root, excluded: project.config.isExcluded));
     project._loadBuildScripts();
     project._loadGitignore();
     return project;
   }
 
+  void _loadNative() {
+    final inventory = discoverNativeFiles(root, excluded: config.isExcluded);
+    if (!inventory.recognized) {
+      throw FileSystemException(
+          'No supported source project found (Flutter, native, JavaScript/TypeScript or Kotlin Multiplatform)',
+          root);
+    }
+    nativeOnly = true;
+    name = p.basename(root);
+    nativeSourceIssues.addAll(inventory.issues);
+    _loadCrossPlatform(inventory);
+    for (final path in inventory.files) {
+      if (!{'.kt', '.java', '.swift', '.m', '.mm', '.h'}
+          .contains(p.extension(path))) {
+        continue;
+      }
+      final file = _readNative(path);
+      if (file == null) continue;
+      if ({'.kt', '.java'}.contains(p.extension(path))) {
+        final sourceSet =
+            RegExp(r'(?:^|/)src/([^/]+)/').firstMatch(path)?.group(1);
+        if (sourceSet != null &&
+            sourceSet.endsWith('Main') &&
+            sourceSet != 'androidMain') {
+          sharedNativeSources.add(file);
+        } else {
+          androidNativeSources.add(file);
+        }
+      } else {
+        iosNativeSources.add(file);
+      }
+    }
+    _nativeAndroid = androidNativeSources.isNotEmpty;
+    _nativeIos = iosNativeSources.any((f) => !f.path.endsWith('.h')) ||
+        inventory.projects.isNotEmpty;
+    final manifests = inventory.files
+        .where((f) =>
+            p.basename(f) == 'AndroidManifest.xml' &&
+            (!f.contains('/src/') ||
+                {'main', 'androidMain'}.contains(p.basename(p.dirname(f)))))
+        .toList();
+    // Flavor/build-type manifests require Gradle merging, not independent
+    // application defaults. Keep their absence from this source pass explicit.
+    nativeSourceIssues.addAll(inventory.files.where((f) =>
+        p.basename(f) == 'AndroidManifest.xml' &&
+        !manifests.contains(f) &&
+        p.basename(p.dirname(f)) != 'debug'));
+    for (final manifest in manifests) {
+      final context = Project._(root, config)
+        ..nativeOnly = true
+        ..name = name
+        .._nativeAndroid = true;
+      context.androidManifest = _readNative(manifest);
+      try {
+        context.androidManifestXml = context.androidManifest == null
+            ? null
+            : XmlDocument.parse(context.androidManifest!.text);
+      } catch (_) {/* The configuration rules report unreadable XML. */}
+      final sourceSet = p.dirname(manifest);
+      context.androidResourceDir = p.join(sourceSet, 'res');
+      // Standard Gradle module/src/<source-set>/AndroidManifest.xml layout.
+      final module = p.basename(p.dirname(sourceSet)) == 'src'
+          ? p.dirname(p.dirname(sourceSet))
+          : sourceSet;
+      context.androidSourceRoot = module;
+      context.appGradle = _optionalNative(p.join(module, 'build.gradle.kts')) ??
+          _optionalNative(p.join(module, 'build.gradle'));
+      final app = context.androidManifestXml
+          ?.findAllElements('application')
+          .firstOrNull;
+      final ref =
+          app == null ? null : androidAttr(app, 'networkSecurityConfig');
+      context.networkSecurityConfigReference = ref;
+      if (ref != null && RegExp(r'^@xml/[A-Za-z0-9_]+$').hasMatch(ref)) {
+        context.networkSecurityConfig = _optionalNative(p.join(
+            context.androidResourceDir, 'xml', '${ref.substring(5)}.xml'));
+        try {
+          context.networkSecurityConfigXml =
+              context.networkSecurityConfig == null
+                  ? null
+                  : XmlDocument.parse(context.networkSecurityConfig!.text);
+        } catch (_) {/* Reported by network rules. */}
+      }
+      context.androidNativeSources.addAll(androidNativeSources
+          .where((f) => p.isWithin(module, f.path) || module == '.'));
+      nativeContexts.add(context);
+      _nativeAndroid = true;
+    }
+    final plists =
+        inventory.files.where((f) => p.basename(f) == 'Info.plist').toList();
+    if (_nativeIos || plists.isNotEmpty) {
+      final iosEntitlements = <String, Map<String, Object?>>{};
+      for (final path
+          in inventory.files.where((f) => f.endsWith('.entitlements'))) {
+        final f = _readNative(path);
+        final data = f == null ? null : parsePlist(f.text);
+        if (data != null) {
+          iosEntitlements[path] = data;
+        } else {
+          nativeSourceIssues.add(path);
+        }
+      }
+      for (final path in plists.isEmpty ? <String?>[null] : plists) {
+        final context = Project._(root, config)
+          ..nativeOnly = true
+          ..name = name
+          .._nativeIos = true;
+        context.infoPlist = path == null ? null : _readNative(path);
+        context.infoPlistData = context.infoPlist == null
+            ? null
+            : parsePlist(context.infoPlist!.text);
+        context.entitlements.addAll(iosEntitlements);
+        context.iosNativeSources.addAll(iosNativeSources);
+        nativeContexts.add(context);
+      }
+      entitlements.addAll(iosEntitlements);
+      _nativeIos = true;
+    }
+    if (_nativeAndroid && manifests.isEmpty) {
+      nativeContexts.add(Project._(root, config)
+        ..nativeOnly = true
+        ..name = name
+        .._nativeAndroid = true);
+    }
+    for (final context in nativeContexts) {
+      context.sharedNativeSources.addAll(sharedNativeSources);
+      context.scriptSources.addAll(scriptSources);
+      if (androidManifest == null && context.androidManifest != null) {
+        androidManifest = context.androidManifest;
+        androidManifestXml = context.androidManifestXml;
+        appGradle = context.appGradle;
+        androidResourceDir = context.androidResourceDir;
+        androidSourceRoot = context.androidSourceRoot;
+      }
+      infoPlist ??= context.infoPlist;
+      infoPlistData ??= context.infoPlistData;
+    }
+  }
+
+  void _loadCrossPlatform(NativeFiles inventory) {
+    if (!nativeOnly) nativeSourceIssues.addAll(inventory.issues);
+    final loadedNativePaths = nativeSources.map((f) => f.path).toSet();
+    for (final path in inventory.files) {
+      final ext = p.extension(path);
+      if (!nativeOnly &&
+          {'.kt', '.java', '.swift', '.m', '.mm', '.h'}.contains(ext) &&
+          !loadedNativePaths.contains(path)) {
+        final file = _readNative(path);
+        if (file != null) {
+          loadedNativePaths.add(path);
+          if ({'.kt', '.java'}.contains(ext)) {
+            final sourceSet =
+                RegExp(r'(?:^|/)src/([^/]+)/').firstMatch(path)?.group(1);
+            if (sourceSet != null &&
+                sourceSet.endsWith('Main') &&
+                sourceSet != 'androidMain') {
+              sharedNativeSources.add(file);
+            } else {
+              androidNativeSources.add(file);
+            }
+          } else {
+            iosNativeSources.add(file);
+          }
+        }
+      }
+      if (scriptExtensions.contains(ext)) {
+        final file = _readNative(path);
+        if (file != null) scriptSources.add(file);
+      } else if (unsupportedSourceExtensions.contains(ext)) {
+        unsupportedSources.add(path);
+      } else if ({'build.gradle', 'build.gradle.kts'}
+          .contains(p.basename(path))) {
+        final file = _readNative(path);
+        if (file != null &&
+            RegExp(r'org\.jetbrains\.kotlin\.multiplatform|kotlin\s*\(\s*["\x27]multiplatform')
+                .hasMatch(file.text)) {
+          sourceFrameworks.add('Kotlin Multiplatform');
+        }
+      } else if (p.basename(path) == 'package.json') {
+        final file = _readNative(path);
+        if (file == null) continue;
+        try {
+          final json = jsonDecode(file.text);
+          if (json is! Map) throw const FormatException('Expected object');
+          final deps = json['dependencies'];
+          if (deps != null && deps is! Map) {
+            throw const FormatException('Expected dependencies object');
+          }
+          for (final entry in const {
+            'react-native': 'React Native',
+            'expo': 'Expo',
+            '@capacitor/core': 'Capacitor',
+            '@ionic/react': 'Ionic',
+            '@ionic/angular': 'Ionic',
+            '@ionic/vue': 'Ionic',
+            '@nativescript/core': 'NativeScript',
+            'cordova': 'Cordova',
+          }.entries) {
+            if (deps is Map && deps.containsKey(entry.key)) {
+              sourceFrameworks.add(entry.value);
+            }
+          }
+        } catch (_) {
+          nativeSourceIssues.add(path);
+        }
+      }
+      if (ext == '.kt' &&
+          RegExp(r'(?:^|/)src/(?:common|ios|native|apple|js|wasmJs)[^/]*Main/')
+              .hasMatch(path)) {
+        sourceFrameworks.add('Kotlin Multiplatform');
+      }
+    }
+    if (scriptSources.isNotEmpty && sourceFrameworks.isEmpty) {
+      sourceFrameworks.add('JavaScript/TypeScript');
+    }
+  }
+
+  ProjectFile? _readNative(String relative) {
+    if (_nativeReadCache.containsKey(relative)) {
+      return _nativeReadCache[relative];
+    }
+    try {
+      final file = File(abs(relative));
+      if (config.isExcluded(relative) ||
+          FileSystemEntity.typeSync(file.path, followLinks: false) !=
+              FileSystemEntityType.file) {
+        throw const FormatException('Excluded or non-regular source');
+      }
+      final size = file.lengthSync();
+      if (size > 4 * 1024 * 1024 || _nativeBytes + size > 64 * 1024 * 1024) {
+        throw const FormatException('Source size limit');
+      }
+      _nativeBytes += size;
+      return _nativeReadCache[relative] =
+          ProjectFile(relative, file.readAsStringSync());
+    } catch (_) {
+      nativeSourceIssues.add(relative);
+      _nativeReadCache[relative] = null;
+      return null;
+    }
+  }
+
+  ProjectFile? _optionalNative(String relative) =>
+      FileSystemEntity.typeSync(abs(relative), followLinks: false) ==
+              FileSystemEntityType.notFound
+          ? null
+          : _readNative(relative);
+
   /// A project with no source code, used to audit an APK on its own.
-  static Project binaryOnly(String path, ApkContext apk, {AegisConfig? config}) {
+  static Project binaryOnly(String path, ApkContext apk,
+      {AegisConfig? config}) {
     final root = p.normalize(p.absolute(path));
     final project = Project._(root, config ?? AegisConfig.load(root))
       ..hasSource = false
@@ -169,7 +442,9 @@ class Project {
     entitlements.clear();
     for (final slice in artifact.machO) {
       if (slice.entitlements case final value?) {
-        entitlements['${artifact.label}!/${artifact.appPath}/${artifact.executable} [${slice.architecture}]'] = value;
+        entitlements[
+                '${artifact.label}!/${artifact.appPath}/${artifact.executable} [${slice.architecture}]'] =
+            value;
       }
     }
   }
@@ -235,13 +510,14 @@ class Project {
       pkgs.forEach((k, v) {
         if (v is Map) {
           locked[k.toString()] = LockedPackage(
-              k.toString(), (v['version'] ?? '').toString(),
+              k.toString(),
+              (v['version'] ?? '').toString(),
               (v['source'] ?? 'hosted').toString());
         }
       });
     } catch (_) {
       lockIssue = En.lockUnreadable;
-        lockIssueAr = Ar.lockUnreadable;
+      lockIssueAr = Ar.lockUnreadable;
     }
   }
 
@@ -293,8 +569,10 @@ class Project {
       if (pkg == null || rootUri == null || pkg == name) continue;
       final source = locked[pkg]?.source;
       if (source != 'git' && source != 'path') continue;
-      final pkgRoot = base.resolve(rootUri.endsWith('/') ? rootUri : '$rootUri/');
-      final libDir = Directory.fromUri(pkgRoot.resolve(e['packageUri']?.toString() ?? 'lib/'));
+      final pkgRoot =
+          base.resolve(rootUri.endsWith('/') ? rootUri : '$rootUri/');
+      final libDir = Directory.fromUri(
+          pkgRoot.resolve(e['packageUri']?.toString() ?? 'lib/'));
       if (!libDir.existsSync()) continue;
       // A path dependency inside lib/ would be scanned twice.
       if (p.isWithin(p.join(root, 'lib'), libDir.path)) continue;
@@ -302,7 +580,9 @@ class Project {
       for (final f in libDir.listSync(recursive: true, followLinks: false)) {
         if (f is! File || !f.path.endsWith('.dart')) continue;
         final inLib = slash(p.relative(f.path, from: libDir.path));
-        if (_generated.hasMatch(inLib) || inLib.startsWith('generated/')) continue;
+        if (_generated.hasMatch(inLib) || inLib.startsWith('generated/')) {
+          continue;
+        }
         final virtual = 'package:$pkg/$inLib';
         if (config.isExcluded(virtual)) continue;
         try {
@@ -353,12 +633,15 @@ class Project {
           networkSecurityConfigXml =
               XmlDocument.parse(networkSecurityConfig!.text);
         } catch (_) {
-        // Invalid XML: the rules report the file as not applicable.
-      }
+          // Invalid XML: the rules report the file as not applicable.
+        }
       }
     }
 
-    for (final dir in const ['android/app/src/main/kotlin', 'android/app/src/main/java']) {
+    for (final dir in const [
+      'android/app/src/main/kotlin',
+      'android/app/src/main/java'
+    ]) {
       final d = Directory(p.join(root, dir));
       if (!d.existsSync()) continue;
       for (final e in d.listSync(recursive: true, followLinks: false)) {
@@ -409,7 +692,12 @@ class Project {
       final file = _read(f);
       if (file != null) buildScripts.add(file);
     }
-    for (final dir in const ['.github/workflows', 'scripts', '.circleci', 'ci']) {
+    for (final dir in const [
+      '.github/workflows',
+      'scripts',
+      '.circleci',
+      'ci'
+    ]) {
       final d = Directory(p.join(root, dir));
       if (!d.existsSync()) continue;
       for (final e in d.listSync(recursive: true, followLinks: false)) {
@@ -432,14 +720,19 @@ class Project {
   }
 
   void _loadGitignore() {
-    for (final f in const ['.gitignore', 'android/.gitignore', 'ios/.gitignore']) {
+    for (final f in const [
+      '.gitignore',
+      'android/.gitignore',
+      'ios/.gitignore'
+    ]) {
       final file = _read(f);
       if (file == null) continue;
       final prefix = f.contains('/') ? '${p.dirname(f)}/' : '';
       for (final line in file.text.split('\n')) {
         final l = line.trim();
         if (l.isEmpty || l.startsWith('#')) continue;
-        gitignore.add(l.startsWith('/') ? '$prefix${l.substring(1)}' : '$prefix$l');
+        gitignore
+            .add(l.startsWith('/') ? '$prefix${l.substring(1)}' : '$prefix$l');
         if (!l.contains('/')) gitignore.add(l); // matches at any depth
       }
     }

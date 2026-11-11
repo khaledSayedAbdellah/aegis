@@ -107,9 +107,12 @@ class TrackerInventoryRule extends Rule {
       }
     }
 
-    if (p.hasSource) {
+    if (p.hasSource && !p.nativeOnly) {
       scan('pubspec.lock / pubspec.yaml',
           [...p.locked.keys, ...p.dependencies.keys]);
+    }
+    for (final source in [...p.nativeSources, ...p.scriptSources]) {
+      scan(source.path, [source.text]);
     }
     final apk = p.apk;
     if (apk != null) {
@@ -125,8 +128,11 @@ class TrackerInventoryRule extends Rule {
           continue;
         }
         try {
-          scan(apk.location(e.name),
-              printableStrings(apk.archive.readEntry(e, maxBytes: 64 * 1024 * 1024), min: 4));
+          scan(
+              apk.location(e.name),
+              printableStrings(
+                  apk.archive.readEntry(e, maxBytes: 64 * 1024 * 1024),
+                  min: 4));
         } catch (_) {
           limited = true;
         }

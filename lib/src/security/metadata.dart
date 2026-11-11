@@ -2,6 +2,15 @@ import "../model.dart";
 import "../l10n/messages.g.dart";
 
 RuleMeta extendedMeta(String id) => switch (id) {
+      'AEG-S01' => const RuleMeta(
+          id: 'AEG-S01',
+          title: Bilingual(En.sourceCoverageTitle, Ar.sourceCoverageTitle),
+          description:
+              Bilingual(En.sourceCoverageScope, Ar.sourceCoverageScope),
+          fix: Bilingual(En.sourceCoverageFix, Ar.sourceCoverageFix),
+          severity: Severity.info,
+          masvs: [],
+          profiles: {MasProfile.l1}),
       'AEG-A11' => const RuleMeta(
           id: 'AEG-A11',
           title: Bilingual(En.extA11Title, Ar.extA11Title),

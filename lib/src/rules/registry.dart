@@ -5,6 +5,8 @@ import 'android_rules.dart';
 import 'platform_security_rules.dart';
 import 'platform_protection_rules.dart';
 import 'native_security_rules.dart';
+import 'native_source_rules.dart';
+import 'source_coverage_rule.dart';
 import 'elf_rules.dart';
 import 'tracker_rules.dart';
 import 'binary_rules.dart';
@@ -29,6 +31,9 @@ const List<Rule> apkRules = binaryRules;
 // Run once for either source or artifact. Each rule selects the authoritative
 // final manifest when available and retains source-only scope explicitly.
 const extendedRules = <Rule>[
+  SourceCoverageRule(),
+  NativeSourceRule(),
+  NativeSourceRule(logging: true),
   ...platformProtectionRules,
   AndroidLinksRule(),
   AndroidPermissionStrengthRule(),

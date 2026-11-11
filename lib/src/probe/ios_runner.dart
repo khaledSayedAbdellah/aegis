@@ -53,6 +53,9 @@ class IosProbeRunner {
     String? projectRoot,
     String? simulatorFlavor,
     String? simulatorTarget,
+    String? xcodeProject,
+    String? xcodeScheme,
+    String? xcodeConfiguration,
     Set<String>? only,
     void Function(String)? log,
   }) async {
@@ -100,6 +103,9 @@ class IosProbeRunner {
               app: simulatorApp,
               flavor: simulatorFlavor,
               target: simulatorTarget,
+              xcodeProject: xcodeProject,
+              xcodeScheme: xcodeScheme,
+              xcodeConfiguration: xcodeConfiguration,
               log: log)
           : null;
       final debuggable = original.machO

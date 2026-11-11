@@ -180,10 +180,11 @@ void main() {
         'rules', 'baseline', 'apk', 'aab', 'ipa', 'probe_apk', 'probe_cert_sha256',
         'ios_control_device', 'ios_jailbreak_device', 'ios_resigned_ipa',
         'ios_simulator', 'ios_simulator_app', 'ios_simulator_flavor',
-        'ios_simulator_target', 'tracker_signatures', 'runtime_security',
+        'ios_simulator_target', 'ios_xcode_project', 'ios_xcode_scheme',
+        'ios_xcode_configuration', 'tracker_signatures', 'runtime_security',
       ]));
       for (final key in ['apk', 'aab', 'ipa', 'probe_apk', 'ios_resigned_ipa',
-        'ios_simulator_app', 'ios_simulator_target']) {
+        'ios_simulator_app', 'ios_simulator_target', 'ios_xcode_project']) {
         expect(settings[key], '<path-to-file>', reason: key);
       }
       expect(config.runtimeSecurity['enabled'], isFalse);
@@ -199,8 +200,9 @@ void main() {
         config.apk, config.aab, config.ipa, config.probeApk, config.probeCertSha256,
         config.iosControlDevice, config.iosJailbreakDevice, config.iosResignedIpa,
         config.iosSimulator, config.iosSimulatorApp, config.iosSimulatorFlavor,
-        config.iosSimulatorTarget,
+        config.iosSimulatorTarget, config.iosXcodeProject, config.iosXcodeScheme,
       ], everyElement(isNull));
+      expect(config.iosXcodeConfiguration, 'Release');
 
       final again = await aegis(['init', dir.path, '--profile', 'l1']);
       expect(again.exitCode, 2);
