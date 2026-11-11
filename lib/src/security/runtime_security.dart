@@ -13,12 +13,13 @@ class RuntimeSecurityResult {
       this.configured = true,
       this.scenario = '',
       this.digest = '',
+      this.hosts = const [],
       this.pinnedHosts = const [],
       this.markers = const []});
   final Map<String, Object?> data;
   final bool requested, configured;
   final String scenario, digest;
-  final List<String> pinnedHosts, markers;
+  final List<String> hosts, pinnedHosts, markers;
 }
 
 /// Runs only from the explicit `run` workflow. Never from a library static audit.
@@ -163,6 +164,7 @@ Future<RuntimeSecurityResult> runRuntimeSecurity(
     return RuntimeSecurityResult(data,
         scenario: (command.first as String).split('/').last,
         digest: digest,
+        hosts: endpoints,
         pinnedHosts: pinned,
         markers: markers.keys.toList());
   } catch (_) {

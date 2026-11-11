@@ -128,11 +128,11 @@ RuleMeta extendedMeta(String id) => switch (id) {
           severity: Severity.high,
           masvs: ['MASVS-STORAGE-2'],
           profiles: {MasProfile.l1}),
-      'AEG-P10' => const RuleMeta(
-          id: 'AEG-P10',
-          title: Bilingual(En.platformP10Title, Ar.platformP10Title),
-          description: Bilingual(En.platformP10Limit, Ar.platformP10Limit),
-          fix: Bilingual(En.platformP10Limit, Ar.platformP10Limit),
+      'AEG-P11' => const RuleMeta(
+          id: 'AEG-P11',
+          title: Bilingual(En.platformP11Title, Ar.platformP11Title),
+          description: Bilingual(En.platformP11Limit, Ar.platformP11Limit),
+          fix: Bilingual(En.platformP11Limit, Ar.platformP11Limit),
           severity: Severity.medium,
           masvs: ['MASVS-PLATFORM-3'],
           profiles: {MasProfile.l1}),

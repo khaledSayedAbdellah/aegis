@@ -13,27 +13,45 @@ class RuleCheck {
       : applicable = true,
         note = null,
         noteAr = null,
-        isIncomplete = false;
+        isIncomplete = false,
+        isEvidenceOnly = false;
 
   RuleCheck.notApplicable([this.note])
       : applicable = false,
         noteAr = null,
         findings = const [],
-        isIncomplete = false;
+        isIncomplete = false,
+        isEvidenceOnly = false;
 
   RuleCheck.notApplicableLocalized(this.note, this.noteAr)
-      : applicable = false, findings = const [], isIncomplete = false;
+      : applicable = false,
+        findings = const [],
+        isIncomplete = false,
+        isEvidenceOnly = false;
+
+  /// The rule applies and completed, but automatic inspection can only list
+  /// facts for review: neither a pass nor a failure, and not an unfinished test.
+  RuleCheck.evidenceOnly(this.note, this.noteAr)
+      : applicable = false,
+        findings = const [],
+        isIncomplete = false,
+        isEvidenceOnly = true;
 
   RuleCheck.incomplete(this.note, [this.findings = const []])
       : applicable = false,
         noteAr = null,
-        isIncomplete = true;
+        isIncomplete = true,
+        isEvidenceOnly = false;
 
-  RuleCheck.incompleteLocalized(this.note, this.noteAr, [this.findings = const []])
-      : applicable = false, isIncomplete = true;
+  RuleCheck.incompleteLocalized(this.note, this.noteAr,
+      [this.findings = const []])
+      : applicable = false,
+        isIncomplete = true,
+        isEvidenceOnly = false;
 
   final String? noteAr;
   final bool isIncomplete;
+  final bool isEvidenceOnly;
 
   final bool applicable;
   final List<Finding> findings;

@@ -301,6 +301,18 @@ Future<void> auditCommand(ArgResults root, ArgParser parser) async {
     }
   }
 
+  // The scenario runs a command and tools named by the project's aegis.yaml, so
+  // `enabled: true` in that file is not consent: the caller must also ask here.
+  final runScenario =
+      (args['probe'] as bool) && (args['runtime-scenario'] as bool);
+  if (run &&
+      artifact != null &&
+      !runScenario &&
+      config.runtimeSecurity['enabled'] == true) {
+    stdout.writeln(
+        'aegis: runtime_security is enabled in aegis.yaml but was not run. '
+        'Pass --runtime-scenario to execute its command.');
+  }
   final runtimeSecurity = run && artifact != null
       ? await runRuntimeSecurity(artifact, p.absolute(path), config,
           platform: ipaPath == null
@@ -308,7 +320,7 @@ Future<void> auditCommand(ArgResults root, ArgParser parser) async {
               : iosTarget == IosTarget.simulator
                   ? 'ios-simulator'
                   : 'ios-device',
-          enabled: args['probe'] as bool,
+          enabled: runScenario,
           log: stdout.writeln)
       : null;
 

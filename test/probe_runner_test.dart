@@ -111,6 +111,26 @@ class FakeDevice implements ProbeDevice {
   }
 }
 
+/// A scripted emulator that also has the automatic platform observers.
+class ObservingDevice extends FakeDevice implements PlatformObserver {
+  Map<String, Object?> control = {'verified': true};
+  Map<String, Object?> instrumented = {};
+  bool failControl = false;
+
+  @override
+  Future<Map<String, Object?>> platformObservation(String package, int pid) async {
+    calls.add('observe');
+    if (failControl) throw StateError('adb unavailable');
+    return control;
+  }
+
+  @override
+  Future<Map<String, Object?>> instrumentedPlatformObservation(String package) async {
+    calls.add('observe-instrumented');
+    return instrumented;
+  }
+}
+
 ProbeRunner runner(FakeDevice d, [FakeDevice? root]) =>
     ProbeRunner(d, rootDevice: root, wait: Duration.zero, sleep: (_) async {});
 
@@ -132,6 +152,33 @@ void main() {
     expect(control.calls, isNot(contains('root')));
     expect(control.calls, contains('resign'));
     expect(rooted.calls, isNot(contains('resign')));
+  });
+
+  group('automatic observer attempts', () {
+    test('a device without observers records none', () async {
+      final r = await run(FakeDevice(), only: {'hooking'});
+      expect(r.platformObserverAttempts, isEmpty);
+    });
+    test('the launch observer is recorded even when it fails', () async {
+      final ok = await run(ObservingDevice(), only: {'repackage'});
+      expect(ok.platformObserverAttempts, {'control'});
+      expect(ok.platformObservations['verified'], isTrue);
+      final failed = await run(ObservingDevice()..failControl = true, only: {'repackage'});
+      expect(failed.platformObserverAttempts, {'control'});
+      expect(failed.platformObservations, isEmpty);
+    });
+    test('the instrumented observer is recorded only with a Frida check', () async {
+      final device = ObservingDevice();
+      final r = await run(device, only: {'hooking'});
+      expect(device.calls, contains('observe-instrumented'));
+      expect(r.platformObserverAttempts, {'control', 'instrumented'});
+      // It returned nothing, so the stock launch facts stay as they were.
+      expect(r.platformObservations.containsKey('control'), isFalse);
+    });
+    test('a dead baseline starts no observer', () async {
+      final r = await run(ObservingDevice()..aliveQueue = [false]);
+      expect(r.platformObserverAttempts, isEmpty);
+    });
   });
 
   test('boot failure → every scored check inconclusive', () async {

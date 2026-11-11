@@ -71,6 +71,10 @@
   "@i18nNotApplicable": {
     "description": "reporters/i18n.dart: localized message."
   },
+  "i18nEvidenceOnly": "Evidence for review, no verdict",
+  "@i18nEvidenceOnly": {
+    "description": "reporters/i18n.dart: heading for rules that only list review evidence."
+  },
   "i18nCheckManuallyNoToolCanVerifyThese": "Check manually (no tool can verify these)",
   "@i18nCheckManuallyNoToolCanVerifyThese": {
     "description": "reporters/i18n.dart: localized message."
@@ -3609,6 +3613,18 @@
   "@extRuntimeMissing": {
     "description": "Extended security analysis: extRuntimeMissing"
   },
+  "extRuntimeNoInterception": "The scenario finished and recorded no intercepted request on the exercised path. This is not proof that TLS/pinning blocked it: routing, RASP or caching can also cause silence. Review the scenario evidence.",
+  "@extRuntimeNoInterception": {
+    "description": "Runtime scenario note: finished without interception, evidence only."
+  },
+  "extRuntimeNoHosts": "No hosts are configured in runtime_security, so no interception scenario was requested.",
+  "@extRuntimeNoHosts": {
+    "description": "Runtime scenario note: network part not configured."
+  },
+  "extRuntimeNoMarkers": "No synthetic markers are configured in runtime_security, so no storage scenario was requested.",
+  "@extRuntimeNoMarkers": {
+    "description": "Runtime scenario note: storage part not configured."
+  },
   "extRuntimeIncomplete": "Runtime scenario or evidence is incomplete. Missing traffic is not proof that TLS/pinning blocked it; absence of marker hits is not proof that all sensitive data is protected.",
   "@extRuntimeIncomplete": {
     "description": "Extended security analysis: extRuntimeIncomplete"
@@ -3932,9 +3948,17 @@
   "@iosMetadataSourceString": {
     "description": "Static iOS metadata evidence and extraction limits."
   },
-  "platformIncomplete": "Automatic inspection is partial; unexercised behavior is not a pass. See this check’s evidence and scope.",
+  "platformIncomplete": "The requested runtime observation did not complete for this check; unexercised behavior is not a pass. See this check’s evidence and scope.",
   "@platformIncomplete": {
-    "description": "Automatic platform protection checks and explicit scope."
+    "description": "A requested runtime observation of a platform protection did not complete."
+  },
+  "platformEvidenceOnly": "Evidence only: automatic inspection lists facts for review and establishes neither a pass nor a failure. See this check’s evidence and scope.",
+  "@platformEvidenceOnly": {
+    "description": "Platform protection evidence that is neither a pass nor a failure."
+  },
+  "platformObserverFailed": "The automatic observer started but returned no verified facts for this check.",
+  "@platformObserverFailed": {
+    "description": "Platform protection evidence: an observer ran and produced nothing usable."
   },
   "platformNoRuntime": "No verified runtime observation is available for this check.",
   "@platformNoRuntime": {
@@ -4089,12 +4113,12 @@
   "@platformFactSecureWindows": {
     "description": "Automatic platform protection checks and explicit scope."
   },
-  "platformP10Title": "Screen and background snapshot exposure",
-  "@platformP10Title": {
+  "platformP11Title": "Screen and background snapshot exposure",
+  "@platformP11Title": {
     "description": "Automatic platform protection checks and explicit scope."
   },
-  "platformP10Limit": "Launch-screen capture availability and native field metadata are inspected. iOS Simulator background transitions are observed separately. Capturing an image does not establish sensitive-data exposure; capture failure does not prove protection. Recording, actual app-switcher snapshot contents and unvisited/authenticated screens remain unverified. iOS has no general FLAG_SECURE equivalent.",
-  "@platformP10Limit": {
+  "platformP11Limit": "Launch-screen capture availability and native field metadata are inspected. iOS Simulator background transitions are observed separately. Capturing an image does not establish sensitive-data exposure; capture failure does not prove protection. Recording, actual app-switcher snapshot contents and unvisited/authenticated screens remain unverified. iOS has no general FLAG_SECURE equivalent.",
+  "@platformP11Limit": {
     "description": "Automatic platform protection checks and explicit scope."
   },
   "platformN05Title": "Backup exclusion policy and file metadata",

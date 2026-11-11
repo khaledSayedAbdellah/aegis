@@ -2,6 +2,8 @@ import 'dart:io';
 import 'dart:convert';
 
 import 'package:aegis/aegis.dart';
+import 'package:aegis/src/cli/arguments.dart';
+import 'package:aegis/src/security/runtime_security.dart';
 import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
@@ -33,6 +35,20 @@ File put(Directory root, String rel, {List<int>? bytes, DateTime? modified}) {
 }
 
 void main() {
+  test('every listed rule has its own id', () async {
+    final r = await aegis(['--list-rules']);
+    expect(r.exitCode, 0);
+    final ids = [
+      for (final line in (r.stdout as String).split('\n'))
+        if (line.startsWith('AEG-')) line.split(' ').first
+    ];
+    expect(ids, isNotEmpty);
+    expect(ids.toSet().length, ids.length,
+        reason: 'baseline entries and aegis.yaml overrides are keyed by id');
+    expect(r.stdout, contains('AEG-P10  medium   R'));
+    expect(r.stdout, contains('AEG-P11  medium   L1'));
+  });
+
   test('a corrupt APK manifest fails before scoring', () async {
     final dir = project();
     final manifest = 'broken'.codeUnits;
@@ -63,6 +79,110 @@ void main() {
     expect(rule['status'], 'incomplete');
   });
 
+  group('a static audit of an app with Android and iOS folders', () {
+    const example = 'example/vulnerable_app';
+
+    test('the CI smoke command fails on findings, not on completeness', () async {
+      final out = Directory.systemTemp.createTempSync('aegis_ci_');
+      addTearDown(() => out.deleteSync(recursive: true));
+      final report = p.join(out.path, 'aegis-example');
+      // Keep in step with the smoke job in .github/workflows/ci.yml.
+      final r = await aegis([example, '--strict', '--offline',
+        '-f', 'console,json,sarif,html', '-o', report]);
+      expect(r.exitCode, 1, reason: '${r.stdout}${r.stderr}');
+      expect(r.stderr, isNot(contains('audit incomplete')));
+      final json = jsonDecode(File('$report.json').readAsStringSync()) as Map;
+      expect(json['complete'], isTrue);
+      for (final format in ['sarif', 'html']) {
+        expect(File('$report.$format').existsSync(), isTrue, reason: format);
+      }
+    });
+
+    test('--update-baseline accepts the findings of a complete audit', () async {
+      final out = Directory.systemTemp.createTempSync('aegis_baseline_');
+      addTearDown(() => out.deleteSync(recursive: true));
+      final baseline = p.join(out.path, 'aegis-baseline.json');
+      final written = await aegis([example, '--offline',
+        '--baseline', baseline, '--update-baseline']);
+      expect(written.exitCode, 0, reason: '${written.stdout}${written.stderr}');
+      expect(written.stderr, isNot(contains('baseline was not updated')));
+      final entries = jsonDecode(File(baseline).readAsStringSync()) as Map;
+      expect(entries, isNotEmpty);
+
+      // Every finding is now known, so only the score gate can still fail.
+      final report = p.join(out.path, 'report');
+      final again = await aegis([example, '--offline', '--strict',
+        '--baseline', baseline, '--fail-on', 'low', '--min-score', '0',
+        '-f', 'json', '-o', report]);
+      expect(again.exitCode, 0, reason: '${again.stdout}${again.stderr}');
+    });
+
+    test('--update-baseline still refuses an incomplete audit', () async {
+      final dir = project();
+      File(p.join(dir.path, 'pubspec.yaml')).writeAsStringSync(
+          'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n  freerasp: any\n');
+      // freeRASP calls that never run at startup leave AEG-P02 without a verdict.
+      File(p.join(dir.path, 'lib', 'main.dart')).writeAsStringSync(
+          'void main() {}\n'
+          'class Talsec { static final instance = Talsec(); '
+          'void start(Object value) {} void attachListener(Object value) {} }\n'
+          'void neverCalled() { Talsec.instance.attachListener(1); Talsec.instance.start(1); }');
+      final r = await aegis([dir.path, '--offline', '--update-baseline']);
+      expect(r.exitCode, 2, reason: '${r.stdout}${r.stderr}');
+      expect(r.stderr, contains('baseline was not updated'));
+      expect(File(p.join(dir.path, 'aegis-baseline.json')).existsSync(), isFalse);
+    });
+  });
+
+  group('runtime_security scenario consent', () {
+    test('the flag is off by default and only offered by run', () {
+      expect(auditParser(run: true).parse([])['runtime-scenario'], isFalse);
+      expect(auditParser(run: true).usage, contains('--runtime-scenario'));
+      expect(auditParser().usage, isNot(contains('--runtime-scenario')));
+    });
+
+    test('enabled: true in aegis.yaml never runs the project command', () async {
+      final dir = project();
+      final marker = File(p.join(dir.path, 'scenario-ran'));
+      final config = AegisConfig(runtimeSecurity: {
+        'enabled': true,
+        'platform': 'android',
+        'device': 'emulator-5554',
+        'command': ['touch', marker.path],
+        'python': 'touch',
+      });
+      final result = await runRuntimeSecurity(
+          p.join(dir.path, 'missing.apk'), dir.path, config,
+          platform: 'android', enabled: false);
+      expect(result.requested, isFalse);
+      expect(marker.existsSync(), isFalse);
+      expect(Directory(dir.path).listSync().map((e) => p.basename(e.path)),
+          unorderedEquals(['pubspec.yaml', 'lib']));
+    });
+
+    test('run reports a configured scenario it did not execute', () async {
+      final dir = project();
+      put(dir, 'app.apk', bytes: File('test/fixtures/apk/secure.apk').readAsBytesSync());
+      final marker = File(p.join(dir.path, 'scenario-ran'));
+      File(p.join(dir.path, 'aegis.yaml')).writeAsStringSync(
+          'profile: l2+r\nlang: en\napk: app.apk\n'
+          'runtime_security:\n  enabled: true\n  platform: android\n'
+          '  device: emulator-5554\n  command: [touch, ${marker.path}]\n'
+          '  python: touch\n');
+      final report = p.join(dir.path, 'report');
+      final r = await aegis(['run', dir.path, '--mode', 'apk', '--offline',
+        '--no-probe', '--no-open', '-f', 'json', '-o', report]);
+      expect(r.exitCode, isNot(2), reason: '${r.stdout}${r.stderr}');
+      expect(r.stdout, contains('Pass --runtime-scenario'));
+      expect(marker.existsSync(), isFalse);
+      final rules = ((jsonDecode(File('$report.json').readAsStringSync())
+          as Map)['rules'] as List).cast<Map>();
+      for (final id in ['AEG-R09', 'AEG-R10']) {
+        expect(rules.singleWhere((r) => r['id'] == id)['status'], 'notApplicable');
+      }
+    });
+  });
+
   test('AAB runtime probe requires a matching signed APK', () async {
     final bundle = p.absolute('test/fixtures/aab/vulnerable.aab');
     final missing = await aegis(['probe', bundle, '--lang', 'en']);
@@ -91,11 +211,12 @@ void main() {
     expect(readReport()['complete'], isFalse);
 
     final optedOut = await aegis([...args, '--no-probe']);
-    // Opting out of probes must not hide the new partial platform inspection.
-    expect(optedOut.exitCode, 2, reason: '${optedOut.stdout}${optedOut.stderr}');
-    expect(readReport()['complete'], isFalse);
+    // Opting out requests no runtime observation: static platform evidence is
+    // reported, but it is not an unfinished check.
+    expect(optedOut.exitCode, 0, reason: '${optedOut.stdout}${optedOut.stderr}');
+    expect(readReport()['complete'], isTrue);
     final rules = (readReport()['rules'] as List).cast<Map>();
-    expect(rules.singleWhere((r) => r['id'] == 'AEG-N05')['status'], 'incomplete');
+    expect(rules.singleWhere((r) => r['id'] == 'AEG-N05')['status'], 'evidenceOnly');
     expect(rules.singleWhere((r) => r['id'] == 'AEG-R09')['status'], 'notApplicable');
   });
 

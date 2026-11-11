@@ -7,11 +7,11 @@ import 'package:test/test.dart';
 void main() {
   const evidence = [
     SecurityEvidence(
-        'AEG-P10', 'first.dart', Bilingual('First fact', 'ملاحظة أولى'),
+        'AEG-P11', 'first.dart', Bilingual('First fact', 'ملاحظة أولى'),
         status: 'facts', data: {'source': 'source-reference'}),
     SecurityEvidence(
         'AEG-N05', 'backup.xml', Bilingual('Backup rule', 'قاعدة النسخ')),
-    SecurityEvidence('AEG-P10', 'Runner.app',
+    SecurityEvidence('AEG-P11', 'Runner.app',
         Bilingual('Unavailable detail', 'تفصيل غير متاح'),
         status: 'unavailable'),
   ];
@@ -22,7 +22,7 @@ void main() {
     final html = SecurityView(evidence, 'ar').html();
     expect('<details '.allMatches(html), hasLength(2));
     expect('<summary>'.allMatches(html), hasLength(2));
-    expect('AEG-P10'.allMatches(html), hasLength(1));
+    expect('AEG-P11'.allMatches(html), hasLength(1));
     expect('class="evidence-item"'.allMatches(html), hasLength(3));
     expect(html, contains(Ar.extEvidenceCount(count: 2)));
     expect(html, contains(Ar.extFacts));
@@ -32,13 +32,13 @@ void main() {
       expect(html, contains(item.detail.ar));
     }
     expect(html.indexOf('first.dart'), lessThan(html.indexOf('Runner.app')));
-    expect(html.indexOf('AEG-P10'), lessThan(html.indexOf('AEG-N05')));
+    expect(html.indexOf('AEG-P11'), lessThan(html.indexOf('AEG-N05')));
     expect(evidence.map((e) => e.toJson()).toList(), before);
   });
 
   test('grouped HTML escapes every source and detail', () {
     final html = SecurityView(const [
-      SecurityEvidence('AEG-P10', '<img src=x onerror=alert(1)>',
+      SecurityEvidence('AEG-P11', '<img src=x onerror=alert(1)>',
           Bilingual('<script>alert(1)</script>', '<script>alert(1)</script>')),
     ], 'en')
         .html();

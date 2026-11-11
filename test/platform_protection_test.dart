@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:archive/archive.dart';
 import 'package:aegis/aegis.dart';
+import 'package:aegis/src/l10n/messages.g.dart';
 import 'package:aegis/src/project.dart';
 import 'package:aegis/src/rules/platform_protection_rules.dart';
 import 'package:aegis/src/security/platform_checks.dart';
@@ -66,7 +67,7 @@ void main() {
           '<Button xmlns:android="http://schemas.android.com/apk/res/android" android:filterTouchesWhenObscured="false"/>'
     });
     expect(result(r, 'AEG-A14').findings, isEmpty);
-    expect(result(r, 'AEG-A14').status, RuleStatus.incomplete);
+    expect(result(r, 'AEG-A14').status, RuleStatus.evidenceOnly);
     expect(
         r.securityEvidence
             .where((e) =>
@@ -76,12 +77,17 @@ void main() {
         unorderedEquals(['true', 'false']));
   });
   test(
-      'all six rules retain explicit limits; evidence never grants full coverage',
+      'static evidence is never a pass and never makes the audit incomplete',
       () async {
     final p = await iosProject();
     for (final kind in platformKinds.where((k) => k != 'tapjacking')) {
       final check = await PlatformProtectionRule(kind).check(p, profiles);
-      expect(check.isIncomplete, isTrue);
+      expect(check.applicable, isFalse, reason: kind);
+      expect(check.isIncomplete, isFalse, reason: kind);
+      expect(check.findings, isEmpty, reason: kind);
+      expect(check.isEvidenceOnly, isTrue, reason: kind);
+      expect(check.note, En.platformEvidenceOnly);
+      expect(check.noteAr, Ar.platformEvidenceOnly);
     }
     expect(
         (await const PlatformProtectionRule('tapjacking').check(p, profiles))
@@ -120,7 +126,7 @@ void main() {
           '<data-extraction-rules><cloud-backup><exclude domain="file" path="private/"/></cloud-backup></data-extraction-rules>'
     });
     expect(result(r, 'AEG-A02').status, RuleStatus.incomplete);
-    expect(result(r, 'AEG-N05').status, RuleStatus.incomplete);
+    expect(result(r, 'AEG-N05').status, RuleStatus.evidenceOnly);
     final rows = r.securityEvidence
         .where((e) => e.ruleId == 'AEG-N05' && e.data.containsKey('rules'))
         .toList();
@@ -258,7 +264,7 @@ void main() {
         isTrue);
   });
   test(
-      'AASA mismatch is a finding, unavailable fetch and offline are incomplete',
+      'AASA mismatch is a counted failure; unavailable fetch and offline are evidence',
       () async {
     final p = await iosProject();
     p.entitlements['signed'] = {
@@ -274,7 +280,9 @@ void main() {
     });
     final result = await rule.check(p, profiles);
     expect(result.findings, hasLength(1));
-    expect(result.isIncomplete, isTrue);
+    // No runtime observation was requested: a plain, fully counted failure.
+    expect(result.applicable, isTrue);
+    expect(result.isIncomplete, isFalse);
     p.offline = true;
     expect((await rule.check(p, profiles)).findings, isEmpty);
     expect(calls, 1);
@@ -316,7 +324,7 @@ Window #1 Window{b u0 org.other.app/Main}:
     });
     for (final id in ['AEG-N06', 'AEG-N07', 'AEG-A14']) {
       expect(result(r, id).findings, isEmpty);
-      expect(result(r, id).status, RuleStatus.incomplete);
+      expect(result(r, id).status, RuleStatus.evidenceOnly);
       expect(
           r.securityEvidence.any((e) =>
               e.ruleId == id && e.data['source'] == 'source-configuration'),
@@ -344,11 +352,14 @@ Window #1 Window{b u0 org.other.app/Main}:
         }));
     final screen =
         await const PlatformProtectionRule('screen').check(p, profiles);
-    expect(screen.isIncomplete, isTrue);
+    // A finished launch observation without a finding is evidence, not a pass.
+    expect(screen.applicable, isFalse);
+    expect(screen.isIncomplete, isFalse);
     expect(screen.findings, isEmpty);
     final web =
         await const PlatformProtectionRule('webview').check(p, profiles);
-    expect(web.isIncomplete, isTrue);
+    expect(web.applicable, isTrue);
+    expect(web.isIncomplete, isFalse);
     expect(web.findings, hasLength(1));
     expect(p.securityEvidence.toString(), isNot(contains('DO_NOT_REPORT')));
     expect(
@@ -365,9 +376,185 @@ Window #1 Window{b u0 org.other.app/Main}:
         platformObservations: {
           'webview': {'webviewInsecureContent': 2}
         }));
+    final web =
+        await const PlatformProtectionRule('webview').check(p, profiles);
+    expect(web.findings, isEmpty);
+    // The Android probe was requested and collects this control: still unfinished.
+    expect(web.isIncomplete, isTrue);
+  });
+  group('requested runtime observation', () {
+    ProbeOutcome ran(String platform, Map<String, Object?> observations,
+            {Set<String> attempts = const {'control'}}) =>
+        ProbeOutcome.ran(ProbeReport(
+            app: 'test',
+            baselineAlive: true,
+            results: [],
+            platform: platform,
+            platformObservations: observations,
+            platformObserverAttempts: attempts));
+    Future<RuleCheck> check(Project p, String kind) =>
+        PlatformProtectionRule(kind).check(p, profiles);
+
+    test('a collector that returned nothing leaves its controls incomplete',
+        () async {
+      final p = await iosProject();
+      p.probe = ran('ios-simulator', {});
+      for (final kind in platformObserverKinds['ios-simulator']!['control']!) {
+        final result = await check(p, kind);
+        expect(result.isIncomplete, isTrue, reason: kind);
+        expect(result.note, En.platformIncomplete);
+      }
+      p.probe = ProbeOutcome.skipped('no simulator');
+      expect((await check(p, 'screen')).isIncomplete, isTrue);
+    });
+    test('a probe that was not requested leaves evidence only', () async {
+      final p = await iosProject();
+      p.probe = ProbeOutcome.skipped('--no-probe', requested: false);
+      for (final kind in platformObserverKinds['ios-simulator']!['control']!) {
+        final result = await check(p, kind);
+        expect(result.isIncomplete, isFalse, reason: kind);
+        expect(result.applicable, isFalse, reason: kind);
+      }
+    });
+    test('a target without a collector for a control requests nothing',
+        () async {
+      final p = await iosProject();
+      // No observer is injected into a physical iPhone.
+      p.probe = ran('ios', {});
+      for (final kind in platformKinds.where((k) => k != 'tapjacking')) {
+        expect((await check(p, kind)).isIncomplete, isFalse, reason: kind);
+      }
+    });
+    test('Android collects screen/WebView/tapjacking only', () async {
+      final dir = Directory.systemTemp.createTempSync('aegis-platform-');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      File('${dir.path}/pubspec.yaml').writeAsStringSync('name: app\n');
+      File('${dir.path}/$manifestPath')
+        ..parent.createSync(recursive: true)
+        ..writeAsStringSync('$manifestHeader<application/></manifest>');
+      final r = await runAudit(dir.path,
+          rules: platformProtectionRules,
+          offline: true,
+          probe: ran('android', {
+            'verified': true,
+            'screen': {'windows': 1, 'secureWindows': 0},
+            'webview': <String, int>{},
+            'tapjacking': {'clickableViews': 3}
+          }));
+      expect(result(r, 'AEG-P11').status, RuleStatus.evidenceOnly);
+      expect(result(r, 'AEG-A14').status, RuleStatus.evidenceOnly);
+      expect(result(r, 'AEG-N07').status, RuleStatus.incomplete);
+      expect(result(r, 'AEG-N05').status, RuleStatus.evidenceOnly);
+      expect(result(r, 'AEG-N06').status, RuleStatus.evidenceOnly);
+      expect(r.incomplete.map((x) => x.meta.id), ['AEG-N07']);
+    });
+    test('the Android instrumented observer is requested only once it started',
+        () async {
+      final dir = Directory.systemTemp.createTempSync('aegis-platform-');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      File('${dir.path}/pubspec.yaml').writeAsStringSync('name: app\n');
+      File('${dir.path}/$manifestPath')
+        ..parent.createSync(recursive: true)
+        ..writeAsStringSync('$manifestHeader<application/></manifest>');
+      const control = {
+        'verified': true,
+        'screen': {'windows': 1, 'secureWindows': 0},
+        'webview': {'webviews': 0},
+        'tapjacking': {'clickableViews': 3}
+      };
+      Future<AuditReport> audit(ProbeOutcome probe) => runAudit(dir.path,
+          rules: platformProtectionRules, offline: true, probe: probe);
+      // Started and returned nothing: the key-access test was requested.
+      final failed = await audit(
+          ran('android', control, attempts: {'control', 'instrumented'}));
+      expect(result(failed, 'AEG-N06').status, RuleStatus.incomplete);
+      expect(failed.incomplete.map((x) => x.meta.id), ['AEG-N06']);
+      expect(
+          failed.securityEvidence
+              .where((e) => e.ruleId == 'AEG-N06')
+              .map((e) => e.data['observerStarted']),
+          contains(true));
+      // Never started (no Frida check in this run): evidence only.
+      final skipped = await audit(ran('android', control));
+      expect(result(skipped, 'AEG-N06').status, RuleStatus.evidenceOnly);
+      expect(skipped.incomplete, isEmpty);
+      // Started and verified: its facts complete the control.
+      final verified = await audit(ran('android', {
+        'verified': true,
+        'instrumented': true,
+        'keyQueriesComplete': true,
+        'key_access': {'keystoreAliases': 2, 'authRequiredKeys': 1},
+        'control': control,
+      }, attempts: {
+        'control',
+        'instrumented'
+      }));
+      expect(result(verified, 'AEG-N06').status, RuleStatus.evidenceOnly);
+      expect(verified.incomplete, isEmpty);
+    });
+    test('a launch observer that never started is still an unfinished request',
+        () async {
+      final p = await iosProject();
+      p.probe = ran('ios-simulator', {}, attempts: {});
+      expect((await check(p, 'screen')).isIncomplete, isTrue);
+      expect(
+          p.securityEvidence
+              .where((e) => e.status == 'unavailable')
+              .map((e) => e.data['observerStarted']),
+          everyElement(isFalse));
+    });
+    test('a collector bound affects only its own control', () async {
+      final p = await iosProject();
+      p.probe = ran('ios-simulator', {
+        'verified': true,
+        'keyQueriesComplete': false,
+        'viewLimitReached': false,
+        'fileLimitReached': false,
+        'screen': {'windows': 1},
+        'backup': {'files': 2},
+        'key_access': {'keychainItems': 1},
+      });
+      expect((await check(p, 'key_access')).isIncomplete, isTrue);
+      expect((await check(p, 'screen')).isIncomplete, isFalse);
+      expect((await check(p, 'backup')).isIncomplete, isFalse);
+    });
+    test('a proven finding stays counted when coverage is partial', () async {
+      final dir = Directory.systemTemp.createTempSync('aegis-platform-');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      File('${dir.path}/pubspec.yaml').writeAsStringSync('name: app\n');
+      File('${dir.path}/$manifestPath')
+        ..parent.createSync(recursive: true)
+        ..writeAsStringSync('$manifestHeader<application/></manifest>');
+      final r = await runAudit(dir.path,
+          rules: platformProtectionRules,
+          offline: true,
+          probe: ran('android', {
+            'verified': true,
+            'viewLimitReached': true,
+            'webview': {'webviews': 1, 'webviewInsecureContent': 1},
+          }));
+      final web = result(r, 'AEG-N07');
+      // RuleStatus.failed keeps the score; the flag records partial coverage.
+      expect(web.status, RuleStatus.failed);
+      expect(web.counts, isTrue);
+      expect(web.incomplete, isTrue);
+      expect(web.findings, hasLength(1));
+      expect(r.complete, isFalse);
+    });
+  });
+  test('a static audit of Android and iOS sources is complete', () async {
+    final r = await audit({
+      manifestPath: '$manifestHeader<application/></manifest>',
+      'ios/Runner/Info.plist':
+          '<?xml version="1.0" encoding="UTF-8"?><plist version="1.0"><dict/></plist>',
+    });
     expect(
-        (await const PlatformProtectionRule('webview').check(p, profiles))
-            .findings,
+        r.incomplete.map((x) => x.meta.id).toSet()
+          ..retainAll(platformRuleIds.values.toSet()),
         isEmpty);
+    for (final id in platformRuleIds.values) {
+      expect(result(r, id).status, RuleStatus.evidenceOnly, reason: id);
+      expect(result(r, id).counts, isFalse, reason: id);
+    }
   });
 }

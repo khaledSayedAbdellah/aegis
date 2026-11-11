@@ -221,6 +221,14 @@ class ConsoleReporter {
       b.writeln();
     }
 
+    if (r.evidenceOnly.isNotEmpty) {
+      b.writeln(_bold('${t.evidenceOnly} (${r.evidenceOnly.length})'));
+      for (final res in r.evidenceOnly) {
+        b.writeln('  · ${res.meta.id} · ${res.meta.title.of(lang)}');
+      }
+      b.writeln();
+    }
+
     if (verbose) {
       final na = r.notApplicable.toList();
       b.writeln(_bold('– ${t.notApplicable} (${na.length})'));

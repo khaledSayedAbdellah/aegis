@@ -108,8 +108,7 @@ class NativeSecurityRule extends Rule {
           status: 'unavailable'));
     }
     if (!inspected) {
-      return RuleCheck.notApplicableLocalized(
-          En.extIndicatorOnly, Ar.extIndicatorOnly);
+      return RuleCheck.evidenceOnly(En.extIndicatorOnly, Ar.extIndicatorOnly);
     }
     if (scriptLimited) {
       return RuleCheck.incompleteLocalized(

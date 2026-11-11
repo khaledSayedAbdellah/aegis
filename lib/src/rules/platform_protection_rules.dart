@@ -136,6 +136,15 @@ class PlatformProtectionRule extends Rule {
         Map<String, Object?>.from(primary!['control'] as Map),
       primary,
     ];
+    // A runtime observation counts as requested only when the user asked for a
+    // probe and an observer of that probe target collects this control: the
+    // launch observer always, an optional observer once the runner started it.
+    final report = p.probe?.report;
+    final target = report?.platform ?? (ios ? 'ios-simulator' : 'android');
+    final attempts = report?.platformObserverAttempts ?? const <String>{};
+    final requested = p.probe?.requested == true &&
+        platformObservationRequested(target, kind, attempts);
+    var observed = false, limited = false;
     for (final observation in observations) {
       final facts = observation?[kind];
       if (observation?['verified'] == true &&
@@ -151,6 +160,7 @@ class PlatformProtectionRule extends Rule {
           }
         }
         if (clean.isNotEmpty) {
+          observed = true;
           String display(String lang) => clean.entries
               .map((e) => '${platformFactLabels[e.key]!.of(lang)}: ${e.value}')
               .join('; ');
@@ -186,13 +196,24 @@ class PlatformProtectionRule extends Rule {
           }
         }
       } else {
+        // Say whether an observer for this control started and returned no
+        // verified facts, or none ran at all.
+        final started = platformObserverKinds[target]?.entries.any(
+                (e) => e.value.contains(kind) && attempts.contains(e.key)) ??
+            false;
         evidence(
-            label, const Bilingual(En.platformNoRuntime, Ar.platformNoRuntime),
-            status: 'unavailable');
+            label,
+            started
+                ? const Bilingual(
+                    En.platformObserverFailed, Ar.platformObserverFailed)
+                : const Bilingual(En.platformNoRuntime, Ar.platformNoRuntime),
+            status: 'unavailable',
+            data: {'observerStarted': started});
       }
-      if (observation?['viewLimitReached'] == true ||
-          observation?['fileLimitReached'] == true ||
-          observation?['keyQueriesComplete'] == false) {
+      // Only the collector limit that belongs to this control affects it.
+      final limit = platformObserverLimits[kind];
+      if (limit != null && observation?[limit.$1] == limit.$2) {
+        limited = true;
         evidence(
             label,
             const Bilingual(
@@ -200,10 +221,19 @@ class PlatformProtectionRule extends Rule {
             status: 'unavailable');
       }
     }
-    // Generic automatic exploration cannot establish every application's policy.
-    // Findings survive partial coverage; no references/flags become global passes.
-    return RuleCheck.incompleteLocalized(
-        En.platformIncomplete, Ar.platformIncomplete, out);
+    // A requested runtime observation that did not finish stays incomplete, and
+    // keeps any proven finding counted (failed with partial coverage).
+    if (limited || requested && !observed) {
+      return RuleCheck.incompleteLocalized(
+          En.platformIncomplete, Ar.platformIncomplete, out);
+    }
+    // A proven finding is a failure whether or not a runtime test was requested.
+    if (out.isNotEmpty) return RuleCheck(out);
+    // Generic automatic exploration cannot establish every application's policy:
+    // references, flags and launch-only facts are review evidence, never a pass,
+    // and they do not make the requested audit incomplete.
+    return RuleCheck.evidenceOnly(
+        En.platformEvidenceOnly, Ar.platformEvidenceOnly);
   }
 
   void _layouts(

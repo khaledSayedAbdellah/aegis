@@ -23,6 +23,18 @@ class RuntimeSecurityRule extends Rule {
           En.extRuntimeMissing, Ar.extRuntimeMissing);
     }
     final data = result.data;
+    // A scenario part with nothing configured was never requested: say so
+    // instead of leaving the other part's run permanently incomplete.
+    if (data['baseline'] == true) {
+      if (id == 'AEG-R09' && result.hosts.isEmpty) {
+        return RuleCheck.notApplicableLocalized(
+            En.extRuntimeNoHosts, Ar.extRuntimeNoHosts);
+      }
+      if (id == 'AEG-R10' && result.markers.isEmpty) {
+        return RuleCheck.notApplicableLocalized(
+            En.extRuntimeNoMarkers, Ar.extRuntimeNoMarkers);
+      }
+    }
     p.securityEvidence.add(SecurityEvidence(
         id,
         result.scenario,
@@ -36,7 +48,14 @@ class RuntimeSecurityRule extends Rule {
           'artifactSha256': result.digest,
           'baseline': data['baseline'] == true,
           'cleanup': data['cleanup'] == true,
-          'scenario': result.scenario
+          'scenario': result.scenario,
+          if (id == 'AEG-R09')
+            'phases': [
+              for (final phase in ['untrusted', 'trusted'])
+                if (data['phases'] case final List phases
+                    when phases.contains(phase))
+                  phase
+            ]
         }));
     if (data['baseline'] != true) {
       return RuleCheck.incompleteLocalized(
@@ -60,10 +79,31 @@ class RuntimeSecurityRule extends Rule {
               messageAr: Ar.extRuntimeTls(host: host, phase: phase)));
         }
       }
+      // The requested scenario finished when the baseline reached every pinned
+      // endpoint, each interception phase it called for completed, and cleanup
+      // restored the target without errors.
+      final phases = data['phases'],
+          reached = data['baseline_hosts'],
+          errors = data['errors'];
+      final finished = data['cleanup'] == true &&
+          errors is List &&
+          errors.isEmpty &&
+          reached is List &&
+          reached.isNotEmpty &&
+          result.pinnedHosts.every(reached.contains) &&
+          phases is List &&
+          phases.contains('untrusted') &&
+          (result.pinnedHosts.isEmpty || phases.contains('trusted'));
+      if (!finished) {
+        return RuleCheck.incompleteLocalized(
+            En.extRuntimeIncomplete, Ar.extRuntimeIncomplete, out);
+      }
+      if (out.isNotEmpty) return RuleCheck(out);
       // No request may mean the UI never reached the request, routing failed, or
-      // RASP stopped instrumentation. Never turn silence into a pinning pass.
-      return RuleCheck.incompleteLocalized(
-          En.extRuntimeIncomplete, Ar.extRuntimeIncomplete, out);
+      // RASP stopped instrumentation. Never turn silence into a pinning pass:
+      // a finished scenario without interception is review evidence only.
+      return RuleCheck.evidenceOnly(
+          En.extRuntimeNoInterception, Ar.extRuntimeNoInterception);
     }
     final storage = data['storage'];
     if (storage is Map && storage['hits'] is List) {

@@ -105,6 +105,7 @@ class ProbeReport {
     this.apkIdentity,
     this.platform = 'android',
     this.platformObservations = const {},
+    this.platformObserverAttempts = const {},
   });
 
   /// The app that was probed (file name).
@@ -112,6 +113,11 @@ class ProbeReport {
   final String platform;
   final ProbeApkIdentity? apkIdentity;
   final Map<String, Object?> platformObservations;
+
+  /// The automatic observers the runner started: `control` (stock launch) and
+  /// `instrumented` (Android, under Frida). An observer returns no facts both
+  /// when it fails and when it never runs; this records which one happened.
+  final Set<String> platformObserverAttempts;
 
   /// Set when the emulator or install could not run at all (a tooling
   /// problem, not the app). Distinct from [baselineAlive] being false, which

@@ -108,10 +108,14 @@ class ProbeRunner {
       }
 
       Map<String, Object?> platformObservations = {};
-      if (dev is Device) {
+      // Recorded before each observer starts, so a failed observer (no facts)
+      // is distinguishable from one that never ran.
+      final observerAttempts = <String>{};
+      if (dev case final PlatformObserver observer) {
         try {
           emit('platform: inspecting the control application launch UI…');
-          platformObservations = await (dev as Device).platformObservation(package, pid);
+          observerAttempts.add('control');
+          platformObservations = await observer.platformObservation(package, pid);
         } catch (_) { emit('platform: automatic observation unavailable; coverage remains partial.'); }
       }
       final results = <ProbeResult>[
@@ -212,9 +216,10 @@ class ProbeRunner {
                   await fridaDevice.startFridaServer() ??
                   await fridaDevice.fridaAttach(package, wait),
               settleAfterApply: false);
-          if (fridaDevice is Device) {
+          if (fridaDevice case final PlatformObserver observer) {
             try {
-              final extra = await fridaDevice.instrumentedPlatformObservation(package);
+              observerAttempts.add('instrumented');
+              final extra = await observer.instrumentedPlatformObservation(package);
               if (extra['verified'] == true) {
                 // Preserve the stock launch facts separately from instrumented facts.
                 platformObservations = {...extra, 'control': platformObservations};
@@ -248,7 +253,8 @@ class ProbeRunner {
       });
       return ProbeReport(
           app: appLabel ?? appPath, apkIdentity: apkIdentity,
-          baselineAlive: true, results: results, platformObservations: platformObservations);
+          baselineAlive: true, results: results, platformObservations: platformObservations,
+          platformObserverAttempts: observerAttempts);
     } catch (e) {
       return allInconclusive(En.androidSetupFailed(error: e), noteAr: Ar.androidSetupFailed(error: e),
           emulatorError: '$e');
