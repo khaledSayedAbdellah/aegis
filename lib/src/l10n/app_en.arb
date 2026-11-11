@@ -4196,5 +4196,22 @@
   "simulatorJailbreakNotBlocked": "Simulator verdict: no protection blocked execution under the tested jailbreak file indicators; the app continued running.",
   "@simulatorJailbreakNotBlocked": {
     "description": "Verified no-block verdict for the specific Simulator experiment."
+  },
+  "extEvidenceCount": "Observations: {count}",
+  "@extEvidenceCount": {
+    "description": "Number of supporting observations grouped under one security rule, not a vulnerability count.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreProvisional": "Provisional score — some protections have not been verified.",
+  "@scoreProvisional": {
+    "description": "Warning beside the security score when the audit is incomplete."
+  },
+  "scoreProvisionalDetail": "This score reflects only resolved findings and checks; it does not establish protection for incomplete checks. Verified failures still reduce the score.",
+  "@scoreProvisionalDetail": {
+    "description": "Explains provisional scoring without treating unresolved checks as passes or discarding verified failures."
   }
 }

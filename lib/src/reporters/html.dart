@@ -39,7 +39,7 @@ String renderHtml(AuditReport r, {String lang = 'en'}) {
   final dir = t.ar ? 'rtl' : 'ltr';
   // Coloured like the band, as the categories are.
   final scoreColor = switch (r.score.worst) {
-    null || Severity.low || Severity.info => 'var(--ok)',
+    null || Severity.low || Severity.info => r.complete ? 'var(--ok)' : 'var(--warn)',
     Severity.medium => 'var(--warn)',
     _ => 'var(--bad)',
   };
@@ -148,8 +148,10 @@ h1{font-size:22px;margin:0 0 4px}h2{font-size:17px;margin:32px 0 12px}
 .ring{width:120px;height:120px;border-radius:50%;display:grid;place-items:center;background:conic-gradient($scoreColor ${r.score.value * 3.6}deg,var(--line) 0)}
 .ring div{width:96px;height:96px;border-radius:50%;background:var(--card);display:grid;place-items:center;text-align:center}
 .ring b{font-size:30px;line-height:1}.cat{display:grid;grid-template-columns:170px 1fr 36px;gap:10px;align-items:center;margin:6px 0}.cat small{display:block;font-size:11.5px}
+.score-warning{border-inline-start:4px solid var(--warn);padding-inline-start:12px;margin:10px 0}.score-warning p{margin:4px 0}
 .bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden}.bar i{display:block;height:100%}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:10px 0}
+.evidence-items{list-style:none;padding:0;margin:12px 0 0}.evidence-item{padding:10px 0;overflow-wrap:anywhere}.evidence-item+.evidence-item{border-top:1px solid var(--line)}.evidence-item p{margin:0 0 6px}.evidence-item pre{overflow-wrap:anywhere}
 summary{cursor:pointer}pre{white-space:pre-wrap;background:var(--bg);padding:6px 8px;border-radius:6px;margin:4px 0;font-size:13px}
 code{font-size:12.5px;color:var(--muted)}.fix{border-inline-start:3px solid var(--ok);padding-inline-start:10px}
 .sev{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:20px;color:#fff}
@@ -165,6 +167,7 @@ ul{padding-inline-start:20px}.known{opacity:.7}.tag{font-size:11px;border:1px so
 <div class="ring"><div><span><b>${r.score.value}</b><br><span class="muted">${r.score.grade}</span></span></div></div>
 <div style="flex:1;min-width:240px">
 <div><b>${_e(t.score)}</b>${[t.band(r.score), t.bestFixes(r.score)].whereType<String>().map((x) => '<div class="muted">${_e(x)}</div>').join()}</div>
+${r.complete ? '' : '<div class="score-warning" role="note"><strong>${_e(L10n(lang).scoreProvisional)}</strong><p>${_e(L10n(lang).scoreProvisionalDetail)}</p></div>'}
 <div class="muted">${_e(t.coverage)}: ${_e(t.coverageLine(r.coverage.checked, r.coverage.inScope, r.coverage.percent))}</div>
 ${_binaryHtml(r, t)}
 $baselineLine

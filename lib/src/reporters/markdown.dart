@@ -33,6 +33,7 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
     }
   }
   b.writeln('| ${t.score} | **${r.score.value}/100 (${r.score.grade})**'
+      '${r.complete ? '' : '<br>**${L10n(lang).scoreProvisional}**<br>${L10n(lang).scoreProvisionalDetail}'}'
       '${[t.band(r.score), t.bestFixes(r.score)].whereType<String>().map((x) => '<br>$x').join()} |');
   b.writeln('| ${t.coverage} | ${t.coverageLine(r.coverage.checked, r.coverage.inScope, r.coverage.percent)} |');
   if (r.usesBaseline) {

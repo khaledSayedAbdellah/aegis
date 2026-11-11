@@ -24,6 +24,7 @@ Map<String, Object?> reportToJson(AuditReport r) => {
       'score': {
         'value': r.score.value,
         'grade': r.score.grade,
+        'provisional': !r.complete,
         if (r.score.capReason != null) 'cappedBy': r.score.capReason,
         if (r.score.worst != null) ...{
           'worstSeverity': r.score.worst!.name,
@@ -169,6 +170,7 @@ String renderSarif(AuditReport r) {
           'complete': r.complete,
           'incompleteRules': r.incomplete.map((r) => r.meta.id).toList(),
           'score': r.score.value,
+          'scoreProvisional': !r.complete,
           'grade': r.score.grade,
           'profile': r.profile.toString(),
         },
