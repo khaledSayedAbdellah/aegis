@@ -17,6 +17,12 @@ import 'masvs.dart';
 import 'model.dart';
 import 'probe/probe_model.dart';
 import 'project.dart';
+import 'project/native_files.dart';
+import 'rules/android_rules.dart';
+import 'rules/platform_security_rules.dart';
+import 'rules/platform_protection_rules.dart';
+import 'rules/native_security_rules.dart';
+import 'rules/native_source_rules.dart';
 import 'rules/probe_rules.dart';
 import 'rules/ios_rules.dart';
 import 'rules/ipa_rules.dart';
@@ -92,7 +98,9 @@ class AuditReport {
       results.where((r) => r.status == RuleStatus.incomplete || r.incomplete);
 
   bool get complete =>
-      probe?.incomplete != true && incomplete.isEmpty && results.any((r) => r.counts);
+      probe?.incomplete != true &&
+      incomplete.isEmpty &&
+      results.any((r) => r.counts);
 
   int get suppressed => results.fold(0, (s, r) => s + r.suppressed);
 
@@ -116,7 +124,8 @@ class AuditReport {
   /// Failed rules at or above [s] with new findings. Rules whose findings are
   /// all in the baseline are not counted, so --fail-on only reacts to new
   /// problems.
-  int countAtLeast(Severity s) => newFailed.where((r) => r.severity >= s).length;
+  int countAtLeast(Severity s) =>
+      newFailed.where((r) => r.severity >= s).length;
 }
 
 /// Facts read from the APK, shown at the top of reports.
@@ -211,7 +220,8 @@ class BinaryInfo {
 }
 
 class CertificateInfo {
-  CertificateInfo(this.commonName, this.scheme, this.sha256Base64, this.sha256Hex);
+  CertificateInfo(
+      this.commonName, this.scheme, this.sha256Base64, this.sha256Hex);
   final String? commonName;
   final String scheme;
 
@@ -229,11 +239,79 @@ class CertificateInfo {
 
 /// Runs one rule; a crashing rule is reported as incomplete instead of
 /// stopping the whole audit.
-Future<RuleCheck> _safeCheck(Rule rule, Project project, ProfileSet profile) async {
+Future<RuleCheck> _safeCheck(
+    Rule rule, Project project, ProfileSet profile) async {
   try {
-    return await rule.check(project, profile);
+    final androidConfig = androidRules.contains(rule) ||
+        rule is AndroidLinksRule ||
+        rule is AndroidPermissionStrengthRule;
+    final iosConfig = iosRules.contains(rule) || rule is AtsForwardSecrecyRule;
+    final platformConfig = rule is PlatformProtectionRule &&
+        project.apk == null &&
+        project.ipa == null;
+    if (project.nativeOnly &&
+        (androidConfig ||
+            (iosConfig && project.ipa == null) ||
+            platformConfig)) {
+      final contexts = project.nativeContexts.where(
+          (c) => platformConfig || (androidConfig ? c.hasAndroid : c.hasIos));
+      final checks = <RuleCheck>[];
+      for (final context in contexts) {
+        context.offline = project.offline;
+        context.gitignore
+          ..clear()
+          ..addAll(project.gitignore);
+        context.probe = project.probe;
+        if (iosConfig &&
+            context.infoPlistData == null &&
+            rule.meta.id != 'AEG-I03') {
+          checks.add(RuleCheck.incompleteLocalized(
+              En.nativeConfigUnavailable, Ar.nativeConfigUnavailable));
+        } else {
+          try {
+            checks.add(await rule.check(context, profile));
+          } catch (e) {
+            checks.add(RuleCheck.incompleteLocalized(
+                En.ruleError(error: e), Ar.ruleError(error: e)));
+          }
+        }
+        project.securityEvidence.addAll(context.securityEvidence);
+        context.securityEvidence.clear();
+      }
+      final findings = [for (final c in checks) ...c.findings];
+      if (checks.any((c) => c.isIncomplete) ||
+          project.nativeSourceIssues.isNotEmpty) {
+        return RuleCheck.incompleteLocalized(
+            {
+              if (project.nativeSourceIssues.isNotEmpty) En.nativeSourceScope,
+              ...checks
+                  .where((c) => c.isIncomplete)
+                  .map((c) => c.note)
+                  .whereType<String>()
+            }.join(' '),
+            {
+              if (project.nativeSourceIssues.isNotEmpty) Ar.nativeSourceScope,
+              ...checks
+                  .where((c) => c.isIncomplete)
+                  .map((c) => c.noteAr ?? c.note)
+                  .whereType<String>()
+            }.join(' '),
+            findings);
+      }
+      return checks.any((c) => c.applicable)
+          ? RuleCheck(findings)
+          : RuleCheck.notApplicable();
+    }
+    final check = await rule.check(project, profile);
+    if (project.nativeSourceIssues.isNotEmpty &&
+        (rule is NativeSecurityRule || rule is NativeSourceRule)) {
+      return RuleCheck.incompleteLocalized(
+          En.nativeSourceScope, Ar.nativeSourceScope, check.findings);
+    }
+    return check;
   } catch (e) {
-    return RuleCheck.incompleteLocalized(En.ruleError(error: e), Ar.ruleError(error: e));
+    return RuleCheck.incompleteLocalized(
+        En.ruleError(error: e), Ar.ruleError(error: e));
   }
 }
 
@@ -253,7 +331,8 @@ Future<AuditReport> runAudit(
   RuntimeSecurityResult? runtimeSecurity,
 }) async {
   if (apkPath != null && ipaPath != null) {
-    throw const FormatException('Audit one artifact at a time with --apk or --ipa.');
+    throw const FormatException(
+        'Audit one artifact at a time with --apk or --ipa.');
   }
   final ipa = ipaPath == null ? null : IpaContext.load(ipaPath);
   IosSignature? signature;
@@ -267,15 +346,22 @@ Future<AuditReport> runAudit(
         staging.deleteSync(recursive: true);
       }
     } else {
-      signature = (valid: null, evidence: En.signatureMacOnly, evidenceAr: Ar.signatureMacOnly, certificate: null);
+      signature = (
+        valid: null,
+        evidence: En.signatureMacOnly,
+        evidenceAr: Ar.signatureMacOnly,
+        certificate: null
+      );
     }
   }
   final apk = apkPath == null ? null : ApkContext.load(apkPath);
   final hasPubspec = File(p.join(path, 'pubspec.yaml')).existsSync();
+  final hasNative = !hasPubspec &&
+      discoverNativeFiles(path, excluded: config?.isExcluded).recognized;
   final Project project;
-  if (!hasPubspec && apk != null) {
+  if (!hasPubspec && !hasNative && apk != null) {
     project = Project.binaryOnly(path, apk, config: config);
-  } else if (!hasPubspec && ipa != null) {
+  } else if (!hasPubspec && !hasNative && ipa != null) {
     project = Project.ipaOnly(path, ipa, config: config);
   } else {
     project = Project.load(path, config: config)..apk = apk;
@@ -316,7 +402,8 @@ Future<AuditReport> runAudit(
 
   final ruleSet = rules ??
       [
-        if (project.hasSource) ...allRules,
+        if (project.hasSource && !project.nativeOnly) ...allRules,
+        if (project.nativeOnly) ...[...androidRules, ...iosRules],
         ...extendedRules,
         if (runtimeSecurity != null) ...runtimeSecurityRules,
         if (project.apk != null) ...apkRules,
@@ -332,9 +419,13 @@ Future<AuditReport> runAudit(
   final bundle = project.apk?.isBundle ?? false;
   String bundleText(String s) => s.replaceAll('APK', 'AAB');
   RuleMeta metaOf(Rule rule) {
-    final meta = rule is ProbeRule ? rule.reportMeta(project.probe?.report) : rule.meta;
-    return bundle && meta.id.startsWith('AEG-B') ? meta.mapText(bundleText) : meta;
+    final meta =
+        rule is ProbeRule ? rule.reportMeta(project.probe?.report) : rule.meta;
+    return bundle && meta.id.startsWith('AEG-B')
+        ? meta.mapText(bundleText)
+        : meta;
   }
+
   Finding findingOf(Finding f) => !bundle || !f.ruleId.startsWith('AEG-B')
       ? f
       : Finding(
@@ -343,26 +434,33 @@ Future<AuditReport> runAudit(
           messageAr: f.messageAr == null ? null : bundleText(f.messageAr!),
           file: f.file,
           line: f.line,
-          snippet: f.snippet, snippetAr: f.snippetAr);
+          snippet: f.snippet,
+          snippetAr: f.snippetAr);
 
   for (final rule in ruleSet) {
     final meta = metaOf(rule);
-    final severity = cfg.severityOverrides[meta.id] ?? meta.severityFor(profile);
+    final severity =
+        cfg.severityOverrides[meta.id] ?? meta.severityFor(profile);
     if (cfg.disabledRules.contains(meta.id)) {
-      results.add(RuleResult(meta: meta, status: RuleStatus.disabled, severity: severity));
+      results.add(RuleResult(
+          meta: meta, status: RuleStatus.disabled, severity: severity));
       continue;
     }
     if (!profile.includesAny(meta.profiles)) {
-      results.add(RuleResult(meta: meta, status: RuleStatus.outOfProfile, severity: severity));
+      results.add(RuleResult(
+          meta: meta, status: RuleStatus.outOfProfile, severity: severity));
       continue;
     }
     final check = await _safeCheck(rule, project, profile);
     if (!check.applicable && check.findings.isEmpty) {
       results.add(RuleResult(
           meta: meta,
-          status: check.isIncomplete ? RuleStatus.incomplete : RuleStatus.notApplicable,
+          status: check.isIncomplete
+              ? RuleStatus.incomplete
+              : RuleStatus.notApplicable,
           severity: severity,
-          note: check.note, noteAr: check.noteAr));
+          note: check.note,
+          noteAr: check.noteAr));
       continue;
     }
     final kept = <Finding>[];
@@ -378,7 +476,9 @@ Future<AuditReport> runAudit(
       meta: meta,
       status: kept.isNotEmpty
           ? RuleStatus.failed
-          : check.isIncomplete ? RuleStatus.incomplete : RuleStatus.passed,
+          : check.isIncomplete
+              ? RuleStatus.incomplete
+              : RuleStatus.passed,
       incomplete: check.isIncomplete,
       note: check.note,
       noteAr: check.noteAr,
@@ -409,9 +509,14 @@ Future<AuditReport> runAudit(
         .where((m) => !(apk != null && m.id == 'AEG-M05'))
         .toList(),
     generatedAt: DateTime.now(),
-    binary: ipa != null ? BinaryInfo.fromIpa(ipa, signature!) : apk == null ? null : BinaryInfo.from(apk),
+    binary: ipa != null
+        ? BinaryInfo.fromIpa(ipa, signature!)
+        : apk == null
+            ? null
+            : BinaryInfo.from(apk),
     scannedPackages: project.scannedPackages,
-    baselinePath: baseline == null ? null : (baseline.path ?? defaultBaselineFile),
+    baselinePath:
+        baseline == null ? null : (baseline.path ?? defaultBaselineFile),
     baselineResolved: resolved,
     probe: probe,
     iosStatic: ipa?.staticAnalysis,

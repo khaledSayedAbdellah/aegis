@@ -6,6 +6,7 @@ import '../project.dart';
 import '../security/evidence.dart';
 import '../security/metadata.dart';
 import '../security/native_analysis.dart';
+import '../security/script_analysis.dart';
 import '../security/platform_checks.dart';
 import '../security/public_json.dart';
 import 'platform_security_rules.dart' show AssociationFetcher;
@@ -53,10 +54,13 @@ class PlatformProtectionRule extends Rule {
     final files = [
       if (android) ...p.androidNativeSources,
       if (ios) ...p.iosNativeSources,
+      ...p.sharedNativeSources,
+      ...p.scriptSources,
       ...p.dartFiles.map((f) => ProjectFile(f.path, f.source)),
     ];
     for (final f in files) {
-      final source = withoutComments(f.text);
+      final script = p.scriptSources.contains(f) ? scanScript(f.text) : null;
+      final source = script?.comments ?? withoutComments(f.text);
       final hits = platformReferences[kind]!
           .allMatches(source)
           .map((m) => m[0]!)
@@ -74,7 +78,7 @@ class PlatformProtectionRule extends Rule {
               'runtimeVerified': false
             });
       }
-      final masked = maskNativeLiterals(source);
+      final masked = script?.code ?? maskNativeLiterals(source);
       for (final pattern in platformWeakConfig[kind]!) {
         for (final m in pattern.allMatches(source).take(20)) {
           if (masked[m.start].trim().isEmpty) continue;
@@ -212,7 +216,7 @@ class PlatformProtectionRule extends Rule {
       paths.addAll(p.apk!.zip.entries.keys.where(
           (f) => RegExp(r'^res/layout(?:-[^/]+)?/[^/]+\.xml$').hasMatch(f)));
     } else {
-      final root = Directory(p.abs('android/app/src/main/res'));
+      final root = Directory(p.abs(p.androidResourceDir));
       if (FileSystemEntity.typeSync(root.path, followLinks: false) !=
           FileSystemEntityType.directory) {
         return;
@@ -308,7 +312,7 @@ class PlatformProtectionRule extends Rule {
         } else {
           final match = RegExp(r'^@xml/([A-Za-z0-9_]+)$').firstMatch(ref);
           if (match == null) throw const FormatException('Unresolved resource');
-          final root = Directory(p.abs('android/app/src/main/res'));
+          final root = Directory(p.abs(p.androidResourceDir));
           if (FileSystemEntity.typeSync(root.path, followLinks: false) !=
               FileSystemEntityType.directory) {
             throw const FormatException('Missing resources');

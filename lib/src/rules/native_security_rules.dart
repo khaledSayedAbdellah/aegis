@@ -4,6 +4,8 @@ import '../l10n/messages.g.dart';
 import '../security/evidence.dart';
 import '../security/metadata.dart';
 import '../security/native_analysis.dart';
+import '../security/script_analysis.dart';
+import 'dart_rules.dart' show isSecretName;
 import 'rule.dart';
 
 class NativeSecurityRule extends Rule {
@@ -14,8 +16,7 @@ class NativeSecurityRule extends Rule {
   @override
   RuleCheck check(Project project, ProfileSet profile) {
     final files = [
-      ...project.androidNativeSources,
-      ...project.iosNativeSources,
+      ...project.nativeSources,
       if (id == 'AEG-N02')
         ...project.dartFiles.map((f) => ProjectFile(f.path, f.source))
     ];
@@ -54,6 +55,30 @@ class NativeSecurityRule extends Rule {
       }
       indicator(f.path, [source]);
     }
+    var scriptLimited = false;
+    for (final f in project.scriptSources) {
+      inspected = true;
+      final scan = scanScript(f.text);
+      scriptLimited |= scan.limited;
+      final patterns = [...scriptPatterns[id]!];
+      if (id == 'AEG-N04') {
+        // Only direct writes of a sensitive identifier: no conclusions from
+        // storage imports, key names, encrypted wrappers or arbitrary strings.
+        patterns.add(RegExp(
+            r'''\b(?:AsyncStorage|localStorage|sessionStorage)\.setItem\s*\(\s*['"](?:[^'"\\]|\\.)*['"]\s*,\s*([A-Za-z_$][\w$]*)\s*\)'''));
+      }
+      for (final pattern in patterns) {
+        for (final match in pattern.allMatches(scan.comments).take(50)) {
+          if (scan.code[match.start].trim().isEmpty) continue;
+          if (id == 'AEG-N04' && !isSecretName(match[1]!)) continue;
+          out.add(inFile(
+              f.path,
+              '\n'.allMatches(f.text.substring(0, match.start)).length + 1,
+              En.scriptUnsafeFound(rule: id),
+              messageAr: Ar.scriptUnsafeFound(rule: id)));
+        }
+      }
+    }
     final android = project.nativeAndroidReferences;
     if (android != null) {
       limited |= android.limited;
@@ -85,6 +110,10 @@ class NativeSecurityRule extends Rule {
     if (!inspected) {
       return RuleCheck.notApplicableLocalized(
           En.extIndicatorOnly, Ar.extIndicatorOnly);
+    }
+    if (scriptLimited) {
+      return RuleCheck.incompleteLocalized(
+          En.scriptScopeLimited, Ar.scriptScopeLimited, out);
     }
     return RuleCheck(out);
   }

@@ -726,22 +726,22 @@
   "extA13Description": "تحقق من تفويض assetlinks باستخدام اسم الحزمة وشهادة الإصدار.",
   "extA13Fix": "انشر اسم الحزمة وSHA-256 الصحيح لشهادة الإصدار في assetlinks.json.",
   "extA13Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: ارتباط نطاق Android",
-  "extN01Title": "إعدادات تجاوز التحقق من TLS في native code",
-  "extN01Description": "اكشف الأنماط الصريحة لقبول الشهادات أو تجاوز أخطائها في native code.",
+  "extN01Title": "إعدادات تجاوز التحقق من TLS",
+  "extN01Description": "كشف أنماط قبول جميع الشهادات وتجاوز أخطاء الشهادات في الكود النيتيف وJavaScript/TypeScript.",
   "extN01Fix": "استخدم التحقق من الشهادة واسم المضيف الذي توفره المنصة واحذف callbacks المتساهلة.",
-  "extN01Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: إعدادات تجاوز التحقق من TLS في native code",
+  "extN01Pass": "لم تُرصد أنماط تجاوز TLS في الكود المفحوص",
   "extN02Title": "إعدادات WebView غير الآمنة",
   "extN02Description": "افحص mixed content والوصول للملفات المحلية وإعدادات WebView الأصلية.",
   "extN02Fix": "عطّل الوصول للملفات المحلية عبر origins مختلفة وmixed content، واقصر التنقل على مصادر موثوقة.",
   "extN02Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: إعدادات WebView غير الآمنة",
-  "extN03Title": "مراجعة التشفير في native code",
+  "extN03Title": "مراجعة التشفير في الكود",
   "extN03Description": "حدد الاختيارات الصريحة لخوارزميات ضعيفة واعرض hashing وrandom الملتبسة كمؤشرات.",
   "extN03Fix": "استخدم تشفيرًا حديثًا موثقًا ومولدات عشوائية تشفيرية للعمليات الحساسة.",
-  "extN03Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: مراجعة التشفير في native code",
-  "extN04Title": "إعدادات التخزين وKeychain في native code",
-  "extN04Description": "اكشف إعدادات Keychain الضعيفة والملفات غير المحمية والتخزين المتاح للتطبيقات الأخرى.",
+  "extN03Pass": "لم تُرصد أنماط تشفير ضعيف في الكود المفحوص",
+  "extN04Title": "إعدادات التخزين وKeychain في الكود",
+  "extN04Description": "كشف ضعف إتاحة Keychain والملفات غير المحمية والتخزين المتاح للتطبيقات الأخرى على Android، والكتابة المباشرة لمتغيرات حساسة في AsyncStorage أو تخزين الويب.",
   "extN04Fix": "اختر حماية البيانات وKeychain ACLs المناسبة لنموذج التهديد واقصر التخزين على التطبيق.",
-  "extN04Pass": "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: إعدادات التخزين وKeychain في native code",
+  "extN04Pass": "لم تُرصد أنماط تخزين غير آمن في الكود المفحوص",
   "extI10Title": "نطاق صلاحيات iOS",
   "extI10Description": "افحص اتساع Keychain groups وassociated domains وأعلام الصلاحيات الحساسة.",
   "extI10Fix": "احذف الصلاحيات غير الضرورية وقلل نطاق المشاركة والنطاقات.",
@@ -1100,5 +1100,103 @@
   "scoreProvisionalDetail": "تعكس الدرجة نتائج الفحوصات المحسومة فقط، ولا تثبت الحماية في الفحوصات غير المكتملة. تظل حالات الفشل المثبتة مؤثرة بالسلب على الدرجة.",
   "@scoreProvisionalDetail": {
     "description": "Explains provisional scoring without treating unresolved checks as passes or discarding verified failures."
+  },
+  "nativeConfigUnavailable": "تعذّر تحديد إعدادات التطبيق النيتيف. ابنِ APK/IPA لفحص الإعدادات النهائية بعد الدمج والتوليد.",
+  "@nativeConfigUnavailable": {
+    "description": "Native source audit message."
+  },
+  "nativeSourceScope": "تعذر فحص بعض مدخلات الكود أو الإعدادات. تظل النتائج المثبتة محفوظة؛ ولا تتوفر نتيجة مكتملة للمدخلات المفقودة.",
+  "@nativeSourceScope": {
+    "description": "Native source audit message."
+  },
+  "nativeSourceDescription": "فحص أنماط كود Kotlin (بما فيها KMP) وJava وSwift وObjective-C وJavaScript/TypeScript. تطابق الأنماط لا يمثل تحليلًا كاملًا لتدفق البيانات أو إثباتًا لتشغيل الحماية فعليًا.",
+  "@nativeSourceDescription": {
+    "description": "Native source audit message."
+  },
+  "nativeSecretsTitle": "سر محتمل مضمّن في الكود",
+  "@nativeSecretsTitle": {
+    "description": "Native source audit message."
+  },
+  "nativeLoggingTitle": "قيمة حساسة مستخدمة في تسجيل السجلات بالكود",
+  "@nativeLoggingTitle": {
+    "description": "Native source audit message."
+  },
+  "nativeSecretsFix": "احذف الأسرار المكتوبة في الكود، واستخدم بيانات اعتماد على الخادم أو التخزين الآمن حسب الحاجة.",
+  "@nativeSecretsFix": {
+    "description": "Native source audit message."
+  },
+  "nativeLoggingFix": "احذف القيم الحساسة من التسجيلات وراجع الوصول إلى سجلات الإنتاج.",
+  "@nativeLoggingFix": {
+    "description": "Native source audit message."
+  },
+  "nativeSecretFound": "سر محتمل مكتوب في الكود ({kind})؛ تم إخفاء القيمة.",
+  "@nativeSecretFound": {
+    "description": "Native source audit message.",
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "nativeLogFound": "التسجيل يستخدم معرّفات حساسة: {names}. راجع البيانات التي تصل لهذا الاستدعاء.",
+  "@nativeLogFound": {
+    "description": "Native source audit message.",
+    "placeholders": {
+      "names": {
+        "type": "String"
+      }
+    }
+  },
+  "nativeLoggingPass": "لم تُرصد أنماط تسجيل قيم حساسة في الكود المفحوص",
+  "@nativeLoggingPass": {
+    "description": "Scoped native source pass title."
+  },
+  "nativeSecretsPass": "لم تُرصد أنماط أسرار مضمّنة في الكود المفحوص",
+  "@nativeSecretsPass": {
+    "description": "Scoped native source pass title."
+  },
+  "sourceCoverageTitle": "نطاق تغطية فحص الكود",
+  "@sourceCoverageTitle": {
+    "description": "Source analysis coverage and cross-platform inspection."
+  },
+  "sourceCoverageScope": "فحص لأنماط الكود فقط، وليس تحليلًا كاملًا لتدفق البيانات أو تحققًا أثناء التشغيل. يستبعد اكتشاف الملفات المكتبات الخارجية والملفات المولّدة والاختبارات؛ ولا يحسم متغيرات البناء المخصصة أو استخدام كل مجموعة مصادر. فحص ثغرات اعتماديات npm وGradle غير مدعوم.",
+  "@sourceCoverageScope": {
+    "description": "Source analysis coverage and cross-platform inspection."
+  },
+  "sourceCoverageFix": "راجع قائمة المصادر والمدخلات غير المدعومة، وافحص اللغات ومنظومات الاعتماديات غير المدعومة بشكل منفصل.",
+  "@sourceCoverageFix": {
+    "description": "Source analysis coverage and cross-platform inspection."
+  },
+  "sourceCoverageGap": "تغطية الكود غير مكتملة: توجد مدخلات غير مدعومة أو تعذر قراءتها أو تجاوزت حدود الفحص، أو لم توجد مصادر مدعومة. تظل المشكلات المثبتة محسوبة؛ ونقص التغطية لا يُعد اجتيازًا.",
+  "@sourceCoverageGap": {
+    "description": "Source analysis coverage and cross-platform inspection."
+  },
+  "sourceInventory": "الأطر المكتشفة: {frameworks}. ملفات الكود التي تم فحصها: {files}. الفحص لأنماط الكود فقط؛ ولا يغطي جميع ضوابط الحماية أو ثغرات الاعتماديات. مدخلات غير مدعومة أو تعذر قراءتها (أول 20): {gaps}.",
+  "@sourceInventory": {
+    "description": "Source analysis coverage and cross-platform inspection.",
+    "placeholders": {
+      "frameworks": {
+        "type": "String"
+      },
+      "files": {
+        "type": "String"
+      },
+      "gaps": {
+        "type": "String"
+      }
+    }
+  },
+  "scriptScopeLimited": "تعذر فحص بعض صياغات JavaScript/TypeScript بالكامل. تظل النتائج المثبتة محفوظة، ولا تتوفر نتيجة مكتملة لفحص الكود.",
+  "@scriptScopeLimited": {
+    "description": "Source analysis coverage and cross-platform inspection."
+  },
+  "scriptUnsafeFound": "تم العثور على نمط غير آمن صريح في كود JavaScript/TypeScript بواسطة {rule}؛ راجع سياق تنفيذه. هذه النتيجة ليست تحققًا أثناء التشغيل.",
+  "@scriptUnsafeFound": {
+    "description": "Source analysis coverage and cross-platform inspection.",
+    "placeholders": {
+      "rule": {
+        "type": "String"
+      }
+    }
   }
 }

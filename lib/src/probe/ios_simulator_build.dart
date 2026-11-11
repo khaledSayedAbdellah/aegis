@@ -1,9 +1,10 @@
-/// Builds a separate Flutter Simulator artifact, then verifies its identity.
+/// Builds a separate Flutter or Xcode Simulator artifact and verifies identity.
 library;
 
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:ffi' show Abi;
 
 import 'package:path/path.dart' as p;
 import 'package:crypto/crypto.dart';
@@ -11,6 +12,9 @@ import 'package:yaml/yaml.dart';
 
 import '../binary/ipa.dart';
 import '../plist.dart';
+import '../project/native_files.dart';
+
+part 'ios_native_build.dart';
 
 typedef SimulatorBuildCommand = Future<int> Function(
     String executable,
@@ -32,6 +36,9 @@ class IosSimulatorBuilder {
       String? app,
       String? flavor,
       String? target,
+      String? xcodeProject,
+      String? xcodeScheme,
+      String? xcodeConfiguration,
       void Function(String)? log}) async {
     String? matching(String? path) {
       if (path == null) return null;
@@ -52,21 +59,24 @@ class IosSimulatorBuilder {
 
     final existing = matching(app);
     if (existing != null) return existing;
-    if (project == null ||
-        !File(p.join(project, 'pubspec.yaml')).existsSync() ||
-        !Directory(p.join(project, 'ios')).existsSync()) {
+    if (project == null) {
       throw const FormatException(
-          'Automatic Simulator build needs the Flutter project source (pubspec.yaml and ios/). '
+          'Automatic Simulator build needs Flutter or native Xcode project source. '
           'Run aegis run <project> --mode ipa, or supply an existing matching ios_simulator_app.');
     }
     project = p.absolute(project);
-    final pubspec =
-        loadYaml(File(p.join(project, 'pubspec.yaml')).readAsStringSync());
+    final pubspecFile = File(p.join(project, 'pubspec.yaml'));
+    final pubspec = pubspecFile.existsSync()
+        ? loadYaml(pubspecFile.readAsStringSync())
+        : null;
     if (pubspec is! Map ||
         pubspec['dependencies'] is! Map ||
         (pubspec['dependencies'] as Map)['flutter'] == null) {
-      throw const FormatException(
-          'Automatic Simulator build supports Flutter projects. Supply ios_simulator_app for other projects.');
+      return _ensureNativeSimulator(ipa, project, _command,
+          xcodeProject: xcodeProject,
+          scheme: xcodeScheme,
+          configuration: xcodeConfiguration,
+          log: log);
     }
     final generated = _generatedSettings(project);
     final buildDir = generated['FLUTTER_BUILD_DIR'] ?? 'build';
@@ -316,8 +326,8 @@ Future<int> _build(String executable, List<String> args, String project,
     await streams;
     return code;
   } on ProcessException catch (e) {
-    throw StateError('Could not start Flutter ($executable): ${e.message}. '
-        'Install Flutter or configure the project SDK.');
+    throw StateError('Could not start build tool ($executable): ${e.message}. '
+        'Check the project SDK and Xcode command-line tools.');
   } finally {
     progress?.cancel();
     await sink.close();

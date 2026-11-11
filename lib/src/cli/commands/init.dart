@@ -108,11 +108,14 @@ ios_jailbreak_device: <jailbroken-device-udid>
 ios_resigned_ipa: <path-to-file>
 
 # Simulator Frida/LLDB probes. Select a dedicated booted Simulator.
-# run automatically builds a matching app from Flutter source when needed.
+# run automatically builds a matching app from Flutter or native Xcode source.
 ios_simulator: <simulator-udid>
 ios_simulator_app: <path-to-file>  # Optional .app directory; automatic if unset.
 ios_simulator_flavor: <flavor>  # Optional; uses the project's build settings.
 ios_simulator_target: <path-to-file>  # Optional Dart entry point; automatic if unset.
+ios_xcode_project: <path-to-file>  # Native .xcodeproj/.xcworkspace; discovered if unset.
+ios_xcode_scheme: <scheme>  # Native scheme; matched to the IPA if unset.
+ios_xcode_configuration: Release  # Native Simulator build configuration.
 
 # Generic screen/backup/key-access/links/WebView/tapjacking checks run automatically.
 # No app-specific settings are needed; see doc/platform-protection.md for limits.

@@ -24,7 +24,8 @@ Future<void> auditCommand(ArgResults root, ArgParser parser) async {
   final args = run ? root.command! : root;
 
   if (args['help'] as bool) {
-    stdout.writeln('aegis $aegisVersion - security audit for Flutter apps\n');
+    stdout.writeln(
+        'aegis $aegisVersion - security audit for Flutter, React Native, KMP and native Android/iOS apps\n');
     if (run) {
       stdout.writeln(
           'Usage: aegis run [project-path] [--mode code|apk|aab|ipa] [options]\n');
@@ -174,8 +175,9 @@ Future<void> auditCommand(ArgResults root, ArgParser parser) async {
     if (value != null) {
       final resolved = AegisConfig.resolve(p.absolute(path), value)!;
       if (!File(resolved).existsSync()) {
-        final build =
-            'flutter build ${key == 'aab' ? 'appbundle' : key} --release';
+        final build = File(p.join(path, 'pubspec.yaml')).existsSync()
+            ? 'flutter build ${key == 'aab' ? 'appbundle' : key} --release'
+            : 'your Gradle or Xcode build';
         stderr.writeln('File not found: $resolved');
         stderr.writeln(
             '(from "$key: $value" in aegis.yaml). Build it ($build) or fix the path.');
@@ -301,8 +303,13 @@ Future<void> auditCommand(ArgResults root, ArgParser parser) async {
 
   final runtimeSecurity = run && artifact != null
       ? await runRuntimeSecurity(artifact, p.absolute(path), config,
-          platform: ipaPath == null ? 'android' : iosTarget == IosTarget.simulator ? 'ios-simulator' : 'ios-device',
-          enabled: args['probe'] as bool, log: stdout.writeln)
+          platform: ipaPath == null
+              ? 'android'
+              : iosTarget == IosTarget.simulator
+                  ? 'ios-simulator'
+                  : 'ios-device',
+          enabled: args['probe'] as bool,
+          log: stdout.writeln)
       : null;
 
   final AuditReport report;
@@ -313,7 +320,8 @@ Future<void> auditCommand(ArgResults root, ArgParser parser) async {
         apkPath: apkPath,
         ipaPath: ipaPath,
         baseline: baseline,
-        probe: probe, runtimeSecurity: runtimeSecurity);
+        probe: probe,
+        runtimeSecurity: runtimeSecurity);
   } on FileSystemException catch (e) {
     stderr.writeln('${e.message}: ${e.path}');
     if (artifact == null) {
@@ -418,7 +426,14 @@ Future<void> auditCommand(ArgResults root, ArgParser parser) async {
 }
 
 void _listRules() {
-  for (final r in [...allRules, ...apkRules, ...ipaRules, ...iosProbeRules, ...extendedRules, ...runtimeSecurityRules]) {
+  for (final r in [
+    ...allRules,
+    ...apkRules,
+    ...ipaRules,
+    ...iosProbeRules,
+    ...extendedRules,
+    ...runtimeSecurityRules
+  ]) {
     final m = r.meta;
     final profiles = m.profiles.map((x) => x.name.toUpperCase()).join('/');
     stdout.writeln(

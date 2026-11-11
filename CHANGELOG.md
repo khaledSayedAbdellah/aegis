@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- Discover React Native/Expo and other JavaScript/TypeScript source trees plus KMP shared/target sources. Add lexical secret/logging, TLS, WebView, crypto and direct sensitive-storage checks, preserve native bridge/configuration inspection, and report source inventory and unsupported inputs without awarding score for discovery.
+
+- Build native Xcode Simulator apps automatically, matching IPA identity and version with explicit ambiguity handling, verified output receipts and optional project/scheme/configuration settings.
+- Discover standalone Kotlin/Java/Swift/Objective-C projects, inspect native modules and platform configuration, reuse native security checks and add redacted source-secret/sensitive-logging rules. Keep Flutter-only rules out of native audits and preserve incomplete coverage for unreadable inputs.
+
 - Label scores from incomplete audits as provisional beside the score in HTML, Markdown and terminal output, with matching JSON/SARIF flags; preserve scoring and verified failures.
 
 - Group supporting security evidence into one expandable HTML card or Markdown heading per rule, preserving each observation and source without changing findings or JSON data.
