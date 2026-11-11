@@ -66,6 +66,55 @@ else: sys.exit(1)
             self.assertFalse((path.parent/'escape').exists())
             self.assertNotIn('synthetic_secret',json.dumps(r))
 
+    def test_only_completed_interception_phases_are_recorded(self):
+        # A stub listener stands in for mitmdump: this covers the driver's phase
+        # bookkeeping, not TLS interception (see the integration test below).
+        with tempfile.TemporaryDirectory() as tmp:
+            path=Path(tmp)
+            proxy=path/'mitmdump'
+            proxy.write_text('#!'+sys.executable+"""
+import socket,sys
+port=int(sys.argv[sys.argv.index('--listen-port')+1])
+s=socket.socket()
+s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1)
+s.bind(('127.0.0.1',port))
+s.listen(5)
+while True:
+    c,_=s.accept()
+    c.close()
+""")
+            proxy.chmod(0o700)
+            adb=path/'adb'
+            adb.write_text('#!'+sys.executable+"\nimport sys\nprint('aegis-probe-test\\nOK' if 'emu' in sys.argv else 'versionCode=1')\n")
+            adb.chmod(0o700)
+            runner=path/'scenario.py'
+            runner.write_text("""import json,os,sys
+phase=os.environ['AEGIS_PHASE']
+if phase==os.environ.get('AEGIS_FIXTURE_FAIL'): sys.exit(1)
+print(json.dumps({'completed':True,'reached_hosts':['api.example.test'] if phase=='baseline' else []}))
+""")
+            cfg={'command':[sys.executable,str(runner)],'device':'emulator-5554','app_id':'app.test','build':'1','platform':'android','artifact':'fixture.apk','root':tmp,'hosts':['api.example.test'],'timeout_seconds':15,'adb':str(adb),'mitmdump':str(proxy)}
+            old=os.environ.get('AEGIS_FIXTURE_FAIL')
+            try:
+                os.environ.pop('AEGIS_FIXTURE_FAIL',None)
+                done=driver.run(cfg)
+                self.assertEqual(done['errors'],[],done)
+                self.assertEqual(done['baseline_hosts'],['api.example.test'],done)
+                # No trusted_ca_dir: the trusted phase is never requested.
+                self.assertEqual(done['phases'],['untrusted'],done)
+                self.assertTrue(done['cleanup'],done)
+                os.environ['AEGIS_FIXTURE_FAIL']='untrusted'
+                failed=driver.run(cfg)
+                self.assertEqual(failed['phases'],[],failed)
+                self.assertIn('untrusted_scenario',failed['errors'])
+                os.environ['AEGIS_FIXTURE_FAIL']='baseline'
+                early=driver.run(cfg)
+                self.assertFalse(early['baseline'],early)
+                self.assertEqual(early['phases'],[],early)
+            finally:
+                if old is None:os.environ.pop('AEGIS_FIXTURE_FAIL',None)
+                else:os.environ['AEGIS_FIXTURE_FAIL']=old
+
     @unittest.skipUnless(os.environ.get('AEGIS_TEST_MITMDUMP'), 'set AEGIS_TEST_MITMDUMP for real proxy integration')
     def test_real_tls_interception_acceptance_and_rejection(self):
         # Real mitmproxy + TLS clients; only Android identity/runner is synthetic.
@@ -106,6 +155,7 @@ print(json.dumps({'completed':True,'reached_hosts':['api.example.test'] if phase
                     self.assertTrue(result['cleanup'],result)
                     self.assertEqual(result['errors'],[],result)
                     self.assertEqual(bool(result['network']),insecure=='yes',result)
+                    self.assertEqual(result['phases'],['untrusted'],result)
                 from mitmproxy.certs import CertStore
                 ca_dir=path/'trusted-ca'
                 CertStore.from_store(ca_dir,'mitmproxy',2048)
@@ -113,11 +163,13 @@ print(json.dumps({'completed':True,'reached_hosts':['api.example.test'] if phase
                 os.environ['AEGIS_FIXTURE_INSECURE']='no'
                 trusted=driver.run(cfg)
                 self.assertEqual(trusted['errors'],[],trusted)
+                self.assertEqual(trusted['phases'],['untrusted','trusted'],trusted)
                 self.assertEqual(trusted['network'],[{'host':'api.example.test','phase':'trusted'}],trusted)
                 # A failed application assertion must not erase accepted traffic.
                 runner.write_text(runner.read_text().replace("print(json.dumps({'completed':True", "import sys\nif phase=='trusted': sys.exit(1)\nprint(json.dumps({'completed':True"))
                 failed=driver.run(cfg)
                 self.assertIn('trusted_scenario',failed['errors'])
+                self.assertEqual(failed['phases'],['untrusted'],failed)
                 self.assertEqual(failed['network'],[{'host':'api.example.test','phase':'trusted'}],failed)
                 self.assertTrue(failed['cleanup'])
             finally:

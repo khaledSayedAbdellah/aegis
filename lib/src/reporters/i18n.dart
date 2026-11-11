@@ -28,6 +28,7 @@ class Strings {
   String get failed => L10n(lang).i18nNeedsFixing;
   String get passed => L10n(lang).i18nPassed;
   String get notApplicable => L10n(lang).i18nNotApplicable;
+  String get evidenceOnly => L10n(lang).i18nEvidenceOnly;
   String get manual => L10n(lang).i18nCheckManuallyNoToolCanVerifyThese;
   String get fix => L10n(lang).i18nFix;
   String get why => L10n(lang).i18nWhy;

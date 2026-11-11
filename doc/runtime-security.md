@@ -44,10 +44,21 @@ signatures (no downloaded executable regular expressions):
 These tests need a developer-owned scenario that exercises the actual application
 and asserts its outcome. Aegis cannot infer login details or treat simply launching
 the app as proof that a protected operation completed. `init` includes all the
-settings with runtime execution disabled until configured. When probes are
-requested but no scenario is configured, R09/R10 are incomplete; `--no-probe`
-disables them along with resilience probes. Strict mode treats incompleteness as
-an incomplete audit.
+settings with runtime execution disabled until configured.
+
+The scenario runs a `command` and tool paths (`python`, `adb`, `mitmdump`) taken
+from the project's `aegis.yaml`, so `enabled: true` in that file is not enough to
+execute them. Pass `--runtime-scenario` to `aegis run` to opt in for that run:
+
+```sh
+aegis run --mode apk --runtime-scenario
+```
+
+Without the flag R09/R10 are reported as disabled for the run (not applicable)
+and nothing from `runtime_security` is executed; Aegis prints a notice when the
+file enables a scenario that was not run. With the flag but no usable scenario
+configured, R09/R10 are incomplete. `--no-probe` disables them along with
+resilience probes. Strict mode treats incompleteness as an incomplete audit.
 
 Use a separate Python environment with a recent supported Python version:
 
@@ -138,8 +149,20 @@ have separate deadlines. Do not spawn detached persistent services from scenario
 
 R09 retains accepted interception findings, including when a subsequent scenario
 assertion fails. No captured request is **inconclusive**, because routing, RASP,
-caching or an unexercised code path can cause silence. The overall network check
-stays incomplete rather than claiming exhaustive TLS/pinning coverage.
+caching or an unexercised code path can cause silence, so R09 never passes. It
+ends in one of these states:
+
+| State | When |
+|---|---|
+| Failed | The scenario finished and a substituted certificate was accepted. |
+| Evidence only | The scenario finished and no intercepted request was recorded. This is review evidence, not a pinning pass, and does not make the audit incomplete. |
+| Incomplete | The baseline reached no configured host or missed a pinned host, a requested phase did not complete, any phase or cleanup reported an error. Findings recorded before that are kept. |
+| Not applicable | No `hosts` are configured, so no interception was requested. |
+
+The scenario is finished when the baseline reached every pinned host, the
+`untrusted` phase completed, the `trusted` phase completed whenever
+`pinned_hosts` is set (it needs `trusted_ca_dir`), and cleanup succeeded
+without errors. R10 is likewise not applicable when `marker_env` is empty.
 
 R10 scans bounded snapshots of process logs, clipboard and app files after the
 baseline. Android uses `run-as` or a rooted dedicated emulator for the sandbox and

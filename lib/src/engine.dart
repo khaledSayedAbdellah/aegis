@@ -94,6 +94,10 @@ class AuditReport {
   Iterable<RuleResult> get notApplicable =>
       results.where((r) => r.status == RuleStatus.notApplicable);
 
+  /// Rules that listed review evidence without reaching a verdict.
+  Iterable<RuleResult> get evidenceOnly =>
+      results.where((r) => r.status == RuleStatus.evidenceOnly);
+
   Iterable<RuleResult> get incomplete =>
       results.where((r) => r.status == RuleStatus.incomplete || r.incomplete);
 
@@ -457,7 +461,9 @@ Future<AuditReport> runAudit(
           meta: meta,
           status: check.isIncomplete
               ? RuleStatus.incomplete
-              : RuleStatus.notApplicable,
+              : check.isEvidenceOnly
+                  ? RuleStatus.evidenceOnly
+                  : RuleStatus.notApplicable,
           severity: severity,
           note: check.note,
           noteAr: check.noteAr));

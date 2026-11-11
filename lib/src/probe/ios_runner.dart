@@ -148,6 +148,7 @@ class IosProbeRunner {
       final results = <ProbeResult>[];
       var baselineAlive = false;
       Map<String, Object?> platformObservations = {};
+      final observerAttempts = <String>{};
       String? baselineNote;
       String? baselineNoteAr;
       try {
@@ -326,6 +327,7 @@ class IosProbeRunner {
         if (baselineAlive && simulator) {
           try {
             log?.call('iOS: inspecting launch-screen platform protections…');
+            observerAttempts.add('control');
             if (installed.contains(control)) {
               await control.uninstall(original.bundleId);
               installed.remove(control);
@@ -392,6 +394,7 @@ class IosProbeRunner {
         baselineNoteAr: baselineNoteAr,
         platform: simulator ? 'ios-simulator' : 'ios',
         platformObservations: platformObservations,
+        platformObserverAttempts: observerAttempts,
         results: results,
       ));
     } on Exception catch (e) {

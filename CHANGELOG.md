@@ -1,51 +1,38 @@
-## 0.9.0
+## 0.10.0
 
-## Unreleased
-
-- Discover React Native/Expo and other JavaScript/TypeScript source trees plus KMP shared/target sources. Add lexical secret/logging, TLS, WebView, crypto and direct sensitive-storage checks, preserve native bridge/configuration inspection, and report source inventory and unsupported inputs without awarding score for discovery.
-
-- Build native Xcode Simulator apps automatically, matching IPA identity and version with explicit ambiguity handling, verified output receipts and optional project/scheme/configuration settings.
-- Discover standalone Kotlin/Java/Swift/Objective-C projects, inspect native modules and platform configuration, reuse native security checks and add redacted source-secret/sensitive-logging rules. Keep Flutter-only rules out of native audits and preserve incomplete coverage for unreadable inputs.
-
-- Label scores from incomplete audits as provisional beside the score in HTML, Markdown and terminal output, with matching JSON/SARIF flags; preserve scoring and verified failures.
-
-- Group supporting security evidence into one expandable HTML card or Markdown heading per rule, preserving each observation and source without changing findings or JSON data.
-
-- Show verified Simulator jailbreak/signing failure verdicts before coverage limitations in report summaries and probe evidence, consistently in Arabic and English.
-
-- Prevent reuse of incomplete Simulator app bundles after failed or interrupted automatic builds, including disk-full failures during Flutter's final copy.
-- Observe both UIApplication and UIScene background transitions with bounded polling on iOS Simulator.
-
-- Add six generic platform protection check families for screen exposure, backup policy, key access, iOS Universal Links, WebViews and Android obscured-touch filtering. Collect bounded launch-time facts without app-specific inputs; keep partial coverage explicit and host security unchanged.
-
-- Extend offline IPA analysis with built-in Objective-C relationships, Swift context/type-reference metadata, conservative nominal-name demangling and expanded protection references. Reports retain provenance and localized extraction limits; no external backend or runtime verdict changes.
-
-- Show explicit Simulator jailbreak/signing verdicts and scoped failure findings when execution continues; preserve full-iOS coverage limitations and strict incompleteness.
-
-- Add AEG-A11–A13, N01–N04, I10–I11, B12 and T01: final-manifest link/permission checks, bounded domain association verification, native API/configuration analysis, entitlement/ATS review, ELF hardening and tracker inventory.
-- Add bilingual evidence outside scoring/coverage, and bounded ZIP decompression for binary inspection.
-- Add opt-in R09/R10 runtime scenario orchestration, certificate-substitution capture and redacted synthetic-marker collection; absent evidence and unsupported channels remain incomplete.
-- Include all new configuration in `init`; keep terminal output English and report translations in ARB.
-
-
-* Add device-independent IPA Mach-O checks for PIE, executable-memory requests and source debug entries, plus a separate static resilience-reference inventory. Inspect bundled frameworks and extensions; keep runtime verdicts distinct and report encrypted, missing or unreadable evidence.
-
-* Keep terminal messages, menus and console summaries in English regardless of `--lang`, YAML or system locale. HTML and Markdown report files retain the selected language.
-
-* Ask IPA runtime audits to choose iOS Simulator or a physical iPhone/iPad. Add `--ios-target simulator|device` for explicit/CI selection, isolate the chosen environment from the other YAML settings, reject conflicting CLI options and never fall back to another target. Static-only `--no-probe` runs need no target.
+### Breaking changes
 
 * Remove `run --mode all` and automatic artifact selection. `run` now asks for `code`, `apk`, `aab` or `ipa` when no mode is supplied; non-interactive runs must pass `--mode`. Explicit artifact overrides must match the chosen mode.
+* Ask IPA runtime audits to choose iOS Simulator or a physical iPhone/iPad. Add `--ios-target simulator|device` for explicit/CI selection, isolate the chosen environment from the other YAML settings, reject conflicting CLI options and never fall back to another target. Static-only `--no-probe` runs need no target.
+* Keep terminal messages, menus and console summaries in English regardless of `--lang`, YAML or system locale. HTML and Markdown report files retain the selected language.
+
+### Added and changed
+
+* Discover React Native/Expo and other JavaScript/TypeScript source trees plus KMP shared/target sources. Add lexical secret/logging, TLS, WebView, crypto and direct sensitive-storage checks, preserve native bridge/configuration inspection, and report source inventory and unsupported inputs without awarding score for discovery.
+* Build native Xcode Simulator apps automatically, matching IPA identity and version with explicit ambiguity handling, verified output receipts and optional project/scheme/configuration settings.
+* Discover standalone Kotlin/Java/Swift/Objective-C projects, inspect native modules and platform configuration, reuse native security checks and add redacted source-secret/sensitive-logging rules. Keep Flutter-only rules out of native audits and preserve incomplete coverage for unreadable inputs.
+* Label scores from incomplete audits as provisional beside the score in HTML, Markdown and terminal output, with matching JSON/SARIF flags; preserve scoring and verified failures.
+* Group supporting security evidence into one expandable HTML card or Markdown heading per rule, preserving each observation and source without changing findings or JSON data.
+* Show verified Simulator jailbreak/signing failure verdicts before coverage limitations in report summaries and probe evidence, consistently in Arabic and English.
+* Prevent reuse of incomplete Simulator app bundles after failed or interrupted automatic builds, including disk-full failures during Flutter's final copy.
+* Observe both UIApplication and UIScene background transitions with bounded polling on iOS Simulator.
+* Add six generic platform protection check families (`AEG-P11`, `AEG-N05`–`AEG-N07`, `AEG-I12`, `AEG-A14`) for screen exposure, backup policy, key access, iOS Universal Links, WebViews and Android obscured-touch filtering. Collect bounded launch-time facts without app-specific inputs and leave host security unchanged. Without a requested runtime observation their output is evidence only: outside the score, never a pass, and not an incomplete audit, so static audits still complete under `--strict` and `--update-baseline`. A concrete finding fails the rule and stays in the score even with partial coverage; a requested observation that returned nothing or stopped at a collector bound stays incomplete. The probe records which automatic observers it started (`platformObserverAttempts` in JSON), so an observer that failed is distinguished from one that never ran: the optional Android instrumented observer is requested only once it started.
+* Add the `evidenceOnly` rule status for rules that finish with review evidence and no verdict (the platform protection rules, `AEG-T01`, compiled-reference-only native checks, a finished `AEG-R09` scenario without interception). It is outside the score and MASVS coverage, is never a pass, and does not make the audit incomplete. JSON reports it as `"status": "evidenceOnly"` with a `summary.evidenceOnly` count; the console lists these rules under their own heading.
+* Extend offline IPA analysis with built-in Objective-C relationships, Swift context/type-reference metadata, conservative nominal-name demangling and expanded protection references. Reports retain provenance and localized extraction limits; no external backend or runtime verdict changes.
+* Show explicit Simulator jailbreak/signing verdicts and scoped failure findings when execution continues; preserve full-iOS coverage limitations and strict incompleteness.
+* Add AEG-A11–A13, N01–N04, I10–I11, B12 and T01: final-manifest link/permission checks, bounded domain association verification, native API/configuration analysis, entitlement/ATS review, ELF hardening and tracker inventory.
+* Add bilingual evidence outside scoring/coverage, and bounded ZIP decompression for binary inspection.
+* Add opt-in R09/R10 runtime scenario orchestration, certificate-substitution capture and redacted synthetic-marker collection; absent evidence and unsupported channels remain incomplete. The scenario runs a command and tool paths taken from the project's `aegis.yaml`, so it executes only when `aegis run --runtime-scenario` is passed; `enabled: true` in the file alone never runs it. A finished scenario ends R09 as failed (interception accepted) or evidence only (silence is never a pinning pass); it stays incomplete only when a requested phase, the baseline or cleanup did not finish. A scenario part with nothing configured (`hosts` for R09, `marker_env` for R10) is not applicable rather than incomplete.
+* Include all new configuration in `init`; keep terminal output English and report translations in ARB.
+* Add device-independent IPA Mach-O checks for PIE, executable-memory requests and source debug entries, plus a separate static resilience-reference inventory. Inspect bundled frameworks and extensions; keep runtime verdicts distinct and report encrypted, missing or unreadable evidence.
+
+## 0.9.0
 
 * Make `setup` ask for Android, iOS or Both. `--android` prepares both Android AVDs and bundletool; `--ios` stays iOS-only; `--both` runs independent stages in Android-first order and reports unsupported iOS on non-Mac hosts without undoing Android setup. Keep `--aab` as an Android alias; CI must select a platform explicitly.
-
 * Honor explicit Simulator flavor/target changes for automatically discovered products, and retain verified build inputs for reuse. Correct release installation references and declare synthetic credential fixtures for Pub validation.
-
 * Move report, rule and setup/doctor translations to validated ARB catalogs with generated Dart accessors. Translate iOS probe evidence, limitations, finding excerpts and incomplete/skip reasons in Arabic reports while preserving English JSON evidence and original code/tool output.
-
 * Add partial Xcode Simulator jailbreak-file-indicator and ad-hoc signing-metadata experiments, with verified controls, separate observations and explicit Arabic/English limitations. Full jailbreak/signing checks remain incomplete in strict mode; no macOS security settings are changed.
-
 * `aegis init` now writes every supported YAML setting, with defaults and editable placeholders for unknown paths, device IDs, flavors, and fingerprints. Unfilled placeholders are treated as unset.
-
 * Automatically build missing or mismatched Flutter iOS Simulator apps during `run`/`probe`, using the IPA version/build, verifying the generated platform and identity, and retaining build logs. Add optional `ios_simulator_flavor` and `ios_simulator_target` settings to `init`.
 * Audit iOS IPAs with `--ipa` or `aegis run --mode ipa`. The iOS runtime probe uses Xcode on dedicated devices for jailbreak, Frida, LLDB, and signing identity changes. Configure `ios_simulator` and `ios_simulator_app` in `aegis.yaml` to run LLDB and Frida automatically on a matching Simulator build.
 * `aegis setup --ios` installs Frida and the pinned iOS Gadget. A provisioned Development IPA can be probed for Frida on a stock USB-connected device configured as `ios_control_device`.

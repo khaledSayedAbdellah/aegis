@@ -50,11 +50,16 @@ aegis is a Dart command-line tool. It needs the Dart 3 SDK (the one inside Flutt
 
 ```bash
 # A released version, from GitHub
-dart pub global activate --source git https://github.com/khaledSayedAbdellah/aegis.git --git-ref v0.9.0
+dart pub global activate --source git https://github.com/khaledSayedAbdellah/aegis.git --git-ref v0.10.0
 
 # Or your local clone: every change in the clone is used right away, no reinstall
 dart pub global activate --source path ~/path/to/aegis
 ```
+
+Install it this way rather than with `dart compile exe`. A compiled executable
+runs static audits, but it cannot locate the scripts bundled in the package, so
+the runtime scenario (`--runtime-scenario`) and the automatic platform observers
+of the probe are unavailable in it.
 
 **2. Put `~/.pub-cache/bin` on your PATH** (once), so the shell finds `aegis`:
 
@@ -229,6 +234,7 @@ Run `aegis --help`, or `aegis <command> --help`, for every option.
 | `aegis run` | Audits with the settings in `aegis.yaml`, prints the report, writes `build/aegis-report.html` and opens it. |
 | `aegis run --mode code\|apk\|aab\|ipa` | What to audit (see Quick start). `apk`/`aab`/`ipa` select their respective YAML artifact paths. |
 | `aegis run --no-probe` | Audit the APK/AAB without running the resilience probe. |
+| `aegis run --runtime-scenario` | Also execute the `runtime_security` scenario from `aegis.yaml`. Its command and tool paths come from the project, so they never run without this flag. |
 | `aegis run --no-open` | Don't open the HTML report in the browser. |
 | `aegis run --lang ar` / `--profile banking` | Override aegis.yaml for this run. |
 | `aegis run -f console,html,md,json,sarif` | Choose the report formats. |
@@ -376,7 +382,7 @@ partial Simulator results keep their limitations.
 
 ### Automatic platform protection checks
 
-`AEG-P10`, `AEG-N05`–`AEG-N07`, `AEG-I12` and `AEG-A14` add screen,
+`AEG-P11`, `AEG-N05`–`AEG-N07`, `AEG-I12` and `AEG-A14` add screen,
 backup, key-access/biometric, Universal Links, WebView and Android tapjacking
 inspection. They require no app-specific configuration or credentials. Existing
 `run` probes collect available launch-time metadata, including a separate iOS
@@ -384,8 +390,10 @@ Simulator observer and an Android synthetic security-filter comparison when
 instrumentation is available. Static references and partial runtime observations
 remain distinct; unknown screens or unexercised behavior do not pass.
 See [exact coverage, limits and safety](doc/platform-protection.md).
-Applicable incomplete checks remain incomplete under `--strict`, including when
-runtime testing is disabled with `--no-probe`.
+Without a requested runtime observation they are evidence only: outside the
+score, never a pass, and not an incomplete audit. A concrete finding still fails
+the rule, and a requested observation that did not finish stays incomplete under
+`--strict`.
 
 ### iOS Simulator
 
@@ -555,14 +563,14 @@ resources:
     type: github
     endpoint: <your GitHub service connection>
     name: khaledSayedAbdellah/aegis
-    ref: refs/tags/v0.9.0
+    ref: refs/tags/v0.10.0
 
 steps:
 - template: ci/azure-pipelines/aegis-steps.yml@aegis
   parameters:
     aegisSource: git
     aegisGitUrl: https://github.com/khaledSayedAbdellah/aegis.git
-    aegisGitRef: v0.9.0
+    aegisGitRef: v0.10.0
     failOn: high
 ```
 
@@ -708,6 +716,8 @@ Reference-only evidence is separate from findings and scoring. `init` includes
 `tracker_signatures` and opt-in `runtime_security` configuration.
 
 Network interception and runtime leakage tests need an application-specific
-scenario. Missing setup/traffic/channels remains incomplete, never an assumed
+scenario, and run only when `aegis run --runtime-scenario` is passed: enabling
+`runtime_security` in `aegis.yaml` alone never executes the project's command.
+Missing setup/traffic/channels remains incomplete, never an assumed
 protection pass. `--no-probe` disables runtime tests; no host security settings
 are changed. See [scope, prerequisites and scenario contract](doc/runtime-security.md).

@@ -253,6 +253,11 @@ enum RuleStatus {
   /// The rule does not apply (e.g. no `ios/` folder).
   notApplicable,
 
+  /// The rule applies and finished, but can only list facts for review. It is
+  /// neither a pass nor a failure, stays outside the score, and does not make
+  /// the audit incomplete.
+  evidenceOnly,
+
   /// The rule could not complete or reach a verdict.
   incomplete,
 

@@ -15,6 +15,7 @@
   "i18nNeedsFixing": "محتاج يتصلح",
   "i18nPassed": "سليم",
   "i18nNotApplicable": "مش منطبق",
+  "i18nEvidenceOnly": "أدلة للمراجعة، بدون حكم",
   "i18nCheckManuallyNoToolCanVerifyThese": "لازم تتأكد منها بنفسك (مفيش أداة تقدر تفحصها)",
   "i18nFix": "الحل",
   "i18nWhy": "ليه مهم",
@@ -709,6 +710,9 @@
   "extElfRpath": "مسار بحث مكتبات نسبي أو فارغ",
   "extElfPie": "ملف تنفيذي بدون position independence",
   "extRuntimeMissing": "اضبط runtime_security بسيناريو وجهاز اختبار مخصص. لم يتم التحقق من نتيجة أثناء التشغيل.",
+  "extRuntimeNoInterception": "اكتمل السيناريو ولم يُسجَّل أي طلب معترَض على المسار المختبَر. هذا لا يثبت أن TLS أو التثبيت منعه: التوجيه أو RASP أو التخزين المؤقت قد يسبب الصمت أيضًا. راجع أدلة السيناريو.",
+  "extRuntimeNoHosts": "لا توجد نطاقات معرّفة في runtime_security، لذلك لم يُطلب سيناريو اعتراض.",
+  "extRuntimeNoMarkers": "لا توجد علامات اصطناعية معرّفة في runtime_security، لذلك لم يُطلب سيناريو تخزين.",
   "extRuntimeIncomplete": "سيناريو التشغيل أو أدلته غير مكتملة. غياب الاتصالات لا يثبت أن TLS/pinning منعها؛ غياب العلامات لا يثبت حماية كل البيانات الحساسة.",
   "extRuntimeTls": "تم اعتراض طلب للنطاق المحدد {host} أثناء {phase}. تم قبول الشهادة البديلة في هذا المسار.",
   "extRuntimeLeak": "تم العثور على علامة البيانات الحساسة التجريبية {marker} في {channel}؛ القيمة محجوبة.",
@@ -819,10 +823,15 @@
   "@iosMetadataSourceString": {
     "description": "Static iOS metadata evidence and extraction limits."
   },
-  "platformIncomplete": "الفحص التلقائي جزئي؛ السلوك الذي لم يُختبر لا يُعتبر نجاحًا. راجع أدلة هذا الفحص ونطاقه.",
+  "platformIncomplete": "ملاحظة التشغيل المطلوبة لم تكتمل لهذا الفحص؛ السلوك الذي لم يُختبر لا يُعتبر نجاحًا. راجع أدلة هذا الفحص ونطاقه.",
   "@platformIncomplete": {
-    "description": "Automatic platform protection checks and explicit scope."
+    "description": "A requested runtime observation of a platform protection did not complete."
   },
+  "platformEvidenceOnly": "أدلة فقط: الفحص التلقائي يعرض حقائق للمراجعة ولا يثبت نجاحًا ولا فشلًا. راجع أدلة هذا الفحص ونطاقه.",
+  "@platformEvidenceOnly": {
+    "description": "Platform protection evidence that is neither a pass nor a failure."
+  },
+  "platformObserverFailed": "بدأ المراقب التلقائي لكنه لم يُرجع حقائق متحققة لهذا الفحص.",
   "platformNoRuntime": "لا تتوفر ملاحظة تشغيل متحققة لهذا الفحص.",
   "@platformNoRuntime": {
     "description": "Automatic platform protection checks and explicit scope."
@@ -976,12 +985,12 @@
   "@platformFactSecureWindows": {
     "description": "Automatic platform protection checks and explicit scope."
   },
-  "platformP10Title": "انكشاف الشاشة ولقطات الخلفية",
-  "@platformP10Title": {
+  "platformP11Title": "انكشاف الشاشة ولقطات الخلفية",
+  "@platformP11Title": {
     "description": "Automatic platform protection checks and explicit scope."
   },
-  "platformP10Limit": "تُفحص إمكانية التقاط شاشة بدء التشغيل وبيانات الحقول الأصلية، ويُرصد انتقال محاكي iOS للخلفية بشكل منفصل. إنشاء صورة لا يثبت انكشاف بيانات حساسة؛ وفشل الالتقاط لا يثبت الحماية. تظل التسجيلات ومحتويات لقطة تبديل التطبيقات الفعلية والشاشات غير المفتوحة أو المحمية بتسجيل الدخول غير متحققة. لا يوجد في iOS بديل عام لـ FLAG_SECURE.",
-  "@platformP10Limit": {
+  "platformP11Limit": "تُفحص إمكانية التقاط شاشة بدء التشغيل وبيانات الحقول الأصلية، ويُرصد انتقال محاكي iOS للخلفية بشكل منفصل. إنشاء صورة لا يثبت انكشاف بيانات حساسة؛ وفشل الالتقاط لا يثبت الحماية. تظل التسجيلات ومحتويات لقطة تبديل التطبيقات الفعلية والشاشات غير المفتوحة أو المحمية بتسجيل الدخول غير متحققة. لا يوجد في iOS بديل عام لـ FLAG_SECURE.",
+  "@platformP11Limit": {
     "description": "Automatic platform protection checks and explicit scope."
   },
   "platformN05Title": "قواعد استثناء النسخ الاحتياطي وبيانات الملفات",

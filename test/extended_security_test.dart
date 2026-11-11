@@ -237,7 +237,7 @@ void main() {
       final r = await audit({
         'pubspec.yaml': 'name: app\ndependencies:\n  firebase_analytics: any\n'
       });
-      expect(result(r, 'AEG-T01').status, RuleStatus.notApplicable);
+      expect(result(r, 'AEG-T01').status, RuleStatus.evidenceOnly);
       expect(r.securityEvidence.any((e) => e.ruleId == 'AEG-T01'), isTrue);
       expect(renderHtml(r, lang: 'ar'), contains(Ar.extEvidenceScope));
       expect(renderHtml(r, lang: 'ar'), isNot(contains(En.extEvidenceScope)));
@@ -319,14 +319,97 @@ void main() {
           {'phase': 'trusted', 'host': 'api.test'},
           {'phase': 'trusted', 'host': 'control.test'}
         ]
-      }, pinnedHosts: [
+      }, hosts: [
+        'api.test',
+        'control.test'
+      ], pinnedHosts: [
         'api.test'
       ]));
       expect(result(r, 'AEG-R09').findings, hasLength(1));
       expect(result(r, 'AEG-R09').incomplete, isTrue);
       final silent = await runtime(const RuntimeSecurityResult(
-          {'baseline': true, 'cleanup': true, 'network': []}));
+          {'baseline': true, 'cleanup': true, 'network': []},
+          hosts: ['api.test']));
       expect(result(silent, 'AEG-R09').status, RuleStatus.incomplete);
+    });
+    group('a finished interception scenario', () {
+      RuntimeSecurityResult finished(List<Map<String, String>> network,
+              {List<String> phases = const ['untrusted', 'trusted'],
+              List<String> errors = const [],
+              List<String> pinned = const ['api.test']}) =>
+          RuntimeSecurityResult({
+            'baseline': true,
+            'cleanup': true,
+            'errors': errors,
+            'baseline_hosts': ['api.test'],
+            'phases': phases,
+            'network': network,
+          }, hosts: const [
+            'api.test'
+          ], pinnedHosts: pinned);
+
+      test('ends R09 as a plain failure when a request was intercepted',
+          () async {
+        final r = await runtime(finished([
+          {'phase': 'untrusted', 'host': 'api.test'}
+        ]));
+        expect(result(r, 'AEG-R09').status, RuleStatus.failed);
+        expect(result(r, 'AEG-R09').incomplete, isFalse);
+      });
+      test('ends R09 as evidence only on silence, never as a pass', () async {
+        final r = await runtime(finished(const []));
+        final r09 = result(r, 'AEG-R09');
+        expect(r09.status, RuleStatus.evidenceOnly);
+        expect(r09.note, En.extRuntimeNoInterception);
+        expect(r09.noteAr, Ar.extRuntimeNoInterception);
+        expect(r.incomplete.map((x) => x.meta.id), isNot(contains('AEG-R09')));
+        expect(r.passed.map((x) => x.meta.id), isNot(contains('AEG-R09')));
+      });
+      test('stays incomplete when a requested phase did not finish', () async {
+        for (final data in [
+          // Pinned hosts ask for the trusted phase.
+          finished(const [], phases: const ['untrusted']),
+          finished(const [], errors: const ['untrusted_scenario']),
+          finished(const [], phases: const []),
+        ]) {
+          final r = await runtime(data);
+          expect(result(r, 'AEG-R09').status, RuleStatus.incomplete);
+        }
+        final unpinned = await runtime(
+            finished(const [], phases: const ['untrusted'], pinned: const []));
+        expect(result(unpinned, 'AEG-R09').status, RuleStatus.evidenceOnly);
+      });
+    });
+    test('a scenario part with nothing configured is not requested', () async {
+      const storage = {
+        'hits': [],
+        'channels': {'files': true, 'logs': true, 'clipboard': true},
+        'limited': false
+      };
+      final storageOnly = await runtime(const RuntimeSecurityResult(
+          {'baseline': true, 'cleanup': true, 'storage': storage},
+          markers: ['password']));
+      expect(result(storageOnly, 'AEG-R09').status, RuleStatus.notApplicable);
+      expect(result(storageOnly, 'AEG-R09').note, En.extRuntimeNoHosts);
+      expect(result(storageOnly, 'AEG-R10').status, RuleStatus.passed);
+      expect(storageOnly.complete, isTrue);
+      final networkOnly = await runtime(const RuntimeSecurityResult({
+        'baseline': true,
+        'cleanup': true,
+        'errors': [],
+        'baseline_hosts': ['api.test'],
+        'phases': ['untrusted'],
+        'network': []
+      }, hosts: [
+        'api.test'
+      ]));
+      expect(result(networkOnly, 'AEG-R10').status, RuleStatus.notApplicable);
+      expect(result(networkOnly, 'AEG-R10').note, En.extRuntimeNoMarkers);
+      expect(networkOnly.incomplete, isEmpty);
+      // A failed baseline still leaves both parts incomplete.
+      final failed = await runtime(const RuntimeSecurityResult(
+          {'baseline': false, 'cleanup': true}));
+      expect(failed.incomplete, hasLength(2));
     });
     test('leaks survive incomplete collection and contain labels only',
         () async {

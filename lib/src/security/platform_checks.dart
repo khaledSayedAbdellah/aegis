@@ -129,12 +129,49 @@ const platformKinds = [
   'tapjacking'
 ];
 const platformRuleIds = {
-  'screen': 'AEG-P10',
+  'screen': 'AEG-P11',
   'backup': 'AEG-N05',
   'key_access': 'AEG-N06',
   'links': 'AEG-I12',
   'webview': 'AEG-N07',
   'tapjacking': 'AEG-A14',
+};
+
+/// Controls each automatic observer collects, per probe target and observer.
+/// A control outside these sets has no runtime test that a probe run could
+/// leave unfinished (physical iOS devices have no observer at all).
+///
+/// `control` is the stock launch observer every probe of that target asks for.
+/// `instrumented` runs only alongside the Android Frida checks, so its controls
+/// are requested only once the runner recorded that it started.
+const platformObserverKinds = <String, Map<String, Set<String>>>{
+  'android': {
+    'control': {'screen', 'webview', 'tapjacking'},
+    'instrumented': {'screen', 'webview', 'key_access', 'tapjacking'},
+  },
+  'ios-simulator': {
+    'control': {'screen', 'webview', 'backup', 'key_access', 'links'},
+  },
+};
+
+/// Whether a probe run asked for a runtime observation of [kind]: its target's
+/// launch observer covers it, or an optional observer that covers it started.
+bool platformObservationRequested(
+    String target, String kind, Set<String> attempts) {
+  final observers = platformObserverKinds[target] ?? const {};
+  return observers.entries.any((e) =>
+      e.value.contains(kind) &&
+      (e.key == 'control' || attempts.contains(e.key)));
+}
+
+/// The collector flag, and the value it takes, when an observer stopped before
+/// covering everything it found for a control.
+const platformObserverLimits = <String, (String, bool)>{
+  'screen': ('viewLimitReached', true),
+  'webview': ('viewLimitReached', true),
+  'tapjacking': ('viewLimitReached', true),
+  'backup': ('fileLimitReached', true),
+  'key_access': ('keyQueriesComplete', false),
 };
 
 final platformReferences = <String, RegExp>{

@@ -287,7 +287,7 @@ def request(flow: http.HTTPFlow):
 
 
 def run(cfg):
-    result = {'baseline': False, 'network': [], 'storage': {}, 'errors': [], 'cleanup': False}
+    result = {'baseline': False, 'network': [], 'storage': {}, 'errors': [], 'cleanup': False, 'phases': []}
     command_args = cfg['command']
     markers = cfg.get('markers', {})
     env = os.environ.copy()
@@ -352,8 +352,10 @@ def run(cfg):
                             time.sleep(.1)
                     if not ready:
                         raise RuntimeError('Proxy unavailable')
+                    finished = False
                     try:
                         scenario(phase, '127.0.0.1:' + str(port), str(conf / 'mitmproxy-ca-cert.pem'))
+                        finished = True
                     except Exception:
                         result['errors'].append(phase + '_scenario')
                     finally:
@@ -370,6 +372,10 @@ def run(cfg):
                             event = json.loads(line)
                             if event['host'] in result['baseline_hosts']:
                                 result['network'].append({'phase': phase, 'host': event['host']})
+                    # Recorded only after the scenario asserted completion and its
+                    # capture was read: the phase ran, whatever it observed.
+                    if finished:
+                        result['phases'].append(phase)
             except Exception:
                 result['errors'].append(phase)
             finally:

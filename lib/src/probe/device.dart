@@ -100,8 +100,15 @@ abstract interface class ProbeDevice {
   Future<String?> resignWithNewKey(String apk, String outApk, String keystore);
 }
 
+/// Automatic launch-only inspection of the running app. Kept apart from
+/// [ProbeDevice] so resilience checks do not depend on it.
+abstract interface class PlatformObserver {
+  Future<Map<String, Object?>> platformObservation(String package, int pid);
+  Future<Map<String, Object?>> instrumentedPlatformObservation(String package);
+}
+
 /// A finished adb/emulator/frida action. Thin wrapper over [Proc].
-class Device implements ProbeDevice {
+class Device implements ProbeDevice, PlatformObserver {
   Device(this.host, this.tools, {String? avdName}) : avdName = avdName ?? tools.avdName;
   final String avdName;
   final Host host;
@@ -139,6 +146,7 @@ class Device implements ProbeDevice {
       host.run(cmd.first, cmd.sublist(1), timeout: timeout);
 
   /// Automatic, noninteractive inspection of the currently running control app.
+  @override
   Future<Map<String, Object?>> platformObservation(String package, int pid) async {
     if (await pidOf(package) != pid) return {};
     final windows = await _run(_adb(['shell', 'dumpsys', 'window', 'windows']));
@@ -169,6 +177,7 @@ class Device implements ProbeDevice {
       'verified': true, 'scope': 'launch-only', 'instrumented': false};
   }
 
+  @override
   Future<Map<String, Object?>> instrumentedPlatformObservation(String package) async {
     final pid = await pidOf(package);
     if (pid == null || tools.frida == null) return {};

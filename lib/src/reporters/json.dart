@@ -64,6 +64,7 @@ Map<String, Object?> reportToJson(AuditReport r) => {
           s.name: r.failed.where((x) => x.severity == s).length,
         'passed': r.passed.length,
         'notApplicable': r.notApplicable.length,
+        'evidenceOnly': r.evidenceOnly.length,
         'incomplete': r.incomplete.length,
         'suppressed': r.suppressed,
       },
@@ -203,6 +204,8 @@ Map<String, Object?> _probeJson(ProbeOutcome o) {
   return {
     'ran': true,
     if (r.platform != 'android') 'platform': r.platform,
+    if (r.platformObserverAttempts.isNotEmpty)
+      'platformObserverAttempts': r.platformObserverAttempts.toList()..sort(),
     'app': r.app.split(RegExp(r'[\\/]')).last,
     if (r.emulatorError != null) 'emulatorError': r.emulatorError,
     if (r.apkIdentity case final identity?)

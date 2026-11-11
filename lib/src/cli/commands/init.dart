@@ -125,6 +125,7 @@ tracker_signatures: <path-to-file>
 
 # Opt-in application-specific network/storage scenario. No host security changes.
 # See doc/runtime-security.md. command is an argument list, never a shell string.
+# It runs only when enabled here AND `aegis run --runtime-scenario` is passed.
 runtime_security:
   enabled: false
   platform: <platform>  # android, ios-simulator, or ios-device; must match run.

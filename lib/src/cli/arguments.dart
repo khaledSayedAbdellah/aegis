@@ -99,6 +99,13 @@ ArgParser auditParser({bool run = false}) => _iosOptions(
           help:
               'Run the resilience probe for the audited Android or iOS artifact. '
               '--no-probe runs the static checks only.')
+      ..addFlag('runtime-scenario',
+          negatable: false,
+          hide: !run,
+          help:
+              'Execute the runtime_security scenario from aegis.yaml. Its command '
+              'and tool paths come from the project, so they never run without '
+              'this flag.')
       ..addFlag('open',
           defaultsTo: run,
           hide: !run,

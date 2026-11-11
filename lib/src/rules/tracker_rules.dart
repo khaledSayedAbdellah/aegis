@@ -157,7 +157,6 @@ class TrackerInventoryRule extends Rule {
     }
     return limited
         ? RuleCheck.incompleteLocalized(En.extIncomplete, Ar.extIncomplete)
-        : RuleCheck.notApplicableLocalized(
-            En.extIndicatorOnly, Ar.extIndicatorOnly);
+        : RuleCheck.evidenceOnly(En.extIndicatorOnly, Ar.extIndicatorOnly);
   }
 }

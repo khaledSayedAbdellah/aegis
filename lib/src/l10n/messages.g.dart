@@ -291,6 +291,9 @@ class L10n {
   String get extRuntimeIncomplete => isArabic ? Ar.extRuntimeIncomplete : En.extRuntimeIncomplete;
   String extRuntimeLeak({required Object? channel, required Object? marker}) => isArabic ? Ar.extRuntimeLeak(channel: channel, marker: marker) : En.extRuntimeLeak(channel: channel, marker: marker);
   String get extRuntimeMissing => isArabic ? Ar.extRuntimeMissing : En.extRuntimeMissing;
+  String get extRuntimeNoHosts => isArabic ? Ar.extRuntimeNoHosts : En.extRuntimeNoHosts;
+  String get extRuntimeNoInterception => isArabic ? Ar.extRuntimeNoInterception : En.extRuntimeNoInterception;
+  String get extRuntimeNoMarkers => isArabic ? Ar.extRuntimeNoMarkers : En.extRuntimeNoMarkers;
   String extRuntimeScope({required Object? digest, required Object? scenario}) => isArabic ? Ar.extRuntimeScope(digest: digest, scenario: scenario) : En.extRuntimeScope(digest: digest, scenario: scenario);
   String extRuntimeTls({required Object? host, required Object? phase}) => isArabic ? Ar.extRuntimeTls(host: host, phase: phase) : En.extRuntimeTls(host: host, phase: phase);
   String get extScope => isArabic ? Ar.extScope : En.extScope;
@@ -311,6 +314,7 @@ class L10n {
   String get i18nCheckedAndPassedCheckedHas => isArabic ? Ar.i18nCheckedAndPassedCheckedHas : En.i18nCheckedAndPassedCheckedHas;
   String get i18nControl => isArabic ? Ar.i18nControl : En.i18nControl;
   String get i18nCritical => isArabic ? Ar.i18nCritical : En.i18nCritical;
+  String get i18nEvidenceOnly => isArabic ? Ar.i18nEvidenceOnly : En.i18nEvidenceOnly;
   String get i18nFix => isArabic ? Ar.i18nFix : En.i18nFix;
   String get i18nFixedSinceTheBaseline => isArabic ? Ar.i18nFixedSinceTheBaseline : En.i18nFixedSinceTheBaseline;
   String get i18nHigh => isArabic ? Ar.i18nHigh : En.i18nHigh;
@@ -630,6 +634,7 @@ class L10n {
   String get platformBackupReferenceOnly => isArabic ? Ar.platformBackupReferenceOnly : En.platformBackupReferenceOnly;
   String platformConfiguration({required Object? token}) => isArabic ? Ar.platformConfiguration(token: token) : En.platformConfiguration(token: token);
   String platformCount({required Object? count, required Object? name}) => isArabic ? Ar.platformCount(count: count, name: name) : En.platformCount(count: count, name: name);
+  String get platformEvidenceOnly => isArabic ? Ar.platformEvidenceOnly : En.platformEvidenceOnly;
   String get platformFactAuthRequiredKeys => isArabic ? Ar.platformFactAuthRequiredKeys : En.platformFactAuthRequiredKeys;
   String get platformFactBackgroundObserved => isArabic ? Ar.platformFactBackgroundObserved : En.platformFactBackgroundObserved;
   String get platformFactBackgroundPasswordFields => isArabic ? Ar.platformFactBackgroundPasswordFields : En.platformFactBackgroundPasswordFields;
@@ -668,8 +673,9 @@ class L10n {
   String get platformNo => isArabic ? Ar.platformNo : En.platformNo;
   String get platformNoRuntime => isArabic ? Ar.platformNoRuntime : En.platformNoRuntime;
   String get platformObservationLimited => isArabic ? Ar.platformObservationLimited : En.platformObservationLimited;
-  String get platformP10Limit => isArabic ? Ar.platformP10Limit : En.platformP10Limit;
-  String get platformP10Title => isArabic ? Ar.platformP10Title : En.platformP10Title;
+  String get platformObserverFailed => isArabic ? Ar.platformObserverFailed : En.platformObserverFailed;
+  String get platformP11Limit => isArabic ? Ar.platformP11Limit : En.platformP11Limit;
+  String get platformP11Title => isArabic ? Ar.platformP11Title : En.platformP11Title;
   String platformReferences({required Object? tokens}) => isArabic ? Ar.platformReferences(tokens: tokens) : En.platformReferences(tokens: tokens);
   String platformRuntime({required Object? facts, required Object? platform}) => isArabic ? Ar.platformRuntime(facts: facts, platform: platform) : En.platformRuntime(facts: facts, platform: platform);
   String get platformUnknown => isArabic ? Ar.platformUnknown : En.platformUnknown;
@@ -1155,6 +1161,9 @@ abstract final class En {
   static const extRuntimeIncomplete = "Runtime scenario or evidence is incomplete. Missing traffic is not proof that TLS/pinning blocked it; absence of marker hits is not proof that all sensitive data is protected.";
   static String extRuntimeLeak({required Object? channel, required Object? marker}) => "Synthetic sensitive marker " + marker.toString() + " was found in " + channel.toString() + "; value redacted.";
   static const extRuntimeMissing = "Configure runtime_security with a scenario and dedicated test target. No runtime outcome was verified.";
+  static const extRuntimeNoHosts = "No hosts are configured in runtime_security, so no interception scenario was requested.";
+  static const extRuntimeNoInterception = "The scenario finished and recorded no intercepted request on the exercised path. This is not proof that TLS/pinning blocked it: routing, RASP or caching can also cause silence. Review the scenario evidence.";
+  static const extRuntimeNoMarkers = "No synthetic markers are configured in runtime_security, so no storage scenario was requested.";
   static String extRuntimeScope({required Object? digest, required Object? scenario}) => "Scenario " + scenario.toString() + "; artifact SHA-256 " + digest.toString() + ". Results apply only to the configured target, endpoints and markers.";
   static String extRuntimeTls({required Object? host, required Object? phase}) => "Intercepted request to configured endpoint " + host.toString() + " during " + phase.toString() + ". The substituted certificate was accepted on this path.";
   static const extScope = "Review the evidence in its usage context. Binary references may belong to unused code or third-party libraries.";
@@ -1175,6 +1184,7 @@ abstract final class En {
   static const i18nCheckedAndPassedCheckedHas = "✅ checked and passed · ❌ checked, has problems (in bold) · ❔ check it yourself · — not covered by aegis";
   static const i18nControl = "Control";
   static const i18nCritical = "CRITICAL";
+  static const i18nEvidenceOnly = "Evidence for review, no verdict";
   static const i18nFix = "Fix";
   static const i18nFixedSinceTheBaseline = "Fixed since the baseline";
   static const i18nHigh = "HIGH";
@@ -1494,6 +1504,7 @@ abstract final class En {
   static const platformBackupReferenceOnly = "A backup XML reference exists, but its presence alone does not verify exclusions. See AEG-N05 for parsed policy evidence and limits.";
   static String platformConfiguration({required Object? token}) => "Explicit configuration requires review: " + token.toString() + ". Its application to a sensitive operation is not established.";
   static String platformCount({required Object? count, required Object? name}) => "" + name.toString() + ": " + count.toString() + "";
+  static const platformEvidenceOnly = "Evidence only: automatic inspection lists facts for review and establishes neither a pass nor a failure. See this check’s evidence and scope.";
   static const platformFactAuthRequiredKeys = "Keys requiring user authentication";
   static const platformFactBackgroundObserved = "Background transition observed";
   static const platformFactBackgroundPasswordFields = "Native password fields at background transition";
@@ -1522,7 +1533,7 @@ abstract final class En {
   static const platformFactWindows = "Visible windows";
   static const platformI12Limit = "AASA checks HTTPS identity authorization against the packaged application-identifier. It does not prove path/component routing, Apple CDN propagation or authorization in link handlers. No arbitrary links are opened and no business action is triggered.";
   static const platformI12Title = "iOS Universal Links association and URL handling";
-  static const platformIncomplete = "Automatic inspection is partial; unexercised behavior is not a pass. See this check’s evidence and scope.";
+  static const platformIncomplete = "The requested runtime observation did not complete for this check; unexercised behavior is not a pass. See this check’s evidence and scope.";
   static const platformN05Limit = "Android XML rules are parsed for every resolved variant and backup flow. File names and iOS exclusion metadata do not identify sensitive content or prove a completed backup/restore. iOS exclusion flags are advisory; Simulator file attributes do not prove physical-device encryption.";
   static const platformN05Title = "Backup exclusion policy and file metadata";
   static const platformN06Limit = "Names and access-control metadata do not prove a sensitive operation is cryptographically bound to authentication. No secret values are read. Keys behind login, Secure Enclave / StrongBox enforcement and biometric bypass resistance require additional runtime coverage.";
@@ -1532,8 +1543,9 @@ abstract final class En {
   static const platformNo = "no";
   static const platformNoRuntime = "No verified runtime observation is available for this check.";
   static const platformObservationLimited = "Some collectors reached their limits or could not read all attributes. Zero counts do not prove absence.";
-  static const platformP10Limit = "Launch-screen capture availability and native field metadata are inspected. iOS Simulator background transitions are observed separately. Capturing an image does not establish sensitive-data exposure; capture failure does not prove protection. Recording, actual app-switcher snapshot contents and unvisited/authenticated screens remain unverified. iOS has no general FLAG_SECURE equivalent.";
-  static const platformP10Title = "Screen and background snapshot exposure";
+  static const platformObserverFailed = "The automatic observer started but returned no verified facts for this check.";
+  static const platformP11Limit = "Launch-screen capture availability and native field metadata are inspected. iOS Simulator background transitions are observed separately. Capturing an image does not establish sensitive-data exposure; capture failure does not prove protection. Recording, actual app-switcher snapshot contents and unvisited/authenticated screens remain unverified. iOS has no general FLAG_SECURE equivalent.";
+  static const platformP11Title = "Screen and background snapshot exposure";
   static String platformReferences({required Object? tokens}) => "Static references: " + tokens.toString() + ". They may be unused or belong to a dependency.";
   static String platformRuntime({required Object? facts, required Object? platform}) => "Automatic runtime observation on " + platform.toString() + ": " + facts.toString() + ". Scope: launch window only; instrumentation can affect behavior. No app-specific workflow was exercised.";
   static const platformUnknown = "unverified";
@@ -2019,6 +2031,9 @@ abstract final class Ar {
   static const extRuntimeIncomplete = "سيناريو التشغيل أو أدلته غير مكتملة. غياب الاتصالات لا يثبت أن TLS/pinning منعها؛ غياب العلامات لا يثبت حماية كل البيانات الحساسة.";
   static String extRuntimeLeak({required Object? channel, required Object? marker}) => "تم العثور على علامة البيانات الحساسة التجريبية " + marker.toString() + " في " + channel.toString() + "؛ القيمة محجوبة.";
   static const extRuntimeMissing = "اضبط runtime_security بسيناريو وجهاز اختبار مخصص. لم يتم التحقق من نتيجة أثناء التشغيل.";
+  static const extRuntimeNoHosts = "لا توجد نطاقات معرّفة في runtime_security، لذلك لم يُطلب سيناريو اعتراض.";
+  static const extRuntimeNoInterception = "اكتمل السيناريو ولم يُسجَّل أي طلب معترَض على المسار المختبَر. هذا لا يثبت أن TLS أو التثبيت منعه: التوجيه أو RASP أو التخزين المؤقت قد يسبب الصمت أيضًا. راجع أدلة السيناريو.";
+  static const extRuntimeNoMarkers = "لا توجد علامات اصطناعية معرّفة في runtime_security، لذلك لم يُطلب سيناريو تخزين.";
   static String extRuntimeScope({required Object? digest, required Object? scenario}) => "السيناريو " + scenario.toString() + "؛ SHA-256 للملف " + digest.toString() + ". النتائج تخص الهدف والنطاقات والعلامات المحددة فقط.";
   static String extRuntimeTls({required Object? host, required Object? phase}) => "تم اعتراض طلب للنطاق المحدد " + host.toString() + " أثناء " + phase.toString() + ". تم قبول الشهادة البديلة في هذا المسار.";
   static const extScope = "راجع الدليل في سياق استخدامه. قد تكون مراجع الملف الثنائي من كود غير مستخدم أو مكتبات خارجية.";
@@ -2039,6 +2054,7 @@ abstract final class Ar {
   static const i18nCheckedAndPassedCheckedHas = "✅ اتفحص وسليم · ❌ اتفحص وفيه مشاكل (القواعد اللي بالـ bold) · ❔ لازم تتأكد منه بنفسك · — aegis مش بيغطيه";
   static const i18nControl = "البند";
   static const i18nCritical = "خطير جداً";
+  static const i18nEvidenceOnly = "أدلة للمراجعة، بدون حكم";
   static const i18nFix = "الحل";
   static const i18nFixedSinceTheBaseline = "اتصلحت من وقت الـ baseline";
   static const i18nHigh = "عالي";
@@ -2358,6 +2374,7 @@ abstract final class Ar {
   static const platformBackupReferenceOnly = "يوجد مرجع لملف XML للنسخ الاحتياطي، لكن وجوده وحده لا يثبت الاستثناءات. راجع AEG-N05 لأدلة قراءة القواعد وحدودها.";
   static String platformConfiguration({required Object? token}) => "إعداد صريح يحتاج مراجعة: " + token.toString() + ". لم يُثبت انطباقه على عملية حساسة.";
   static String platformCount({required Object? count, required Object? name}) => "" + name.toString() + ": " + count.toString() + "";
+  static const platformEvidenceOnly = "أدلة فقط: الفحص التلقائي يعرض حقائق للمراجعة ولا يثبت نجاحًا ولا فشلًا. راجع أدلة هذا الفحص ونطاقه.";
   static const platformFactAuthRequiredKeys = "مفاتيح تتطلب مصادقة المستخدم";
   static const platformFactBackgroundObserved = "رصد انتقال التطبيق للخلفية";
   static const platformFactBackgroundPasswordFields = "حقول كلمة المرور الأصلية عند الانتقال للخلفية";
@@ -2386,7 +2403,7 @@ abstract final class Ar {
   static const platformFactWindows = "النوافذ المرئية";
   static const platformI12Limit = "يتحقق AASA عبر HTTPS من السماح لهوية application-identifier داخل الحزمة. لا يثبت صحة توجيه المسارات أو انتشار الإعدادات عبر Apple CDN أو التحقق من الصلاحيات داخل معالجات الروابط. لا تُفتح روابط عشوائية ولا تُنفذ عمليات داخل التطبيق.";
   static const platformI12Title = "ربط Universal Links ومعالجة الروابط في iOS";
-  static const platformIncomplete = "الفحص التلقائي جزئي؛ السلوك الذي لم يُختبر لا يُعتبر نجاحًا. راجع أدلة هذا الفحص ونطاقه.";
+  static const platformIncomplete = "ملاحظة التشغيل المطلوبة لم تكتمل لهذا الفحص؛ السلوك الذي لم يُختبر لا يُعتبر نجاحًا. راجع أدلة هذا الفحص ونطاقه.";
   static const platformN05Limit = "تُقرأ قواعد XML في Android لكل نسخة إعداد ومسار نسخ احتياطي تم حله. أسماء الملفات وبيانات الاستثناء في iOS لا تحدد حساسية المحتوى ولا تثبت تنفيذ نسخ واستعادة. علامات الاستثناء في iOS إرشادية؛ وخصائص ملفات المحاكي لا تثبت تشفير الجهاز الحقيقي.";
   static const platformN05Title = "قواعد استثناء النسخ الاحتياطي وبيانات الملفات";
   static const platformN06Limit = "الأسماء وبيانات التحكم في الوصول لا تثبت ربط العملية الحساسة بالمصادقة تشفيريًا. لا تُقرأ قيم الأسرار. المفاتيح خلف تسجيل الدخول وحماية Secure Enclave / StrongBox ومقاومة تجاوز البصمة تتطلب تغطية تشغيل إضافية.";
@@ -2396,8 +2413,9 @@ abstract final class Ar {
   static const platformNo = "لا";
   static const platformNoRuntime = "لا تتوفر ملاحظة تشغيل متحققة لهذا الفحص.";
   static const platformObservationLimited = "وصلت بعض أدوات الجمع لحدودها أو تعذرت قراءة كل الخصائص. الأعداد الصفرية لا تثبت الغياب.";
-  static const platformP10Limit = "تُفحص إمكانية التقاط شاشة بدء التشغيل وبيانات الحقول الأصلية، ويُرصد انتقال محاكي iOS للخلفية بشكل منفصل. إنشاء صورة لا يثبت انكشاف بيانات حساسة؛ وفشل الالتقاط لا يثبت الحماية. تظل التسجيلات ومحتويات لقطة تبديل التطبيقات الفعلية والشاشات غير المفتوحة أو المحمية بتسجيل الدخول غير متحققة. لا يوجد في iOS بديل عام لـ FLAG_SECURE.";
-  static const platformP10Title = "انكشاف الشاشة ولقطات الخلفية";
+  static const platformObserverFailed = "بدأ المراقب التلقائي لكنه لم يُرجع حقائق متحققة لهذا الفحص.";
+  static const platformP11Limit = "تُفحص إمكانية التقاط شاشة بدء التشغيل وبيانات الحقول الأصلية، ويُرصد انتقال محاكي iOS للخلفية بشكل منفصل. إنشاء صورة لا يثبت انكشاف بيانات حساسة؛ وفشل الالتقاط لا يثبت الحماية. تظل التسجيلات ومحتويات لقطة تبديل التطبيقات الفعلية والشاشات غير المفتوحة أو المحمية بتسجيل الدخول غير متحققة. لا يوجد في iOS بديل عام لـ FLAG_SECURE.";
+  static const platformP11Title = "انكشاف الشاشة ولقطات الخلفية";
   static String platformReferences({required Object? tokens}) => "مراجع static: " + tokens.toString() + ". قد تكون غير مستخدمة أو تابعة لمكتبة.";
   static String platformRuntime({required Object? facts, required Object? platform}) => "ملاحظة تشغيل تلقائية على " + platform.toString() + ": " + facts.toString() + ". النطاق: نافذة بدء التشغيل فقط؛ قد يؤثر القياس على السلوك. لم يُنفّذ مسار عمل خاص بالتطبيق.";
   static const platformUnknown = "غير متحقق";
