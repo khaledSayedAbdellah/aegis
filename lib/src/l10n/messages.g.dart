@@ -238,6 +238,7 @@ class L10n {
   String get extElfStack => isArabic ? Ar.extElfStack : En.extElfStack;
   String get extElfWx => isArabic ? Ar.extElfWx : En.extElfWx;
   String extEntitlement({required Object? key, required Object? value}) => isArabic ? Ar.extEntitlement(key: key, value: value) : En.extEntitlement(key: key, value: value);
+  String extEvidenceCount({required Object? count}) => isArabic ? Ar.extEvidenceCount(count: count) : En.extEvidenceCount(count: count);
   String get extEvidenceHeading => isArabic ? Ar.extEvidenceHeading : En.extEvidenceHeading;
   String get extEvidenceScope => isArabic ? Ar.extEvidenceScope : En.extEvidenceScope;
   String get extFacts => isArabic ? Ar.extFacts : En.extFacts;
@@ -800,6 +801,8 @@ class L10n {
   String get runModePrompt => isArabic ? Ar.runModePrompt : En.runModePrompt;
   String get runModeRequired => isArabic ? Ar.runModeRequired : En.runModeRequired;
   String scoreBand({required Object? after, required Object? range, required Object? rules, required Object? severity}) => isArabic ? Ar.scoreBand(after: after, range: range, rules: rules, severity: severity) : En.scoreBand(after: after, range: range, rules: rules, severity: severity);
+  String get scoreProvisional => isArabic ? Ar.scoreProvisional : En.scoreProvisional;
+  String get scoreProvisionalDetail => isArabic ? Ar.scoreProvisionalDetail : En.scoreProvisionalDetail;
   String get setupChoosePlatform => isArabic ? Ar.setupChoosePlatform : En.setupChoosePlatform;
   String get setupHelpConfirmation => isArabic ? Ar.setupHelpConfirmation : En.setupHelpConfirmation;
   String get setupHelpScope => isArabic ? Ar.setupHelpScope : En.setupHelpScope;
@@ -1081,6 +1084,7 @@ abstract final class En {
   static const extElfStack = "executable stack requested";
   static const extElfWx = "writable and executable LOAD segment";
   static String extEntitlement({required Object? key, required Object? value}) => "Entitlement needs review: " + key.toString() + " = " + value.toString() + ". Scope depends on the platform and provisioning profile.";
+  static String extEvidenceCount({required Object? count}) => "Observations: " + count.toString() + "";
   static const extEvidenceHeading = "Additional security evidence";
   static const extEvidenceScope = "Indicators and inventory are not verified vulnerabilities or MASVS passes. Static absence does not prove safety; runtime results cover only the exercised scenario.";
   static const extFacts = "Inspected facts";
@@ -1643,6 +1647,8 @@ abstract final class En {
   static const runModePrompt = "Choose code, apk, aab or ipa [1-4] (q to cancel): ";
   static const runModeRequired = "Select a mode explicitly in non-interactive use: --mode code, --mode apk, --mode aab or --mode ipa.";
   static String scoreBand({required Object? after, required Object? range, required Object? rules, required Object? severity}) => "" + range.toString() + " while a " + severity.toString() + " problem is open (" + rules.toString() + "); fixing the blocking issues gives " + after.toString() + "";
+  static const scoreProvisional = "Provisional score — some protections have not been verified.";
+  static const scoreProvisionalDetail = "This score reflects only resolved findings and checks; it does not establish protection for incomplete checks. Verified failures still reduce the score.";
   static const setupChoosePlatform = "Which test environment do you want to prepare?";
   static const setupHelpConfirmation = "Existing tools are reused. Confirms each platform installation unless --yes is supplied.";
   static const setupHelpScope = "Without a platform flag, asks for Android, iOS or Both. Android includes bundletool. Both prepares Android first, then iOS on macOS.";
@@ -1924,6 +1930,7 @@ abstract final class Ar {
   static const extElfStack = "تم طلب stack قابل للتنفيذ";
   static const extElfWx = "جزء LOAD قابل للكتابة والتنفيذ معًا";
   static String extEntitlement({required Object? key, required Object? value}) => "صلاحية تحتاج مراجعة: ‏" + key.toString() + " = " + value.toString() + ". نطاق تأثيرها يعتمد على المنصة وبروفايل التوقيع.";
+  static String extEvidenceCount({required Object? count}) => "عدد الملاحظات: " + count.toString() + "";
   static const extEvidenceHeading = "أدلة أمنية إضافية";
   static const extEvidenceScope = "المؤشرات والجرد لا تثبت ثغرة أو نجاح بند MASVS. غياب المؤشر لا يثبت الأمان؛ نتائج التشغيل تخص السيناريو الذي تم اختباره فقط.";
   static const extFacts = "حقائق تم فحصها";
@@ -2486,6 +2493,8 @@ abstract final class Ar {
   static const runModePrompt = "اختار code أو apk أو aab أو ipa [1-4] (q للإلغاء): ";
   static const runModeRequired = "في التشغيل غير التفاعلي لازم تحدد المود: --mode code أو --mode apk أو --mode aab أو --mode ipa.";
   static String scoreBand({required Object? after, required Object? range, required Object? rules, required Object? severity}) => "بين " + range.toString() + " طول ما فيه مشكلة " + severity.toString() + " مفتوحة (" + rules.toString() + ")، ولو اتصلحت يبقى " + after.toString() + "";
+  static const scoreProvisional = "تقييم غير نهائي — توجد حمايات لم يتم التحقق منها.";
+  static const scoreProvisionalDetail = "تعكس الدرجة نتائج الفحوصات المحسومة فقط، ولا تثبت الحماية في الفحوصات غير المكتملة. تظل حالات الفشل المثبتة مؤثرة بالسلب على الدرجة.";
   static const setupChoosePlatform = "عاوز تجهّز بيئة الاختبار لأي منصة؟";
   static const setupHelpConfirmation = "الأدوات الموجودة بيتم إعادة استخدامها. بيطلب تأكيد تثبيت كل منصة إلا مع --yes.";
   static const setupHelpScope = "من غير تحديد منصة، بيسأل عن Android أو iOS أو Both. تجهيز Android يشمل bundletool، وBoth بيبدأ بـAndroid ثم iOS على macOS.";

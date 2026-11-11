@@ -1083,5 +1083,22 @@
   "simulatorJailbreakNotBlocked": "نتيجة المحاكي: لا توجد حماية تمنع التشغيل مع مؤشرات ملفات jailbreak المختبَرة؛ استمر التطبيق في التشغيل.",
   "@simulatorJailbreakNotBlocked": {
     "description": "Verified no-block verdict for the specific Simulator experiment."
+  },
+  "extEvidenceCount": "عدد الملاحظات: {count}",
+  "@extEvidenceCount": {
+    "description": "Number of supporting observations grouped under one security rule, not a vulnerability count.",
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "scoreProvisional": "تقييم غير نهائي — توجد حمايات لم يتم التحقق منها.",
+  "@scoreProvisional": {
+    "description": "Warning beside the security score when the audit is incomplete."
+  },
+  "scoreProvisionalDetail": "تعكس الدرجة نتائج الفحوصات المحسومة فقط، ولا تثبت الحماية في الفحوصات غير المكتملة. تظل حالات الفشل المثبتة مؤثرة بالسلب على الدرجة.",
+  "@scoreProvisionalDetail": {
+    "description": "Explains provisional scoring without treating unresolved checks as passes or discarding verified failures."
   }
 }

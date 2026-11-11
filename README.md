@@ -437,6 +437,8 @@ The profile decides which rules run and how severe some findings are. For exampl
 
 ## Score
 
+An incomplete audit labels its score **Provisional — some protections have not been verified** beside the number in HTML, Markdown and terminal output. A high provisional score uses a warning color instead of green; verified high/critical failures stay red and retain their full penalty. JSON exposes `score.provisional` and SARIF exposes `properties.scoreProvisional`. This does not change numeric scoring, `--min-score`, or `--strict`; even a completed audit only covers the selected scope, not every possible protection.
+
 Two rules, applied to every failing rule (known baseline findings included):
 
 **1. The worst open problem decides the band and the grade.**

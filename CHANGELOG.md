@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+- Label scores from incomplete audits as provisional beside the score in HTML, Markdown and terminal output, with matching JSON/SARIF flags; preserve scoring and verified failures.
+
+- Group supporting security evidence into one expandable HTML card or Markdown heading per rule, preserving each observation and source without changing findings or JSON data.
+
 - Show verified Simulator jailbreak/signing failure verdicts before coverage limitations in report summaries and probe evidence, consistently in Arabic and English.
 
 - Prevent reuse of incomplete Simulator app bundles after failed or interrupted automatic builds, including disk-full failures during Flutter's final copy.

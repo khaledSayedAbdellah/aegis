@@ -46,8 +46,8 @@ class ConsoleReporter {
 
   /// Coloured like the band: green up to low problems, yellow for medium,
   /// red for high and critical.
-  String _gradeColor(Score s, String text) => switch (s.worst) {
-        null || Severity.low || Severity.info => _c('1;32', text),
+  String _gradeColor(Score s, String text, {bool provisional = false}) => switch (s.worst) {
+        null || Severity.low || Severity.info => _c(provisional ? '1;33' : '1;32', text),
         Severity.medium => _c('1;33', text),
         _ => _c('1;31', text),
       };
@@ -77,8 +77,12 @@ class ConsoleReporter {
     }
     b.writeln();
 
-    final bar = _scoreBar(r.score);
-    b.writeln('${t.score}: ${_gradeColor(r.score, '${r.score.value}/100 (${r.score.grade})')}  $bar');
+    final bar = _scoreBar(r.score, provisional: !r.complete);
+    b.writeln('${t.score}: ${_gradeColor(r.score, '${r.score.value}/100 (${r.score.grade})', provisional: !r.complete)}  $bar');
+    if (!r.complete) {
+      b.writeln(_yellow('  ${L10n(lang).scoreProvisional}'));
+      b.writeln('  ${L10n(lang).scoreProvisionalDetail}');
+    }
     final band = t.band(r.score);
     if (band != null) b.writeln(_dim('  ↳ $band'));
     final fixes = t.bestFixes(r.score);
@@ -241,8 +245,8 @@ class ConsoleReporter {
     return b.toString();
   }
 
-  String _scoreBar(Score s) {
+  String _scoreBar(Score s, {bool provisional = false}) {
     final filled = (s.value / 5).round();
-    return _gradeColor(s, '█' * filled + '░' * (20 - filled));
+    return _gradeColor(s, '█' * filled + '░' * (20 - filled), provisional: provisional);
   }
 }

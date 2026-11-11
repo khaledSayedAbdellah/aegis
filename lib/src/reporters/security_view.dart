@@ -17,16 +17,54 @@ class SecurityView {
   String console() => evidence.isEmpty
       ? ''
       : '\n${t.extEvidenceHeading}\n${t.extEvidenceScope}\n${evidence.map((e) => '  ${e.ruleId} ${status(e)}: ${safe(e.file)}\n    ${safe(e.detail.of(lang))}').join('\n')}\n';
+
+  // Group presentation only: preserve every observation, its status and source.
+  // A group has no aggregate verdict; evidence is not a pass/fail result.
+  Map<String, List<SecurityEvidence>> get _groups {
+    final groups = <String, List<SecurityEvidence>>{};
+    for (final item in evidence) {
+      (groups[item.ruleId] ??= []).add(item);
+    }
+    return groups;
+  }
+
   String html() {
     if (evidence.isEmpty) return '';
     final esc = const HtmlEscape().convert;
-    return '<section><h2>${esc(t.extEvidenceHeading)}</h2><p>${esc(t.extEvidenceScope)}</p>${evidence.map((e) => '<details class="card"><summary>${esc(e.ruleId)} · ${esc(extendedMeta(e.ruleId).title.of(lang))} · ${esc(status(e))}</summary><p>${esc(e.file)}</p><pre>${esc(e.detail.of(lang))}</pre></details>').join()}</section>';
+    final out = StringBuffer(
+        '<section><h2>${esc(t.extEvidenceHeading)}</h2><p>${esc(t.extEvidenceScope)}</p>');
+    for (final group in _groups.entries) {
+      out.write('<details class="card evidence-group"><summary>'
+          '<bdi dir="ltr">${esc(group.key)}</bdi> · '
+          '${esc(extendedMeta(group.key).title.of(lang))} · '
+          '${esc(t.extEvidenceCount(count: group.value.length))}'
+          '</summary><ul class="evidence-items">');
+      for (final item in group.value) {
+        out.write(
+            '<li class="evidence-item"><p><strong>${esc(status(item))}</strong>'
+            ' · <bdi>${esc(item.file)}</bdi></p>'
+            '<pre>${esc(item.detail.of(lang))}</pre></li>');
+      }
+      out.write('</ul></details>');
+    }
+    out.write('</section>');
+    return out.toString();
   }
 
   String markdown() {
     if (evidence.isEmpty) return '';
     String esc(String s) => safe(s).replaceAllMapped(
         RegExp(r'([\\`*_{}\[\]()#+.!|<>])'), (m) => '\\${m[0]}');
-    return '\n## ${t.extEvidenceHeading}\n\n${t.extEvidenceScope}\n\n${evidence.map((e) => '- ${e.ruleId} · ${status(e)} · ${esc(e.file)}: ${esc(e.detail.of(lang))}').join('\n')}\n\n';
+    final out =
+        StringBuffer('\n## ${t.extEvidenceHeading}\n\n${t.extEvidenceScope}\n');
+    for (final group in _groups.entries) {
+      out.writeln(
+          '\n### ${esc(group.key)} · ${esc(extendedMeta(group.key).title.of(lang))} · ${esc(t.extEvidenceCount(count: group.value.length))}\n');
+      for (final item in group.value) {
+        out.writeln(
+            '- ${status(item)} · ${esc(item.file)}: ${esc(item.detail.of(lang))}');
+      }
+    }
+    return '$out\n';
   }
 }
