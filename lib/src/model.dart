@@ -217,7 +217,8 @@ class Finding {
   /// Short, already-redacted excerpt.
   final String? snippet;
   final String? snippetAr;
-  String? snippetOf(String lang) => lang == 'ar' ? snippetAr ?? snippet : snippet;
+  String? snippetOf(String lang) =>
+      lang == 'ar' ? snippetAr ?? snippet : snippet;
 
   /// True when this finding is listed in the baseline (a known issue).
   bool baselined = false;
@@ -296,12 +297,10 @@ class RuleResult {
   final String? noteAr;
   String? noteOf(String lang) => lang == 'ar' ? noteAr ?? note : note;
 
-  bool get counts =>
-      status == RuleStatus.passed || status == RuleStatus.failed;
+  bool get counts => status == RuleStatus.passed || status == RuleStatus.failed;
 
   /// Findings that are not in the baseline.
-  List<Finding> get newFindings =>
-      findings.where((f) => !f.baselined).toList();
+  List<Finding> get newFindings => findings.where((f) => !f.baselined).toList();
 
   /// Findings accepted by the baseline.
   List<Finding> get knownFindings =>

@@ -7,7 +7,8 @@ import 'dart:typed_data';
 
 class ZipEntry {
   ZipEntry(this.name, this.method, this.compressedSize, this.size,
-      this.localHeaderOffset, {this.unixMode = 0});
+      this.localHeaderOffset,
+      {this.unixMode = 0});
 
   final String name;
 
@@ -29,19 +30,23 @@ class ZipReader {
     _readCentralDirectory();
   }
 
-  factory ZipReader.file(String path) => ZipReader(File(path).readAsBytesSync());
+  factory ZipReader.file(String path) =>
+      ZipReader(File(path).readAsBytesSync());
 
-  ZipReader._view(this.bytes, this.centralDirectoryOffset, Map<String, ZipEntry> entries) {
+  ZipReader._view(
+      this.bytes, this.centralDirectoryOffset, Map<String, ZipEntry> entries) {
     this.entries.addAll(entries);
   }
 
   /// The same archive with entries renamed by [names] (old name -> new
   /// name). Entries not in [names] are left out.
-  ZipReader renamed(Map<String, String> names) => ZipReader._view(bytes, centralDirectoryOffset, {
+  ZipReader renamed(Map<String, String> names) =>
+      ZipReader._view(bytes, centralDirectoryOffset, {
         for (final e in names.entries)
           if (entries[e.key] case final entry?)
-            e.value: ZipEntry(e.value, entry.method, entry.compressedSize, entry.size,
-                entry.localHeaderOffset, unixMode: entry.unixMode)
+            e.value: ZipEntry(e.value, entry.method, entry.compressedSize,
+                entry.size, entry.localHeaderOffset,
+                unixMode: entry.unixMode)
       });
 
   final Uint8List bytes;
@@ -73,7 +78,8 @@ class ZipReader {
       }
     }
     if (eocd < 0) {
-      throw const FormatException('Not a zip file (no end of central directory).');
+      throw const FormatException(
+          'Not a zip file (no end of central directory).');
     }
     final count = _u16(eocd + 10);
     centralDirectoryOffset = _u32(eocd + 16);
@@ -138,7 +144,9 @@ class ZipReader {
         decoder.add(raw);
         decoder.close();
         final result = sink.bytes.takeBytes();
-        if (result.length != e.size) throw const FormatException('ZIP size mismatch.');
+        if (result.length != e.size) {
+          throw const FormatException('ZIP size mismatch.');
+        }
         return result;
       default:
         throw FormatException(
@@ -151,11 +159,14 @@ class _LimitedZipSink extends ByteConversionSinkBase {
   _LimitedZipSink(this.limit);
   final int limit;
   final bytes = BytesBuilder(copy: false);
-  @override void add(List<int> chunk) {
+  @override
+  void add(List<int> chunk) {
     if (bytes.length + chunk.length > limit) {
       throw const FormatException('ZIP entry exceeds inspection limit.');
     }
     bytes.add(chunk);
   }
-  @override void close() {}
+
+  @override
+  void close() {}
 }

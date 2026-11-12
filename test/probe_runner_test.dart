@@ -25,7 +25,9 @@ class FakeDevice implements ProbeDevice {
 
   @override
   Future<String?> bootEmulator(
-      {int timeoutSeconds = 420, void Function(String)? log, String? logPath}) async {
+      {int timeoutSeconds = 420,
+      void Function(String)? log,
+      String? logPath}) async {
     calls.add('boot');
     return bootError;
   }
@@ -61,6 +63,7 @@ class FakeDevice implements ProbeDevice {
     launches++;
     return '';
   }
+
   @override
   Future<int?> pidOf(String package) async =>
       pidReads.isEmpty ? pidValue : pidReads.removeAt(0);
@@ -68,8 +71,11 @@ class FakeDevice implements ProbeDevice {
   Future<bool> isAlive(String package) async =>
       aliveQueue.isNotEmpty ? aliveQueue.removeAt(0) : defaultAlive;
   @override
-  Future<int?> waitForProcess(String package, {int timeoutSeconds = 40}) async =>
-      (aliveQueue.isNotEmpty ? aliveQueue.removeAt(0) : defaultAlive) ? pidValue : null;
+  Future<int?> waitForProcess(String package,
+          {int timeoutSeconds = 40}) async =>
+      (aliveQueue.isNotEmpty ? aliveQueue.removeAt(0) : defaultAlive)
+          ? pidValue
+          : null;
   @override
   Future<void> clearLogcat() async {}
   @override
@@ -118,14 +124,16 @@ class ObservingDevice extends FakeDevice implements PlatformObserver {
   bool failControl = false;
 
   @override
-  Future<Map<String, Object?>> platformObservation(String package, int pid) async {
+  Future<Map<String, Object?>> platformObservation(
+      String package, int pid) async {
     calls.add('observe');
     if (failControl) throw StateError('adb unavailable');
     return control;
   }
 
   @override
-  Future<Map<String, Object?>> instrumentedPlatformObservation(String package) async {
+  Future<Map<String, Object?>> instrumentedPlatformObservation(
+      String package) async {
     calls.add('observe-instrumented');
     return instrumented;
   }
@@ -135,19 +143,24 @@ ProbeRunner runner(FakeDevice d, [FakeDevice? root]) =>
     ProbeRunner(d, rootDevice: root, wait: Duration.zero, sleep: (_) async {});
 
 Future<ProbeReport> run(FakeDevice d, {Set<String>? only, FakeDevice? root}) =>
-    runner(d, root).run(appPath: 'app.apk', package: 'com.x', workDir: '/tmp', only: only);
+    runner(d, root)
+        .run(appPath: 'app.apk', package: 'com.x', workDir: '/tmp', only: only);
 
 ProbeStatus statusOfId(ProbeReport r, String id) =>
     r.results.firstWhere((x) => x.check.id == id).status;
 
 void main() {
-  test('Frida uses the rooted device and leaves repackaging on the control', () async {
+  test('Frida uses the rooted device and leaves repackaging on the control',
+      () async {
     final control = FakeDevice();
     final rooted = FakeDevice()
-      ..fridaLog = '11-08 15:29:21.344  1234  1234 I AegisProbe: hooking blocked';
-    final result = await run(control, root: rooted, only: {'hooking', 'repackage'});
+      ..fridaLog =
+          '11-08 15:29:21.344  1234  1234 I AegisProbe: hooking blocked';
+    final result =
+        await run(control, root: rooted, only: {'hooking', 'repackage'});
     expect(statusOfId(result, 'hooking'), ProbeStatus.blocked);
-    expect(rooted.calls, containsAllInOrder(['boot', 'install', 'launch', 'frida-attach']));
+    expect(rooted.calls,
+        containsAllInOrder(['boot', 'install', 'launch', 'frida-attach']));
     expect(control.calls, isNot(contains('frida-attach')));
     expect(control.calls, isNot(contains('root')));
     expect(control.calls, contains('resign'));
@@ -163,11 +176,13 @@ void main() {
       final ok = await run(ObservingDevice(), only: {'repackage'});
       expect(ok.platformObserverAttempts, {'control'});
       expect(ok.platformObservations['verified'], isTrue);
-      final failed = await run(ObservingDevice()..failControl = true, only: {'repackage'});
+      final failed =
+          await run(ObservingDevice()..failControl = true, only: {'repackage'});
       expect(failed.platformObserverAttempts, {'control'});
       expect(failed.platformObservations, isEmpty);
     });
-    test('the instrumented observer is recorded only with a Frida check', () async {
+    test('the instrumented observer is recorded only with a Frida check',
+        () async {
       final device = ObservingDevice();
       final r = await run(device, only: {'hooking'});
       expect(device.calls, contains('observe-instrumented'));
@@ -193,26 +208,34 @@ void main() {
     expect(r.scored.every((x) => x.status == ProbeStatus.inconclusive), isTrue);
   });
 
-  test('app dies on the clean emulator → baseline gate, all inconclusive', () async {
+  test('app dies on the clean emulator → baseline gate, all inconclusive',
+      () async {
     final r = await run(FakeDevice()..aliveQueue = [false]);
     expect(r.baselineAlive, isFalse);
     expect(r.scored.every((x) => x.status == ProbeStatus.inconclusive), isTrue);
     expect(r.results.first.note, contains('control launch'));
   });
 
-  test('a plain APK yields process-level not-blocked verdicts for verified conditions', () async {
+  test(
+      'a plain APK yields process-level not-blocked verdicts for verified conditions',
+      () async {
     final r = await run(FakeDevice(), root: FakeDevice()..rooted = true);
     expect(r.baselineAlive, isTrue);
-    expect(r.notBlocked.where((result) => result.processOnly).map((result) => result.check.id),
+    expect(
+        r.notBlocked
+            .where((result) => result.processOnly)
+            .map((result) => result.check.id),
         unorderedEquals(['root', 'debugger', 'hooking', 'repackage']));
     expect(r.inconclusive, isEmpty);
     expect(r.notBlocked.length, 4);
   });
 
-  test('conflicting app events stay inconclusive despite a live process', () async {
+  test('conflicting app events stay inconclusive despite a live process',
+      () async {
     final device = FakeDevice()
-      ..fridaLog = '11-08 15:29:21.344  1234  1234 I AegisProbe: hooking blocked\n'
-          '11-08 15:29:21.345  1234  1234 I AegisProbe: hooking not-blocked';
+      ..fridaLog =
+          '11-08 15:29:21.344  1234  1234 I AegisProbe: hooking blocked\n'
+              '11-08 15:29:21.345  1234  1234 I AegisProbe: hooking not-blocked';
     final r = await run(device, only: {'hooking'});
     expect(statusOfId(r, 'hooking'), ProbeStatus.inconclusive);
     expect(r.scored.single.note, contains('conflicting outcomes'));
@@ -222,7 +245,8 @@ void main() {
     final control = FakeDevice();
     final rooted = FakeDevice()
       ..rooted = true
-      ..logcatText = '11-08 15:29:21.344  1234  1234 I AegisProbe: root blocked';
+      ..logcatText =
+          '11-08 15:29:21.344  1234  1234 I AegisProbe: root blocked';
     final r = await run(control, root: rooted, only: {'root'});
     expect(statusOfId(r, 'root'), ProbeStatus.blocked);
     expect(control.launches, 1);
@@ -234,7 +258,8 @@ void main() {
     expect(statusOfId(r, 'root'), ProbeStatus.inconclusive);
   });
 
-  test('a fast startup self-exit under root is detected without an app event', () async {
+  test('a fast startup self-exit under root is detected without an app event',
+      () async {
     final rooted = FakeDevice()
       ..rooted = true
       ..aliveQueue = [false]
@@ -252,7 +277,8 @@ void main() {
     expect(r.scored.single.evidence, contains('exited on its own'));
   });
 
-  test('Android crash records do not count as a protective self-exit', () async {
+  test('Android crash records do not count as a protective self-exit',
+      () async {
     final d = FakeDevice()
       ..pidReads = [1234, null]
       ..exits = [
@@ -274,7 +300,9 @@ void main() {
     expect(d.calls, contains('frida-server'));
   });
 
-  test('frida-server is stopped before the baseline and right after the Frida check', () async {
+  test(
+      'frida-server is stopped before the baseline and right after the Frida check',
+      () async {
     final d = FakeDevice();
     await run(d, only: {'hooking', 'debugger'});
     final c = d.calls;
@@ -286,40 +314,46 @@ void main() {
   });
 
   test('frida-server failing to start → hooking inconclusive', () async {
-    final r = await run(FakeDevice()..fridaError = 'push failed', only: {'hooking'});
+    final r =
+        await run(FakeDevice()..fridaError = 'push failed', only: {'hooking'});
     expect(statusOfId(r, 'hooking'), ProbeStatus.inconclusive);
   });
 
   test('a failed Frida attachment cannot produce a verdict', () async {
     final d = FakeDevice()
       ..attachError = 'transport disconnected'
-      ..logcatText = '11-08 15:29:21.344  1234  1234 I AegisProbe: hooking blocked';
+      ..logcatText =
+          '11-08 15:29:21.344  1234  1234 I AegisProbe: hooking blocked';
     final r = await run(d, only: {'hooking'});
     expect(statusOfId(r, 'hooking'), ProbeStatus.inconclusive);
     expect(r.scored.single.note, contains('transport disconnected'));
   });
 
-  test('the app can report an allowed operation after a verified attachment', () async {
+  test('the app can report an allowed operation after a verified attachment',
+      () async {
     final d = FakeDevice()
-      ..logcatText = '11-08 15:29:21.344  1234  1234 I AegisProbe: hooking not-blocked';
+      ..logcatText =
+          '11-08 15:29:21.344  1234  1234 I AegisProbe: hooking not-blocked';
     final r = await run(d, only: {'hooking'});
     expect(statusOfId(r, 'hooking'), ProbeStatus.notBlocked);
   });
 
   test('repackage: re-sign failure is inconclusive, not a pass', () async {
-    final r = await run(FakeDevice()..resignError = 'apksigner missing', only: {'repackage'});
+    final r = await run(FakeDevice()..resignError = 'apksigner missing',
+        only: {'repackage'});
     expect(statusOfId(r, 'repackage'), ProbeStatus.inconclusive);
   });
 
-  test('repackage: install-time Killing/signature noise is NOT a reaction', () async {
+  test('repackage: install-time Killing/signature noise is NOT a reaction',
+      () async {
     // The classic false positive: the re-install logs a system kill and a
     // PackageManager signature mismatch, but the app itself runs fine.
     final d = FakeDevice()
       ..pidValue = 9123
       ..logcatText =
           '11-08 15:40:00.000   564   678 I ActivityManager: Killing 9123:com.x/u0a1 (adj 0): due to install\n'
-          '11-08 15:40:00.100   900   900 W PackageManager: Package com.x signatures do not match; ignoring!\n'
-          '11-08 15:40:01.000  9123  9123 I flutter: app running';
+              '11-08 15:40:00.100   900   900 W PackageManager: Package com.x signatures do not match; ignoring!\n'
+              '11-08 15:40:01.000  9123  9123 I flutter: app running';
     final r = await run(d, only: {'repackage'});
     expect(statusOfId(r, 'repackage'), ProbeStatus.notBlocked);
     expect(r.scored.single.processOnly, isTrue);
@@ -330,8 +364,8 @@ void main() {
       ..pidValue = 9123
       ..logcatText =
           '11-08 15:40:01.000  9123  9123 E AndroidRuntime: FATAL EXCEPTION: main\n'
-          '11-08 15:40:01.000  9123  9123 E AndroidRuntime: Process: com.x, PID: 9123\n'
-          '11-08 15:40:01.000  9123  9123 E AndroidRuntime: java.lang.SecurityException: signature mismatch';
+              '11-08 15:40:01.000  9123  9123 E AndroidRuntime: Process: com.x, PID: 9123\n'
+              '11-08 15:40:01.000  9123  9123 E AndroidRuntime: java.lang.SecurityException: signature mismatch';
     final r = await run(d, only: {'repackage'});
     final res = r.results.firstWhere((x) => x.check.id == 'repackage');
     expect(res.status, ProbeStatus.inconclusive);

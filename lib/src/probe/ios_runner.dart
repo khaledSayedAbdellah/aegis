@@ -20,10 +20,8 @@ import 'toolchain.dart';
 
 const iosProbeChecks = [
   ProbeCheck('jailbreak', En.checkJailbreak, masvs: 'MASVS-RESILIENCE-1'),
-  ProbeCheck('ios-debugger', En.checkIosDebugger,
-      masvs: 'MASVS-RESILIENCE-4'),
-  ProbeCheck('ios-hooking', En.checkIosHooking,
-      masvs: 'MASVS-RESILIENCE-4'),
+  ProbeCheck('ios-debugger', En.checkIosDebugger, masvs: 'MASVS-RESILIENCE-4'),
+  ProbeCheck('ios-hooking', En.checkIosHooking, masvs: 'MASVS-RESILIENCE-4'),
   ProbeCheck('ios-repackage', En.checkIosRepackage,
       masvs: 'MASVS-RESILIENCE-2'),
 ];
@@ -60,11 +58,12 @@ class IosProbeRunner {
     void Function(String)? log,
   }) async {
     if (!Platform.isMacOS) {
-      return const ProbeOutcome.skipped(
-          En.iosRequiresXcode, skippedAr: Ar.iosRequiresXcode);
+      return const ProbeOutcome.skipped(En.iosRequiresXcode,
+          skippedAr: Ar.iosRequiresXcode);
     }
     if (only != null && only.contains('root')) {
-      return const ProbeOutcome.skipped(En.iosOnlyJailbreak, skippedAr: Ar.iosOnlyJailbreak);
+      return const ProbeOutcome.skipped(En.iosOnlyJailbreak,
+          skippedAr: Ar.iosOnlyJailbreak);
     }
     final requested = iosProbeChecks
         .where((check) =>
@@ -77,13 +76,13 @@ class IosProbeRunner {
             controlId != null ||
             jailbreakId != null ||
             resignedIpa != null)) {
-      return const ProbeOutcome.skipped(
-          En.iosSimulatorConfig, skippedAr: Ar.iosSimulatorConfig);
+      return const ProbeOutcome.skipped(En.iosSimulatorConfig,
+          skippedAr: Ar.iosSimulatorConfig);
     }
     final selected = simulator ? simulatorId : controlId;
     if (selected == null) {
-      return const ProbeOutcome.skipped(
-          En.iosControlMissing, skippedAr: Ar.iosControlMissing);
+      return const ProbeOutcome.skipped(En.iosControlMissing,
+          skippedAr: Ar.iosControlMissing);
     }
     final work = Directory.systemTemp.createTempSync('aegis-ios-probe-');
     RandomAccessFile? lock;
@@ -93,8 +92,8 @@ class IosProbeRunner {
       try {
         lock.lockSync(FileLock.exclusive);
       } on FileSystemException {
-        return const ProbeOutcome.skipped(
-            En.iosProbeBusy, skippedAr: Ar.iosProbeBusy);
+        return const ProbeOutcome.skipped(En.iosProbeBusy,
+            skippedAr: Ar.iosProbeBusy);
       }
       final original = IpaContext.load(path);
       final matchedSimulatorApp = simulator
@@ -115,7 +114,8 @@ class IosProbeRunner {
           !debuggable &&
           requested.length == 1 &&
           requested.single.id == 'ios-hooking') {
-        return const ProbeOutcome.skipped(En.iosFridaNeedsDevelopment, skippedAr: Ar.iosFridaNeedsDevelopment);
+        return const ProbeOutcome.skipped(En.iosFridaNeedsDevelopment,
+            skippedAr: Ar.iosFridaNeedsDevelopment);
       }
       final control = IosDevice(selected, work, simulator: simulator);
       final controlUdid = await control.verifyTarget();
@@ -140,8 +140,8 @@ class IosProbeRunner {
           ? null
           : await verifyIosSignature(app, _folder(work, 'signature'));
       if (!simulator && signature?.valid != true) {
-        return const ProbeOutcome.skipped(
-            En.iosSignatureRequired, skippedAr: Ar.iosSignatureRequired);
+        return const ProbeOutcome.skipped(En.iosSignatureRequired,
+            skippedAr: Ar.iosSignatureRequired);
       }
 
       final installed = <IosDevice>{};
@@ -165,29 +165,32 @@ class IosProbeRunner {
               ...launch.console.errors,
             ].join('\n');
           }
-          if (!baselineAlive) baselineNoteAr = [Ar.probeControlDead, ...launch.console.errors].join('\n');
+          if (!baselineAlive) {
+            baselineNoteAr =
+                [Ar.probeControlDead, ...launch.console.errors].join('\n');
+          }
           for (final check in requested) {
             if (_verdict(launch.console, check, 0) != null) {
-              results.add(_unknown(check,
-                  En.iosControlReported, messageAr: Ar.iosControlReported));
+              results.add(_unknown(check, En.iosControlReported,
+                  messageAr: Ar.iosControlReported));
             }
           }
         });
         if (!baselineAlive) {
           results
             ..clear()
-            ..addAll(requested.map((check) =>
-                _unknown(check, En.iosControlStopped, messageAr: Ar.iosControlStopped)));
+            ..addAll(requested.map((check) => _unknown(
+                check, En.iosControlStopped,
+                messageAr: Ar.iosControlStopped)));
         } else {
           results.insert(
               0,
               ProbeResult(checkById('baseline'), ProbeStatus.notBlocked,
-                  evidence:
-                      En.iosAlive(seconds: wait.inSeconds),
+                  evidence: En.iosAlive(seconds: wait.inSeconds),
                   evidenceAr: Ar.iosAlive(seconds: wait.inSeconds),
-                  note: simulator
-                      ? En.iosSimulatorBuild : En.iosStockDevice,
-                  noteAr: simulator ? Ar.iosSimulatorBuild : Ar.iosStockDevice));
+                  note: simulator ? En.iosSimulatorBuild : En.iosStockDevice,
+                  noteAr:
+                      simulator ? Ar.iosSimulatorBuild : Ar.iosStockDevice));
           String? rootInstallError;
           for (final check in requested) {
             if (results.any((r) => r.check.id == check.id)) continue;
@@ -196,16 +199,16 @@ class IosProbeRunner {
               if (simulator && check.id == 'ios-hooking') {
                 final tools = Toolchain(control.host);
                 if (!tools.checkIosGadget(simulator: true).ok) {
-                  results.add(_unknown(check,
-                      En.iosInstallSimulatorGadget, messageAr: Ar.iosInstallSimulatorGadget));
+                  results.add(_unknown(check, En.iosInstallSimulatorGadget,
+                      messageAr: Ar.iosInstallSimulatorGadget));
                   continue;
                 }
                 final gadget = await _prepareSimulatorFrida(
                     control, original.bundleId, tools.iosSimulatorGadgetPath);
                 results.add(await _observe(control, original, check,
                     gadget: gadget,
-                    condition:
-                        En.iosGadgetVerified, conditionAr: Ar.iosGadgetVerified));
+                    condition: En.iosGadgetVerified,
+                    conditionAr: Ar.iosGadgetVerified));
               } else if (simulator && check.id == 'jailbreak') {
                 results
                     .add(await _simulatorJailbreak(control, original, check));
@@ -224,19 +227,28 @@ class IosProbeRunner {
                       'The installed Simulator signature does not match the prepared copy.');
                 }
                 final observed = await _observe(control, original, check,
-                    condition: En.iosSignatureChanged(beforeId: modified.before.identifier, beforeHash: modified.before.hash, afterId: modified.after.identifier, afterHash: modified.after.hash),
-                    conditionAr: Ar.iosSignatureChanged(beforeId: modified.before.identifier, beforeHash: modified.before.hash, afterId: modified.after.identifier, afterHash: modified.after.hash));
+                    condition: En.iosSignatureChanged(
+                        beforeId: modified.before.identifier,
+                        beforeHash: modified.before.hash,
+                        afterId: modified.after.identifier,
+                        afterHash: modified.after.hash),
+                    conditionAr: Ar.iosSignatureChanged(
+                        beforeId: modified.before.identifier,
+                        beforeHash: modified.before.hash,
+                        afterId: modified.after.identifier,
+                        afterHash: modified.after.hash));
                 results.add(_partial(observed));
               } else if (check.id == 'ios-hooking' && root == null) {
                 if (!debuggable) {
-                  results.add(_unknown(check, En.iosFridaNeedsDevelopment, messageAr: Ar.iosFridaNeedsDevelopment));
+                  results.add(_unknown(check, En.iosFridaNeedsDevelopment,
+                      messageAr: Ar.iosFridaNeedsDevelopment));
                   continue;
                 }
                 final tools = Toolchain(control.host);
                 if (!(await tools.checkFrida()).ok ||
                     !tools.checkIosGadget().ok) {
-                  results.add(_unknown(check,
-                      En.iosInstallFrida, messageAr: Ar.iosInstallFrida));
+                  results.add(_unknown(check, En.iosInstallFrida,
+                      messageAr: Ar.iosInstallFrida));
                   continue;
                 }
                 results.add(await _observe(control, original, check,
@@ -245,20 +257,19 @@ class IosProbeRunner {
                         gadgetCache: tools.iosFridaCache),
                     attachTimeout: const Duration(seconds: 30),
                     proof: (pid) => 'AEGIS_IOS_FRIDA_$pid',
-                    condition:
-                        En.iosStockFridaVerified, conditionAr: Ar.iosStockFridaVerified));
+                    condition: En.iosStockFridaVerified,
+                    conditionAr: Ar.iosStockFridaVerified));
               } else if (check.id == 'jailbreak' || check.id == 'ios-hooking') {
                 final udid = rootUdid;
                 if (root == null || udid == null) {
                   results.add(_unknown(
-                      check,
-                      rootError ??
-                          En.iosJailbreakDeviceMissing, messageAr: rootError ?? Ar.iosJailbreakDeviceMissing));
+                      check, rootError ?? En.iosJailbreakDeviceMissing,
+                      messageAr: rootError ?? Ar.iosJailbreakDeviceMissing));
                   continue;
                 }
                 if (!await verifyIosJailbreak(udid, root.host)) {
-                  results.add(_unknown(check,
-                      En.iosRootUnverified, messageAr: Ar.iosRootUnverified));
+                  results.add(_unknown(check, En.iosRootUnverified,
+                      messageAr: Ar.iosRootUnverified));
                   continue;
                 }
                 if (!installed.contains(root) && rootInstallError == null) {
@@ -274,32 +285,32 @@ class IosProbeRunner {
                 }
                 results.add(check.id == 'jailbreak'
                     ? await _observe(root, original, check,
-                        condition:
-                            En.iosRootVerified, conditionAr: Ar.iosRootVerified)
+                        condition: En.iosRootVerified,
+                        conditionAr: Ar.iosRootVerified)
                     : await _observe(root, original, check,
                         attach: (pid) =>
                             attachIosFrida(_fridaPython(), udid, pid),
                         proof: (pid) => 'AEGIS_IOS_FRIDA_$pid',
-                        condition:
-                            En.iosFridaVerified, conditionAr: Ar.iosFridaVerified));
+                        condition: En.iosFridaVerified,
+                        conditionAr: Ar.iosFridaVerified));
               } else if (check.id == 'ios-debugger') {
                 if (!simulator &&
                     original.machO.every((slice) =>
                         slice.entitlements != null &&
                         slice.entitlements!['get-task-allow'] != true)) {
-                  results.add(_unknown(check,
-                      En.iosDebuggerNeedsDevelopment, messageAr: Ar.iosDebuggerNeedsDevelopment));
+                  results.add(_unknown(check, En.iosDebuggerNeedsDevelopment,
+                      messageAr: Ar.iosDebuggerNeedsDevelopment));
                   continue;
                 }
                 results.add(await _observe(control, original, check,
                     attach: control.debugger,
                     proof: (pid) => 'AEGIS_IOS_DEBUG_$pid',
-                    condition:
-                        En.iosDebuggerVerified, conditionAr: Ar.iosDebuggerVerified));
+                    condition: En.iosDebuggerVerified,
+                    conditionAr: Ar.iosDebuggerVerified));
               } else {
                 if (resignedIpa == null) {
-                  results.add(_unknown(check,
-                      En.iosResignedMissing, messageAr: Ar.iosResignedMissing));
+                  results.add(_unknown(check, En.iosResignedMissing,
+                      messageAr: Ar.iosResignedMissing));
                   continue;
                 }
                 final alternative = IpaContext.load(resignedIpa);
@@ -310,8 +321,8 @@ class IosProbeRunner {
                 await _install(
                     control, alternateApp, original.bundleId, installed);
                 results.add(await _observe(control, alternative, check,
-                    condition:
-                        En.iosCertificateChanged, conditionAr: Ar.iosCertificateChanged));
+                    condition: En.iosCertificateChanged,
+                    conditionAr: Ar.iosCertificateChanged));
               }
             } catch (e) {
               final unknown = _unknown(check, '$e');
@@ -333,8 +344,10 @@ class IosProbeRunner {
               installed.remove(control);
             }
             await _install(control, app, original.bundleId, installed);
-            final observer = await IosPlatformObserver.prepare(control, original.bundleId);
-            platformObservations = await _withLaunch(control, original, (launch, pid) async {
+            final observer =
+                await IosPlatformObserver.prepare(control, original.bundleId);
+            platformObservations = await _withLaunch(control, original,
+                (launch, pid) async {
               if (pid == null) return <String, Object?>{};
               await Future<void>.delayed(const Duration(seconds: 5));
               if (!await _sameProcess(launch, pid)) return <String, Object?>{};
@@ -343,18 +356,38 @@ class IosProbeRunner {
               final screen = Map<String, Object?>.from(facts['screen'] as Map);
               final shot = File(p.join(work.path, 'platform-screen.png'));
               try {
-                final captured = await control.host.run('xcrun', ['simctl', 'io', control.id, 'screenshot', shot.path], timeout: const Duration(seconds: 15));
-                if (captured?.ok == true && shot.existsSync() && shot.lengthSync() >= 24 && shot.lengthSync() <= 32 * 1024 * 1024) {
+                final captured = await control.host.run('xcrun',
+                    ['simctl', 'io', control.id, 'screenshot', shot.path],
+                    timeout: const Duration(seconds: 15));
+                if (captured?.ok == true &&
+                    shot.existsSync() &&
+                    shot.lengthSync() >= 24 &&
+                    shot.lengthSync() <= 32 * 1024 * 1024) {
                   final handle = shot.openSync();
                   try {
                     final header = handle.readSync(8);
-                    if (base64Encode(header) == 'iVBORw0KGgo=') screen['screenshotsCaptured'] = 1;
-                  } finally { handle.closeSync(); }
+                    if (base64Encode(header) == 'iVBORw0KGgo=') {
+                      screen['screenshotsCaptured'] = 1;
+                    }
+                  } finally {
+                    handle.closeSync();
+                  }
                 }
-              } finally { if (shot.existsSync()) shot.deleteSync(); }
+              } finally {
+                if (shot.existsSync()) shot.deleteSync();
+              }
               // Opening Settings only backgrounds the app in the dedicated
               // Simulator. It does not change a setting or press an app button.
-              final background = await control.host.run('xcrun', ['simctl', 'launch', '--terminate-running-process', control.id, 'com.apple.Preferences'], timeout: const Duration(seconds: 15));
+              final background = await control.host.run(
+                  'xcrun',
+                  [
+                    'simctl',
+                    'launch',
+                    '--terminate-running-process',
+                    control.id,
+                    'com.apple.Preferences'
+                  ],
+                  timeout: const Duration(seconds: 15));
               if (background?.ok == true) {
                 Map<String, Object?> after = {};
                 for (var attempt = 0; attempt < 16; attempt++) {
@@ -366,15 +399,20 @@ class IosProbeRunner {
                   screen['backgroundObserved'] = 1;
                   final state = after['screen'];
                   if (state is Map) {
-                    screen['backgroundPasswordFields'] = state['passwordFields'];
-                    screen['backgroundUnmaskedPasswordFields'] = state['unmaskedPasswordFields'];
+                    screen['backgroundPasswordFields'] =
+                        state['passwordFields'];
+                    screen['backgroundUnmaskedPasswordFields'] =
+                        state['unmaskedPasswordFields'];
                   }
                 }
               }
               return {...facts, 'screen': screen};
-            }, simulatorLibrary: observer.library, simulatorEnvironment: observer.environment);
+            },
+                simulatorLibrary: observer.library,
+                simulatorEnvironment: observer.environment);
           } catch (_) {
-            log?.call('iOS: platform observation unavailable; coverage remains partial.');
+            log?.call(
+                'iOS: platform observation unavailable; coverage remains partial.');
           }
         }
       } finally {
@@ -421,27 +459,29 @@ class IosProbeRunner {
         simulatorLibrary: helper.library,
         simulatorEnvironment: control.environment);
     if (!clean) {
-      return _partial(_unknown(check,
-          En.iosIndicatorControlFailed, messageAr: Ar.iosIndicatorControlFailed));
+      return _partial(_unknown(check, En.iosIndicatorControlFailed,
+          messageAr: Ar.iosIndicatorControlFailed));
     }
     final injected = helper.session(enabled: true);
     return _withLaunch(target, ipa, (launch, pid) async {
       await Future<void>.delayed(wait);
       if (pid == null) {
-        return _partial(
-            _unknown(check, En.iosIndicatorPidMissing, messageAr: Ar.iosIndicatorPidMissing));
+        return _partial(_unknown(check, En.iosIndicatorPidMissing,
+            messageAr: Ar.iosIndicatorPidMissing));
       }
       final events = injected.events(pid);
       if (!events.contains('ready') || events.contains('failed')) {
-        return _partial(_unknown(check,
-            En.iosIndicatorProofMissing, messageAr: Ar.iosIndicatorProofMissing));
+        return _partial(_unknown(check, En.iosIndicatorProofMissing,
+            messageAr: Ar.iosIndicatorProofMissing));
       }
       final queries = events.where((e) => e.startsWith('query:')).toSet();
       final alive = await _sameProcess(launch, pid);
       final verdict = _verdict(launch.console, check, 0);
       final queryList = queries.isEmpty ? '' : ' (${queries.join(', ')})';
-      final evidence = En.iosIndicatorsVerified(pid: pid, count: queries.length, queries: queryList);
-      final evidenceAr = Ar.iosIndicatorsVerified(pid: pid, count: queries.length, queries: queryList);
+      final evidence = En.iosIndicatorsVerified(
+          pid: pid, count: queries.length, queries: queryList);
+      final evidenceAr = Ar.iosIndicatorsVerified(
+          pid: pid, count: queries.length, queries: queryList);
       if (verdict == ProbeStatus.blocked ||
           verdict == null &&
               !alive &&
@@ -451,18 +491,19 @@ class IosProbeRunner {
             processOnly: verdict == null,
             evidence:
                 '$evidence${verdict == null ? En.iosIndicatorExit : En.iosReportedBlock}',
-            evidenceAr: '$evidenceAr${verdict == null ? Ar.iosIndicatorExit : Ar.iosReportedBlock}'));
+            evidenceAr:
+                '$evidenceAr${verdict == null ? Ar.iosIndicatorExit : Ar.iosReportedBlock}'));
       }
       if (verdict != ProbeStatus.inconclusive && alive) {
         return _partial(ProbeResult(check, ProbeStatus.notBlocked,
             processOnly: verdict == null,
             evidence:
                 '$evidence${En.iosAlive(seconds: wait.inSeconds)} ${queries.isEmpty ? En.iosNoIndicatorQuery : ''}',
-            evidenceAr: '$evidenceAr${Ar.iosAlive(seconds: wait.inSeconds)} ${queries.isEmpty ? Ar.iosNoIndicatorQuery : ''}'));
+            evidenceAr:
+                '$evidenceAr${Ar.iosAlive(seconds: wait.inSeconds)} ${queries.isEmpty ? Ar.iosNoIndicatorQuery : ''}'));
       }
       return _partial(ProbeResult(check, ProbeStatus.inconclusive,
-          evidence:
-              '$evidence${En.iosAmbiguousOutcome}',
+          evidence: '$evidence${En.iosAmbiguousOutcome}',
           evidenceAr: '$evidenceAr${Ar.iosAmbiguousOutcome}'));
     },
         simulatorLibrary: helper.library,
@@ -546,34 +587,35 @@ class IosProbeRunner {
         try {
           if (attach != null) {
             if (pid == null) {
-              return _unknown(
-                  check, En.iosAttachPidMissing, messageAr: Ar.iosAttachPidMissing);
+              return _unknown(check, En.iosAttachPidMissing,
+                  messageAr: Ar.iosAttachPidMissing);
             }
             await Future<void>.delayed(wait);
             if (!await _sameProcess(launch, pid) ||
                 _verdict(launch.console, check, 0) != null) {
-              return _unknown(check,
-                  En.iosAttachBaselineFailed, messageAr: Ar.iosAttachBaselineFailed);
+              return _unknown(check, En.iosAttachBaselineFailed,
+                  messageAr: Ar.iosAttachBaselineFailed);
             }
             after = launch.console.position;
             tool = await attach(pid);
             if (!await tool.ready(proof!(pid), timeout: attachTimeout)) {
               final error =
                   tool.errors.where((line) => line.isNotEmpty).lastOrNull;
-              return _unknown(
-                  check,
+              return _unknown(check,
                   En.iosAttachmentFailed(error: error == null ? '' : ' $error'),
-                  messageAr: Ar.iosAttachmentFailed(error: error == null ? '' : ' $error'));
+                  messageAr: Ar.iosAttachmentFailed(
+                      error: error == null ? '' : ' $error'));
             }
           }
           await Future<void>.delayed(wait);
           if (gadget != null && (pid == null || !gadget.verify(pid))) {
-            return _unknown(check,
-                En.iosGadgetProofMissing, messageAr: Ar.iosGadgetProofMissing);
+            return _unknown(check, En.iosGadgetProofMissing,
+                messageAr: Ar.iosGadgetProofMissing);
           }
           final outcome = _verdict(launch.console, check, after);
           if (outcome == ProbeStatus.inconclusive) {
-            return _unknown(check, En.iosConflictingOutcomes, messageAr: Ar.iosConflictingOutcomes);
+            return _unknown(check, En.iosConflictingOutcomes,
+                messageAr: Ar.iosConflictingOutcomes);
           }
           if (outcome == ProbeStatus.blocked) {
             return ProbeResult(check, ProbeStatus.blocked,
@@ -595,12 +637,14 @@ class IosProbeRunner {
             return ProbeResult(check, ProbeStatus.notBlocked,
                 processOnly: outcome == null,
                 evidence: outcome == null
-                    ? En.iosContinued(condition: condition) : En.iosOperationContinued(condition: condition),
+                    ? En.iosContinued(condition: condition)
+                    : En.iosOperationContinued(condition: condition),
                 evidenceAr: outcome == null
-                    ? Ar.iosContinued(condition: conditionAr) : Ar.iosOperationContinued(condition: conditionAr));
+                    ? Ar.iosContinued(condition: conditionAr)
+                    : Ar.iosOperationContinued(condition: conditionAr));
           }
-          return _unknown(
-              check, En.iosNoOutcome(condition: condition), messageAr: Ar.iosNoOutcome(condition: conditionAr));
+          return _unknown(check, En.iosNoOutcome(condition: condition),
+              messageAr: Ar.iosNoOutcome(condition: conditionAr));
         } finally {
           await tool?.close();
         }
@@ -662,14 +706,17 @@ ProbeResult _partial(ProbeResult observation) {
       evidence: observation.evidence.isEmpty
           ? (observation.note ?? '')
           : observation.evidence,
-      evidenceAr: observation.evidence.isEmpty ? observation.noteAr : observation.evidenceAr,
+      evidenceAr: observation.evidence.isEmpty
+          ? observation.noteAr
+          : observation.evidenceAr,
       processOnly: observation.processOnly,
       note: jailbreak ? jailbreakLimit : signingLimit,
       noteAr: jailbreak ? jailbreakLimitAr : signingLimitAr);
 }
 
 ProbeResult _unknown(ProbeCheck check, String message, {String? messageAr}) =>
-    ProbeResult(check, ProbeStatus.inconclusive, note: message, noteAr: messageAr);
+    ProbeResult(check, ProbeStatus.inconclusive,
+        note: message, noteAr: messageAr);
 
 ProbeStatus? _verdict(IosCommand console, ProbeCheck check, int after) {
   final prefix = 'AegisProbe ${check.id.replaceFirst('ios-', '')} ';

@@ -71,7 +71,8 @@ ArgParser auditParser({bool run = false}) => _iosOptions(
           allowed: auditModes,
           hide: !run,
           allowedHelp: {
-            'code': 'Dart, Kotlin, Java, Swift and Objective-C source plus platform configuration.',
+            'code':
+                'Dart, Kotlin, Java, Swift and Objective-C source plus platform configuration.',
             'apk':
                 'Code + the APK at apk: in aegis.yaml + the resilience probe on the two emulators.',
             'aab':

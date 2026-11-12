@@ -16,10 +16,15 @@ class IpaSignatureRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-I05',
-        title: Bilingual(En.ipaRulesIpaCodeSignatureFailedVerification, Ar.ipaRulesIpaCodeSignatureFailedVerification),
-        passTitleText: Bilingual(En.ipaRulesIpaCodeSignatureVerified, Ar.ipaRulesIpaCodeSignatureVerified),
-        description: Bilingual(En.ipaRulesTheReleaseApplicationAndItsNestedCodeShould, Ar.ipaRulesTheReleaseApplicationAndItsNestedCodeShould),
-        fix: Bilingual(En.ipaRulesExportTheIntendedReleaseFromXcodeWithValid, Ar.ipaRulesExportTheIntendedReleaseFromXcodeWithValid),
+        title: Bilingual(En.ipaRulesIpaCodeSignatureFailedVerification,
+            Ar.ipaRulesIpaCodeSignatureFailedVerification),
+        passTitleText: Bilingual(En.ipaRulesIpaCodeSignatureVerified,
+            Ar.ipaRulesIpaCodeSignatureVerified),
+        description: Bilingual(
+            En.ipaRulesTheReleaseApplicationAndItsNestedCodeShould,
+            Ar.ipaRulesTheReleaseApplicationAndItsNestedCodeShould),
+        fix: Bilingual(En.ipaRulesExportTheIntendedReleaseFromXcodeWithValid,
+            Ar.ipaRulesExportTheIntendedReleaseFromXcodeWithValid),
         severity: Severity.high,
         profiles: _all,
         masvs: ['MASVS-RESILIENCE-2'],
@@ -30,14 +35,16 @@ class IpaSignatureRule extends Rule {
     final ipa = project.ipa!;
     final signature = project.iosSignature!;
     if (signature.valid == null) {
-      return RuleCheck.incompleteLocalized(signature.evidence, signature.evidenceAr);
+      return RuleCheck.incompleteLocalized(
+          signature.evidence, signature.evidenceAr);
     }
     if (signature.valid == true) return RuleCheck(const []);
     return RuleCheck([
       inFile('${ipa.label}!/${ipa.appPath}/${ipa.executable}', null,
           En.ipaRulesAppleCodesignRejectedThePackagedApp,
           messageAr: Ar.ipaRulesAppleCodesignRejectedThePackagedApp,
-          snippet: signature.evidence, snippetAr: signature.evidenceAr),
+          snippet: signature.evidence,
+          snippetAr: signature.evidenceAr),
     ]);
   }
 }
@@ -48,10 +55,16 @@ class IpaBundledSecretsRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-I06',
-        title: Bilingual(En.ipaRulesPotentialSecretFilePackagedInIpa, Ar.ipaRulesPotentialSecretFilePackagedInIpa),
-        passTitleText: Bilingual(En.ipaRulesPackagedResourcesPassedTheSecretFileCheck, Ar.ipaRulesPackagedResourcesPassedTheSecretFileCheck),
-        description: Bilingual(En.ipaRulesAnyoneWithTheIpaCanReadItsPackaged, Ar.ipaRulesAnyoneWithTheIpaCanReadItsPackaged),
-        fix: Bilingual(En.ipaRulesRemovePrivateKeysAndSecretConfigurationFilesFrom, Ar.ipaRulesRemovePrivateKeysAndSecretConfigurationFilesFrom),
+        title: Bilingual(En.ipaRulesPotentialSecretFilePackagedInIpa,
+            Ar.ipaRulesPotentialSecretFilePackagedInIpa),
+        passTitleText: Bilingual(
+            En.ipaRulesPackagedResourcesPassedTheSecretFileCheck,
+            Ar.ipaRulesPackagedResourcesPassedTheSecretFileCheck),
+        description: Bilingual(En.ipaRulesAnyoneWithTheIpaCanReadItsPackaged,
+            Ar.ipaRulesAnyoneWithTheIpaCanReadItsPackaged),
+        fix: Bilingual(
+            En.ipaRulesRemovePrivateKeysAndSecretConfigurationFilesFrom,
+            Ar.ipaRulesRemovePrivateKeysAndSecretConfigurationFilesFrom),
         severity: Severity.high,
         profiles: _all,
         masvs: ['MASVS-STORAGE-1'],
@@ -66,11 +79,15 @@ class IpaBundledSecretsRule extends Rule {
     return RuleCheck([
       for (final path in ipa.archive.entries.keys)
         if (path.startsWith('${ipa.appPath}/') && secret.hasMatch(path))
-          inFile(
-              '${ipa.label}!/$path', null, En.ipaRulesPotentialSecretFileIsPackaged,
+          inFile('${ipa.label}!/$path', null,
+              En.ipaRulesPotentialSecretFileIsPackaged,
               messageAr: Ar.ipaRulesPotentialSecretFileIsPackaged),
     ]);
   }
 }
 
-const ipaRules = <Rule>[IpaSignatureRule(), IpaBundledSecretsRule(), ...ipaHardeningRules];
+const ipaRules = <Rule>[
+  IpaSignatureRule(),
+  IpaBundledSecretsRule(),
+  ...ipaHardeningRules
+];

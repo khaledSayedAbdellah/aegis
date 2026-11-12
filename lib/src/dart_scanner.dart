@@ -320,7 +320,10 @@ class DartFile {
       if (segStart >= endExclusive) return;
       final a = tokens[segStart];
       final b = at(segStart + 1);
-      if (a.isIdent && b != null && b.isPunct(':') && segStart + 2 < endExclusive) {
+      if (a.isIdent &&
+          b != null &&
+          b.isPunct(':') &&
+          segStart + 2 < endExclusive) {
         out.add(Arg(a.text, segStart + 2, endExclusive - 1));
       } else {
         out.add(Arg(null, segStart, endExclusive - 1));
@@ -372,7 +375,9 @@ class DartFile {
       if (close == null) continue;
       var b = close + 1;
       final n = at(b);
-      if (n != null && n.isIdent && (n.text == 'async' || n.text == 'sync')) b++;
+      if (n != null && n.isIdent && (n.text == 'async' || n.text == 'sync')) {
+        b++;
+      }
       final body = at(b);
       if (body == null) continue;
       if (body.isPunct('{')) {
@@ -515,7 +520,8 @@ class _Lexer {
               _isDigit(src.codeUnitAt(e + 1))) {
             e++;
           } else if ((d == 0x2B || d == 0x2D) &&
-              (src.codeUnitAt(e - 1) == 0x65 || src.codeUnitAt(e - 1) == 0x45) &&
+              (src.codeUnitAt(e - 1) == 0x65 ||
+                  src.codeUnitAt(e - 1) == 0x45) &&
               !src.substring(i, e).toLowerCase().startsWith('0x')) {
             e++;
           } else {

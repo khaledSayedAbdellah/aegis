@@ -66,19 +66,22 @@ List<_Field> _fields(Uint8List b) {
       case 1:
         if (p + 8 > b.length) throw const FormatException('Truncated fixed64.');
         out.add(_Field(number, wire,
-            value: ByteData.sublistView(b, p, p + 8).getUint64(0, Endian.little)));
+            value:
+                ByteData.sublistView(b, p, p + 8).getUint64(0, Endian.little)));
         p += 8;
       case 2:
         final len = varint();
         if (len < 0 || p + len > b.length) {
           throw const FormatException('Truncated length-delimited field.');
         }
-        out.add(_Field(number, wire, bytes: Uint8List.sublistView(b, p, p + len)));
+        out.add(
+            _Field(number, wire, bytes: Uint8List.sublistView(b, p, p + len)));
         p += len;
       case 5:
         if (p + 4 > b.length) throw const FormatException('Truncated fixed32.');
         out.add(_Field(number, wire,
-            value: ByteData.sublistView(b, p, p + 4).getUint32(0, Endian.little)));
+            value:
+                ByteData.sublistView(b, p, p + 4).getUint32(0, Endian.little)));
         p += 4;
       default:
         throw FormatException('Unsupported wire type $wire.');
@@ -135,8 +138,9 @@ String decodeProtoXml(Uint8List bytes) {
   return out.toString();
 }
 
-void _writeElement(Uint8List message, StringBuffer out,
-    Map<String, String> prefixes, {required bool root, required int depth}) {
+void _writeElement(
+    Uint8List message, StringBuffer out, Map<String, String> prefixes,
+    {required bool root, required int depth}) {
   if (depth > 256) throw const FormatException('XML nested too deeply.');
   final fields = _fields(message);
   final declared = <String, String>{};
@@ -144,7 +148,8 @@ void _writeElement(Uint8List message, StringBuffer out,
     final ns = _fields(f.bytes!);
     final uri = _stringField(ns, 2);
     if (uri.isEmpty) continue;
-    final prefix = uri == _androidUri ? 'android' : _xmlName(_stringField(ns, 1));
+    final prefix =
+        uri == _androidUri ? 'android' : _xmlName(_stringField(ns, 1));
     if (prefixes[uri] != prefix) declared[uri] = prefix;
     prefixes[uri] = prefix;
   }
@@ -189,7 +194,8 @@ void _writeElement(Uint8List message, StringBuffer out,
     // Declare every prefix in use on the root, like the binary decoder.
     declared.addAll({for (final e in prefixes.entries) e.key: e.value});
   }
-  declared.forEach((uri, prefix) => out.write(' xmlns:$prefix="${_escape(uri)}"'));
+  declared
+      .forEach((uri, prefix) => out.write(' xmlns:$prefix="${_escape(uri)}"'));
   out.write(attrs);
   out.write('>');
 
@@ -265,10 +271,11 @@ String _escape(String s) => s
     .replaceAll('"', '&quot;');
 
 /// Resolves the file values of a compiled bundle resource.
-Set<String> protoResourceFiles(Uint8List bytes, {int? id, String? name, String? packageName}) {
-  Iterable<List<_Field>> messages(List<_Field> fields, int number) =>
-      fields.where((f) => f.number == number && f.bytes != null)
-          .map((f) => _fields(f.bytes!));
+Set<String> protoResourceFiles(Uint8List bytes,
+    {int? id, String? name, String? packageName}) {
+  Iterable<List<_Field>> messages(List<_Field> fields, int number) => fields
+      .where((f) => f.number == number && f.bytes != null)
+      .map((f) => _fields(f.bytes!));
   int? resourceId(List<_Field> fields) =>
       messages(fields, 1).map((m) => _intField(m, 1) ?? 0).firstOrNull;
 
@@ -280,19 +287,33 @@ Set<String> protoResourceFiles(Uint8List bytes, {int? id, String? name, String? 
     final cached = resolved[key];
     if (cached != null) return cached;
     if (visiting.length >= 32 || !visiting.add(key)) {
-      throw const FormatException('Cyclic or excessive bundle resource aliases');
+      throw const FormatException(
+          'Cyclic or excessive bundle resource aliases');
     }
 
     final paths = <String>{};
     for (final package in packages) {
       final packageLabel = _stringField(package, 2);
-      if (id != null ? resourceId(package) != id >> 24 : packageName != packageLabel) continue;
+      if (id != null
+          ? resourceId(package) != id >> 24
+          : packageName != packageLabel) {
+        continue;
+      }
       for (final type in messages(package, 3)) {
-        if (id != null ? resourceId(type) != (id >> 16 & 0xff) : _stringField(type, 2) != 'xml') continue;
+        if (id != null
+            ? resourceId(type) != (id >> 16 & 0xff)
+            : _stringField(type, 2) != 'xml') {
+          continue;
+        }
         for (final entry in messages(type, 3)) {
-          if (id != null ? resourceId(entry) != (id & 0xffff) : _stringField(entry, 2) != name) continue;
+          if (id != null
+              ? resourceId(entry) != (id & 0xffff)
+              : _stringField(entry, 2) != name) {
+            continue;
+          }
           for (final config in messages(entry, 6)) {
-            final item = messages(config, 2).expand((v) => messages(v, 4)).firstOrNull;
+            final item =
+                messages(config, 2).expand((v) => messages(v, 4)).firstOrNull;
             final file = item == null ? null : messages(item, 5).firstOrNull;
             if (file != null && _stringField(file, 1).isNotEmpty) {
               paths.add(_stringField(file, 1));
@@ -303,15 +324,19 @@ Set<String> protoResourceFiles(Uint8List bytes, {int? id, String? name, String? 
             final refName = RegExp(r'^(?:([\w.]+):)?xml/([\w.]+)$')
                 .firstMatch(ref == null ? '' : _stringField(ref, 3));
             if ((refId == null || refId == 0) && refName == null) {
-              throw const FormatException('Expected a bundle resource file path or alias');
+              throw const FormatException(
+                  'Expected a bundle resource file path or alias');
             }
-            paths.addAll(resolve(refId == 0 ? null : refId, refName?[2], refName?[1] ?? packageLabel));
+            paths.addAll(resolve(refId == 0 ? null : refId, refName?[2],
+                refName?[1] ?? packageLabel));
           }
         }
       }
     }
     visiting.remove(key);
-    if (paths.isEmpty) throw const FormatException('Bundle resource has no file variants');
+    if (paths.isEmpty) {
+      throw const FormatException('Bundle resource has no file variants');
+    }
     return resolved[key] = paths;
   }
 

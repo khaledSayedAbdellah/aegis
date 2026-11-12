@@ -17,7 +17,8 @@ const flutterBundleDir = 'build/app/outputs/bundle';
 /// that was built last wins (e.g. `app-prod-release.aab`).
 File? findBuiltBinary(String root, String kind) {
   assert(kind == 'apk' || kind == 'aab');
-  final dir = Directory(p.join(root, kind == 'aab' ? flutterBundleDir : flutterApkDir));
+  final dir =
+      Directory(p.join(root, kind == 'aab' ? flutterBundleDir : flutterApkDir));
   if (!dir.existsSync()) return null;
   File? newest;
   DateTime? newestTime;
@@ -36,7 +37,10 @@ File? findBuiltBinary(String root, String kind) {
 
 /// The release APK or AAB built most recently, whichever is newer.
 File? findNewestBinary(String root) {
-  final candidates = [findBuiltBinary(root, 'aab'), findBuiltBinary(root, 'apk')].whereType<File>().toList()
+  final candidates = [
+    findBuiltBinary(root, 'aab'),
+    findBuiltBinary(root, 'apk')
+  ].whereType<File>().toList()
     ..sort((a, b) => b.lastModifiedSync().compareTo(a.lastModifiedSync()));
   return candidates.isEmpty ? null : candidates.first;
 }

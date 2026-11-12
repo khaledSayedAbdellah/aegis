@@ -97,7 +97,8 @@ class Setup {
     final byId = {for (final c in checks) c.id: c};
     final present = checks.where((c) => c.ok).toList();
     final manual = checks.where((c) => c.state == ToolState.manual).toList();
-    final optional = checks.where((c) => c.state == ToolState.optional).toList();
+    final optional =
+        checks.where((c) => c.state == ToolState.optional).toList();
     final willHave = {for (final c in present) c.id};
     final steps = <SetupStep>[];
     final blocked = <String, List<String>>{};
@@ -236,13 +237,15 @@ class Setup {
         'control-avd' => await _createAvd(control: true),
         'frida' => await _installFrida(log),
         'frida-server' => await _installFridaServer(log),
-        'ios-gadget' => await _installIosGadget(toolchain.iosGadgetPath,
-            pins.iosGadgetUrl, pins.iosGadgetPin, log),
+        'ios-gadget' => await _installIosGadget(
+            toolchain.iosGadgetPath, pins.iosGadgetUrl, pins.iosGadgetPin, log),
         'ios-simulator-gadget' => await _installIosGadget(
-            toolchain.iosSimulatorGadgetPath, pins.iosSimulatorGadgetUrl,
-            pins.iosSimulatorGadgetPin, log),
-        'bundletool' => await verifiedDownload(
-            pins.bundletoolUrl, toolchain.bundletoolPath, pins.bundletoolPin, log),
+            toolchain.iosSimulatorGadgetPath,
+            pins.iosSimulatorGadgetUrl,
+            pins.iosSimulatorGadgetPin,
+            log),
+        'bundletool' => await verifiedDownload(pins.bundletoolUrl,
+            toolchain.bundletoolPath, pins.bundletoolPin, log),
         'platform-tools' ||
         'build-tools' ||
         'emulator' ||
@@ -258,17 +261,17 @@ class Setup {
 
   Future<String?> _createAvd({bool control = false}) async {
     final name = control ? pins.controlAvdName : pins.avdName;
-    final image = control ? toolchain.controlImagePackage : toolchain.systemImagePackage;
+    final image =
+        control ? toolchain.controlImagePackage : toolchain.systemImagePackage;
     final root = (await toolchain.findSdkRoot())?.path;
-    final avdmanager = root == null ? null : toolchain.sdkTool(root, 'avdmanager');
+    final avdmanager =
+        root == null ? null : toolchain.sdkTool(root, 'avdmanager');
     if (avdmanager == null) return 'avdmanager not found';
     // "no" declines the custom-hardware-profile question. No --force, so an
     // existing AVD of this name is never overwritten.
-    final r = await host.run(
-        avdmanager,
+    final r = await host.run(avdmanager,
         ['create', 'avd', '-n', name, '-k', image, '-d', pins.avdDevice],
-        environment: await _javaEnv(),
-        input: 'no\n');
+        environment: await _javaEnv(), input: 'no\n');
     if (r == null) return 'could not run avdmanager';
     if (!r.ok) return 'avdmanager exited ${r.exitCode}: ${r.text.trim()}';
     final home = toolchain.avdHome;
@@ -284,20 +287,27 @@ class Setup {
     final venvPython = toolchain.venvExe('python');
     if (!host.fileExists(venvPython) && !host.fileExists('${venvPython}3')) {
       log('python -m venv ${toolchain.tilde(toolchain.venvDir)}');
-      final code = await host.runAttached(py, ['-m', 'venv', toolchain.venvDir]);
+      final code =
+          await host.runAttached(py, ['-m', 'venv', toolchain.venvDir]);
       if (code != 0) return 'could not create the venv (exit $code)';
     }
     // The venv's pip comes from the system Python and can be too old for the
     // current Frida wheels (Xcode's Python 3.9 ships pip 21). Upgrade it inside
     // the venv only.
     log('pip install --upgrade pip');
-    final pipCode = await host.runAttached(
-        venvPython, ['-m', 'pip', 'install', '--upgrade', 'pip']);
-    if (pipCode != 0) return 'could not upgrade pip in the venv (exit $pipCode)';
+    final pipCode = await host
+        .runAttached(venvPython, ['-m', 'pip', 'install', '--upgrade', 'pip']);
+    if (pipCode != 0) {
+      return 'could not upgrade pip in the venv (exit $pipCode)';
+    }
     log('pip install frida==${pins.fridaVersion} frida-tools==${pins.fridaToolsVersion}');
     final code = await host.runAttached(venvPython, [
-      '-m', 'pip', 'install', '--upgrade',
-      'frida==${pins.fridaVersion}', 'frida-tools==${pins.fridaToolsVersion}',
+      '-m',
+      'pip',
+      'install',
+      '--upgrade',
+      'frida==${pins.fridaVersion}',
+      'frida-tools==${pins.fridaToolsVersion}',
     ]);
     return code == 0 ? null : 'pip install failed (exit $code)';
   }
@@ -306,8 +316,8 @@ class Setup {
     final dest = toolchain.fridaServerPath;
     final xz = '$dest.xz';
     final url = pins.fridaServerUrl(toolchain.fridaArch);
-    final verifyErr =
-        await verifiedDownload(url, xz, pins.fridaServerPin(toolchain.fridaArch), log);
+    final verifyErr = await verifiedDownload(
+        url, xz, pins.fridaServerPin(toolchain.fridaArch), log);
     if (verifyErr != null) return verifyErr;
     final bytes = XZDecoder().decodeBytes(host.readBytes(xz));
     host.writeBytes(dest, bytes);
@@ -316,8 +326,8 @@ class Setup {
     return null;
   }
 
-  Future<String?> _installIosGadget(
-      String dest, String url, pins.Pinned pin, void Function(String) log) async {
+  Future<String?> _installIosGadget(String dest, String url, pins.Pinned pin,
+      void Function(String) log) async {
     final staged = '$dest.${DateTime.now().microsecondsSinceEpoch}.tmp';
     final xz = '$staged.xz';
     try {
@@ -334,8 +344,8 @@ class Setup {
 
   /// Downloads [url] to [dest] and checks its SHA-256 against [pin];
   /// a mismatch deletes the file and fails. Returns null on success.
-  Future<String?> verifiedDownload(
-      String url, String dest, pins.Pinned pin, void Function(String) log) async {
+  Future<String?> verifiedDownload(String url, String dest, pins.Pinned pin,
+      void Function(String) log) async {
     log('download $url');
     final err = await host.download(url, dest);
     if (err != null) return err;
@@ -356,7 +366,11 @@ class Setup {
   /// the paths/items removed.
   Future<List<String>> remove() async {
     final removed = <String>[];
-    for (final path in [toolchain.venvDir, toolchain.toolsDir, toolchain.toolsJsonPath]) {
+    for (final path in [
+      toolchain.venvDir,
+      toolchain.toolsDir,
+      toolchain.toolsJsonPath
+    ]) {
       if (host.fileExists(path) || host.dirExists(path)) {
         host.deletePath(path);
         removed.add(toolchain.tilde(path));
@@ -370,7 +384,8 @@ class Setup {
       final avdDir = p.join(avdHome, '$name.avd');
       if (!host.dirExists(avdDir)) continue;
       final root = (await toolchain.findSdkRoot())?.path;
-      final avdmanager = root == null ? null : toolchain.sdkTool(root, 'avdmanager');
+      final avdmanager =
+          root == null ? null : toolchain.sdkTool(root, 'avdmanager');
       if (avdmanager != null) {
         final result = await host.run(avdmanager, ['delete', 'avd', '-n', name],
             environment: await _javaEnv());

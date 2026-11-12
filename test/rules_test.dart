@@ -5,7 +5,8 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 /// Writes [files] into a temporary project and audits it offline.
-Future<AuditReport> audit(Map<String, String> files, {String profile = 'l2+r'}) async {
+Future<AuditReport> audit(Map<String, String> files,
+    {String profile = 'l2+r'}) async {
   final dir = Directory.systemTemp.createTempSync('aegis_test_');
   addTearDown(() => dir.deleteSync(recursive: true));
   final all = {
@@ -18,7 +19,8 @@ Future<AuditReport> audit(Map<String, String> files, {String profile = 'l2+r'}) 
     f.writeAsStringSync(content);
   });
   return runAudit(dir.path,
-      config: AegisConfig(profile: ProfileSet.tryParse(profile)!), offline: true);
+      config: AegisConfig(profile: ProfileSet.tryParse(profile)!),
+      offline: true);
 }
 
 Set<String> failedIds(AuditReport r) => r.failed.map((x) => x.meta.id).toSet();
@@ -143,8 +145,10 @@ void f() {
 ''',
       });
       final secrets = result(r, 'AEG-D01');
-      expect(secrets.findings, hasLength(1), reason: 'tokenKey is a storage key name');
-      expect(secrets.findings.single.snippet, isNot(contains('q8Zr2LwX9vT4mN7pK1sB')));
+      expect(secrets.findings, hasLength(1),
+          reason: 'tokenKey is a storage key name');
+      expect(secrets.findings.single.snippet,
+          isNot(contains('q8Zr2LwX9vT4mN7pK1sB')));
       expect(result(r, 'AEG-D02').findings, hasLength(1));
       expect(failedIds(r), contains('AEG-D03'));
     });
@@ -193,12 +197,14 @@ const url = 'http://intranet.corp/api';
   });
 
   group('Protection correctness', () {
-    const raspPubspec = 'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n  freerasp: ^7.0.0\n';
+    const raspPubspec =
+        'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n  freerasp: ^7.0.0\n';
 
     test('freeRASP installed but never started', () async {
       final r = await audit({
         'pubspec.yaml': raspPubspec,
-        'lib/main.dart': "import 'package:freerasp/freerasp.dart';\nvoid main() {}\n",
+        'lib/main.dart':
+            "import 'package:freerasp/freerasp.dart';\nvoid main() {}\n",
       });
       expect(result(r, 'AEG-P02').findings, hasLength(2));
     });
@@ -262,18 +268,24 @@ void _log() { print('tampered'); }
 ''',
       });
       final cfg = result(r, 'AEG-P03');
-      expect(cfg.findings.map((f) => f.message).join('\n'),
-          allOf(contains('isProd'), contains('com.acme.other'), contains('empty')));
+      expect(
+          cfg.findings.map((f) => f.message).join('\n'),
+          allOf(contains('isProd'), contains('com.acme.other'),
+              contains('empty')));
       final reaction = result(r, 'AEG-P04');
-      expect(reaction.findings.last.message,
-          allOf(contains('onPrivilegedAccess'), contains('onHooks'), contains('onAppIntegrity'), contains('onDebug')));
+      expect(
+          reaction.findings.last.message,
+          allOf(contains('onPrivilegedAccess'), contains('onHooks'),
+              contains('onAppIntegrity'), contains('onDebug')));
     });
 
     test('App Check debug provider must be guarded', () async {
-      const pubspec = 'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n  firebase_core: any\n  firebase_app_check: any\n';
+      const pubspec =
+          'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n  firebase_core: any\n  firebase_app_check: any\n';
       final bad = await audit({
         'pubspec.yaml': pubspec,
-        'lib/a.dart': 'f() => FirebaseAppCheck.instance.activate(androidProvider: AndroidProvider.debug);',
+        'lib/a.dart':
+            'f() => FirebaseAppCheck.instance.activate(androidProvider: AndroidProvider.debug);',
       });
       expect(failedIds(bad), contains('AEG-P06'));
       final good = await audit({
@@ -304,7 +316,8 @@ f() => FirebaseAppCheck.instance.activate(
         'AEG-I01', 'AEG-I02', 'AEG-I03', 'AEG-I04', //
         'AEG-D01', 'AEG-D02', 'AEG-D03', 'AEG-D04', 'AEG-D05', 'AEG-D06', //
         'AEG-D07', 'AEG-D08', 'AEG-D09', //
-        'AEG-P02', 'AEG-P03', 'AEG-P04', 'AEG-P06', 'AEG-P07', 'AEG-P08', 'AEG-P09', 'AEG-P10', //
+        'AEG-P02', 'AEG-P03', 'AEG-P04', 'AEG-P06', 'AEG-P07', 'AEG-P08',
+        'AEG-P09', 'AEG-P10', //
         'AEG-C02',
       ]) {
         expect(ids, contains(id), reason: id);
@@ -352,13 +365,15 @@ const splitKey = '-----BEGIN PRIVATE KEY-----\n'
 
     test('local_auth without visible calls is not a pass', () async {
       final r = await audit({
-        'pubspec.yaml': 'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n  local_auth: any\n',
+        'pubspec.yaml':
+            'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n  local_auth: any\n',
         'lib/a.dart': 'void f() {}',
       });
       expect(result(r, 'AEG-P08').status, RuleStatus.notApplicable);
     });
 
-    test('git and path dependencies are scanned, pub.dev packages are not', () async {
+    test('git and path dependencies are scanned, pub.dev packages are not',
+        () async {
       final dir = Directory.systemTemp.createTempSync('aegis_pkgs_');
       addTearDown(() => dir.deleteSync(recursive: true));
       void write(String path, String content) {
@@ -404,10 +419,12 @@ packages:
 Future<bool> unlock() => LocalAuthentication().authenticate(localizedReason: 'x');
 const apiKey = 'q8Zr2LwX9vT4mN7pK1sB';
 ''');
-      write('hosted/some_lib/lib/x.dart', "const apiKey = 'Zx9AbCdEfGhIjKlMnOpQ';");
+      write('hosted/some_lib/lib/x.dart',
+          "const apiKey = 'Zx9AbCdEfGhIjKlMnOpQ';");
 
       final r = await runAudit(p.join(dir.path, 'app'),
-          config: AegisConfig(profile: ProfileSet.tryParse('l2')!), offline: true);
+          config: AegisConfig(profile: ProfileSet.tryParse('l2')!),
+          offline: true);
       expect(r.scannedPackages, ['erp_auth']);
       final secrets = result(r, 'AEG-D01').findings;
       expect(secrets, hasLength(1));
@@ -456,7 +473,8 @@ final weak2 = Cipher('RC4/NONE/NoPadding');
       expect(ids.toSet(), hasLength(ids.length));
       for (final r in allRules) {
         final m = r.meta;
-        expect(m.passTitle.en, isNot(m.title.en), reason: '${m.id} has no pass title');
+        expect(m.passTitle.en, isNot(m.title.en),
+            reason: '${m.id} has no pass title');
         expect(m.passTitle.ar, isNotEmpty, reason: m.id);
       }
     });

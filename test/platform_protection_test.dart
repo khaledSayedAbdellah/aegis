@@ -76,8 +76,7 @@ void main() {
             .map((e) => e.data['value']),
         unorderedEquals(['true', 'false']));
   });
-  test(
-      'static evidence is never a pass and never makes the audit incomplete',
+  test('static evidence is never a pass and never makes the audit incomplete',
       () async {
     final p = await iosProject();
     for (final kind in platformKinds.where((k) => k != 'tapjacking')) {

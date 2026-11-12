@@ -8,15 +8,16 @@ import 'package:test/test.dart';
 /// Fixtures are built by tool/make_apk_fixtures.py and cross-checked with
 /// androguard, an independent APK parser.
 const fixtures = 'test/fixtures/apk';
-final expected =
-    jsonDecode(File('$fixtures/expected.json').readAsStringSync()) as Map<String, dynamic>;
+final expected = jsonDecode(File('$fixtures/expected.json').readAsStringSync())
+    as Map<String, dynamic>;
 
 final l2r = AegisConfig(profile: ProfileSet.tryParse('l2+r')!);
 
 Future<AuditReport> apkOnly(String apk) =>
     runAudit(fixtures, apkPath: '$fixtures/$apk', config: l2r, offline: true);
 
-RuleResult result(AuditReport r, String id) => r.results.firstWhere((x) => x.meta.id == id);
+RuleResult result(AuditReport r, String id) =>
+    r.results.firstWhere((x) => x.meta.id == id);
 Set<String> failedIds(AuditReport r) => r.failed.map((x) => x.meta.id).toSet();
 String messages(AuditReport r, String id) =>
     result(r, id).findings.map((f) => f.message).join('\n');
@@ -38,7 +39,8 @@ void main() {
 
       final nsc = apk.networkSecurityConfig;
       expect(nsc, isNotNull);
-      expect(nsc!.$1, 'res/a.xml', reason: 'the manifest resource ID resolves the renamed XML');
+      expect(nsc!.$1, 'res/a.xml',
+          reason: 'the manifest resource ID resolves the renamed XML');
 
       // The v1 and v2 signatures carry the same certificate.
       expect(apk.certificates, hasLength(1));
@@ -46,7 +48,8 @@ void main() {
       expect(cert.sha256Base64, expected['vulnerable']['sha256Base64']);
       expect(cert.commonName, 'Android Debug');
       expect(cert.isAndroidDebug, isTrue);
-      expect(cert.sha256Hex, matches(RegExp(r'^([0-9A-F]{2}:){31}[0-9A-F]{2}$')));
+      expect(
+          cert.sha256Hex, matches(RegExp(r'^([0-9A-F]{2}:){31}[0-9A-F]{2}$')));
     });
 
     test('attribute names stripped from the string pool are recovered', () {
@@ -55,7 +58,8 @@ void main() {
       expect(apk.targetSdk, 35);
       expect(androidAttrOf(apk, 'allowBackup'), 'false');
       expect(apk.certificates.single.commonName, 'Acme Release');
-      expect(apk.certificates.single.sha256Base64, expected['secure']['sha256Base64']);
+      expect(apk.certificates.single.sha256Base64,
+          expected['secure']['sha256Base64']);
     });
 
     test('rejects non-APK files', () {
@@ -67,14 +71,19 @@ void main() {
     test('vulnerable APK', () async {
       final r = await apkOnly('vulnerable.apk');
       expect(r.binary!.packageName, 'com.myshop.app');
-      expect(failedIds(r), containsAll([
-        'AEG-B02', 'AEG-B03', 'AEG-B04', 'AEG-B05', 'AEG-B06', //
-        'AEG-B07', 'AEG-B08', 'AEG-B09', 'AEG-B11',
-      ]));
+      expect(
+          failedIds(r),
+          containsAll([
+            'AEG-B02', 'AEG-B03', 'AEG-B04', 'AEG-B05', 'AEG-B06', //
+            'AEG-B07', 'AEG-B08', 'AEG-B09', 'AEG-B11',
+          ]));
       expect(result(r, 'AEG-B01').status, RuleStatus.passed);
       expect(result(r, 'AEG-B10').status, RuleStatus.notApplicable);
       // Original source-only rules still do not run for a standalone APK.
-      expect(r.results.any((x) => x.meta.id == 'AEG-D01' || x.meta.id == 'AEG-P01'), isFalse);
+      expect(
+          r.results
+              .any((x) => x.meta.id == 'AEG-D01' || x.meta.id == 'AEG-P01'),
+          isFalse);
       expect(r.results.any((x) => x.meta.id == 'AEG-B12'), isTrue);
 
       final secrets = messages(r, 'AEG-B06');
@@ -82,34 +91,44 @@ void main() {
       expect(secrets, contains('AWS access key'));
       expect(secrets, contains('Private key'));
       expect(result(r, 'AEG-B06').findings, hasLength(4),
-          reason: 'service_role JWT, AWS key and PEM key in libapp.so, AWS key in config.json; anon JWT ignored');
+          reason:
+              'service_role JWT, AWS key and PEM key in libapp.so, AWS key in config.json; anon JWT ignored');
       for (final f in result(r, 'AEG-B06').findings) {
-        expect(f.snippet, isNot(contains('EXAMPLE')), reason: 'secrets are redacted');
+        expect(f.snippet, isNot(contains('EXAMPLE')),
+            reason: 'secrets are redacted');
       }
 
       final perms = messages(r, 'AEG-B05');
-      expect(perms, allOf(contains('READ_SMS'), contains('QUERY_ALL_PACKAGES')));
+      expect(
+          perms, allOf(contains('READ_SMS'), contains('QUERY_ALL_PACKAGES')));
       expect(perms, isNot(contains('INTERNET')));
-      expect(perms, isNot(contains('WRITE_EXTERNAL_STORAGE')), reason: 'limited by maxSdkVersion');
+      expect(perms, isNot(contains('WRITE_EXTERNAL_STORAGE')),
+          reason: 'limited by maxSdkVersion');
 
       final exported = messages(r, 'AEG-B04');
       expect(exported, contains('SmsReceiver'));
-      expect(exported, isNot(contains('FirebaseInstanceIdReceiver')), reason: 'protected by a permission');
+      expect(exported, isNot(contains('FirebaseInstanceIdReceiver')),
+          reason: 'protected by a permission');
       expect(exported, isNot(contains('MainActivity')), reason: 'launcher');
 
-      expect(messages(r, 'AEG-B03'),
-          allOf(contains('allowBackup'), contains('usesCleartextTraffic'), contains('user-installed')));
+      expect(
+          messages(r, 'AEG-B03'),
+          allOf(contains('allowBackup'), contains('usesCleartextTraffic'),
+              contains('user-installed')));
       expect(messages(r, 'AEG-B08'), contains('.env'));
-      expect(messages(r, 'AEG-B11'), allOf(contains('targetSdk is 33'), contains('minSdk is 21')));
+      expect(messages(r, 'AEG-B11'),
+          allOf(contains('targetSdk is 33'), contains('minSdk is 21')));
     });
 
     test('hardened APK passes', () async {
       final r = await apkOnly('secure.apk');
-      for (final res in r.results.where((r) => RegExp(r'^AEG-B(?:0[1-9]|1[01])$').hasMatch(r.meta.id))) {
+      for (final res in r.results.where(
+          (r) => RegExp(r'^AEG-B(?:0[1-9]|1[01])$').hasMatch(r.meta.id))) {
         if (res.meta.id == 'AEG-B10') {
           expect(res.status, RuleStatus.notApplicable);
         } else {
-          expect(res.status, RuleStatus.passed, reason: '${res.meta.id}: ${res.findings.map((f) => f.message)}');
+          expect(res.status, RuleStatus.passed,
+              reason: '${res.meta.id}: ${res.findings.map((f) => f.message)}');
         }
       }
       expect(r.score.value, 100);
@@ -129,13 +148,19 @@ void main() {
 
       expect(result(r, 'AEG-A01').status, RuleStatus.failed);
       expect(result(r, 'AEG-B02').status, RuleStatus.notApplicable);
-      expect(result(r, 'AEG-B09').status, RuleStatus.notApplicable, reason: 'AEG-A08 reports it');
+      expect(result(r, 'AEG-B09').status, RuleStatus.notApplicable,
+          reason: 'AEG-A08 reports it');
 
       // The AWS key is in the Dart source (AEG-D01); the service_role JWT is
       // only in the binary, so it was injected at build time.
       final secrets = result(r, 'AEG-B06').findings;
-      expect(secrets.map((f) => f.message).join('\n'), contains('injected at build time'));
-      expect(secrets.where((f) => f.snippet == 'AKIA…MPLE (20 chars)' && f.file!.endsWith('libapp.so')), isEmpty);
+      expect(secrets.map((f) => f.message).join('\n'),
+          contains('injected at build time'));
+      expect(
+          secrets.where((f) =>
+              f.snippet == 'AKIA…MPLE (20 chars)' &&
+              f.file!.endsWith('libapp.so')),
+          isEmpty);
 
       // .SyncService is declared in the source manifest (AEG-A06).
       final exported = messages(r, 'AEG-B04');
@@ -170,14 +195,17 @@ final config = TalsecConfig(
   ),
 );
 ''');
-        return runAudit(dir.path, apkPath: '$fixtures/vulnerable.apk', config: l2r, offline: true);
+        return runAudit(dir.path,
+            apkPath: '$fixtures/vulnerable.apk', config: l2r, offline: true);
       }
 
-      final wrong = await withHashes("'mVr/qQLO8DKTwqlL+B1qigl9NoBnbiUs8b4c2Ewcz0k='");
+      final wrong =
+          await withHashes("'mVr/qQLO8DKTwqlL+B1qigl9NoBnbiUs8b4c2Ewcz0k='");
       expect(result(wrong, 'AEG-B10').status, RuleStatus.failed);
       expect(messages(wrong, 'AEG-B10'), contains(hash));
 
-      final right = await withHashes("'mVr/qQLO8DKTwqlL+B1qigl9NoBnbiUs8b4c2Ewcz0k=', '$hash'");
+      final right = await withHashes(
+          "'mVr/qQLO8DKTwqlL+B1qigl9NoBnbiUs8b4c2Ewcz0k=', '$hash'");
       expect(result(right, 'AEG-B10').status, RuleStatus.passed);
     });
   });

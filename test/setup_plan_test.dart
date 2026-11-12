@@ -11,7 +11,8 @@ List<ToolCheck> checks(Map<String, ToolState> states) =>
 void main() {
   test('everything present: nothing to do', () {
     final plan = Setup(Toolchain(FakeHost())).buildPlan([
-      for (final id in toolIds) ToolCheck(id, ToolState.present, path: '/x/$id'),
+      for (final id in toolIds)
+        ToolCheck(id, ToolState.present, path: '/x/$id'),
     ]);
     expect(plan.nothingToDo, isTrue);
     expect(plan.coversEverything, isTrue);
@@ -20,10 +21,26 @@ void main() {
   test('a ready Mac installs only the new tools, in order', () async {
     final all = await Toolchain(studioMac()).checkAll();
     final plan = Setup(Toolchain(studioMac())).buildPlan(all);
-    expect(plan.steps.map((s) => s.id),
-        ['build-tools', 'emulator', 'system-image', 'control-image', 'avd', 'control-avd', 'frida', 'frida-server']);
-    expect(plan.present.map((c) => c.id),
-        containsAll(['flutter', 'java', 'android-sdk', 'cmdline-tools', 'platform-tools', 'python']));
+    expect(plan.steps.map((s) => s.id), [
+      'build-tools',
+      'emulator',
+      'system-image',
+      'control-image',
+      'avd',
+      'control-avd',
+      'frida',
+      'frida-server'
+    ]);
+    expect(
+        plan.present.map((c) => c.id),
+        containsAll([
+          'flutter',
+          'java',
+          'android-sdk',
+          'cmdline-tools',
+          'platform-tools',
+          'python'
+        ]));
     expect(plan.optional.single.id, 'bundletool');
     expect(plan.blocked, isEmpty);
   });
@@ -47,22 +64,28 @@ void main() {
       'build-tools': ToolState.installable,
     }));
     expect(plan.steps, isEmpty);
-    expect(plan.blocked['platform-tools'], containsAll(['android-sdk', 'cmdline-tools']));
+    expect(plan.blocked['platform-tools'],
+        containsAll(['android-sdk', 'cmdline-tools']));
   });
 
   test('bundletool only when --aab made it installable', () async {
-    final without = Setup(Toolchain(studioMac())).buildPlan(await Toolchain(studioMac()).checkAll());
+    final without = Setup(Toolchain(studioMac()))
+        .buildPlan(await Toolchain(studioMac()).checkAll());
     expect(without.steps.map((s) => s.id), isNot(contains('bundletool')));
-    final withAab = Setup(Toolchain(studioMac())).buildPlan(await Toolchain(studioMac()).checkAll(aab: true));
+    final withAab = Setup(Toolchain(studioMac()))
+        .buildPlan(await Toolchain(studioMac()).checkAll(aab: true));
     expect(withAab.steps.last.id, 'bundletool');
   });
 
   test('the SDK packages are gathered for one sdkmanager call', () async {
     final setup = Setup(Toolchain(studioMac()));
     final plan = setup.buildPlan(await Toolchain(studioMac()).checkAll());
-    expect(setup.sdkmanagerPackages(plan),
-        ['build-tools;36.0.0', 'emulator', 'system-images;android-34;google_apis;arm64-v8a',
-         'system-images;android-34;google_apis_playstore;arm64-v8a']);
+    expect(setup.sdkmanagerPackages(plan), [
+      'build-tools;36.0.0',
+      'emulator',
+      'system-images;android-34;google_apis;arm64-v8a',
+      'system-images;android-34;google_apis_playstore;arm64-v8a'
+    ]);
   });
 
   test('tools.json lists only present tools with paths', () {

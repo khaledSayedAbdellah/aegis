@@ -122,7 +122,8 @@ class RuntimeSecurityRule extends Rule {
     final complete = result.markers.isNotEmpty &&
         channels is Map &&
         ['files', 'logs', 'clipboard'].every((c) => channels[c] == true) &&
-        storage is Map && storage['limited'] == false &&
+        storage is Map &&
+        storage['limited'] == false &&
         data['cleanup'] == true;
     return complete
         ? RuleCheck(out)

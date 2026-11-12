@@ -11,7 +11,12 @@ import '../probe/host.dart';
 import '../l10n/messages.g.dart';
 import 'ipa.dart';
 
-typedef IosSignature = ({bool? valid, String evidence, String? evidenceAr, Uint8List? certificate});
+typedef IosSignature = ({
+  bool? valid,
+  String evidence,
+  String? evidenceAr,
+  Uint8List? certificate
+});
 
 Future<IosSignature> verifyIosSignature(String app, Directory scratch) async {
   final host = SystemHost();
@@ -35,7 +40,12 @@ Future<IosSignature> verifyIosSignature(String app, Directory scratch) async {
     );
   }
   if (!verify.ok) {
-    return (valid: false, evidence: verify.text, evidenceAr: null, certificate: null);
+    return (
+      valid: false,
+      evidence: verify.text,
+      evidenceAr: null,
+      certificate: null
+    );
   }
   final prefix = p.join(scratch.path, 'signer-');
   final extracted = await host.run('/usr/bin/codesign',
@@ -52,7 +62,7 @@ Future<IosSignature> verifyIosSignature(String app, Directory scratch) async {
   return (
     valid: true,
     evidence: En.signatureVerified,
-      evidenceAr: Ar.signatureVerified,
+    evidenceAr: Ar.signatureVerified,
     certificate: leaf.readAsBytesSync()
   );
 }

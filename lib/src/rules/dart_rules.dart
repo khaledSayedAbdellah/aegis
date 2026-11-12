@@ -84,17 +84,30 @@ bool pemBodyFollows(String text, int headerEnd, {String? next}) {
 
 /// Secret formats that are recognizable on their own.
 const knownSecretPatterns = [
-  SecretPattern('AWS access key', r'\b(AKIA|ASIA)[0-9A-Z]{16}\b', Severity.critical),
-  SecretPattern('Stripe live secret key', r'\b(sk|rk)_live_[0-9a-zA-Z]{20,}', Severity.critical),
-  SecretPattern('GitHub token', r'\b(ghp|gho|ghs|ghu)_[A-Za-z0-9]{36}\b|github_pat_[A-Za-z0-9_]{50,}', Severity.critical),
-  SecretPattern('Slack token', r'\bxox[baprs]-[A-Za-z0-9-]{10,}', Severity.critical),
-  SecretPattern('Anthropic API key', r'\bsk-ant-[A-Za-z0-9_\-]{20,}', Severity.critical),
-  SecretPattern('OpenAI API key', r'\bsk-(proj-)?[A-Za-z0-9_\-]{32,}', Severity.critical),
-  SecretPattern('SendGrid API key', r'\bSG\.[A-Za-z0-9_\-]{16,}\.[A-Za-z0-9_\-]{30,}', Severity.critical),
-  SecretPattern('Firebase Cloud Messaging server key', r'\bAAAA[A-Za-z0-9_\-]{7}:[A-Za-z0-9_\-]{100,}', Severity.critical),
-  SecretPattern('Mapbox secret token', r'\bsk\.eyJ[A-Za-z0-9_\-]{20,}', Severity.critical),
-  SecretPattern('Private key', r'-----BEGIN ([A-Z]+ )?PRIVATE KEY-----', Severity.critical),
-  SecretPattern('Google API key', r'\bAIza[0-9A-Za-z_\-]{35}\b', Severity.medium),
+  SecretPattern(
+      'AWS access key', r'\b(AKIA|ASIA)[0-9A-Z]{16}\b', Severity.critical),
+  SecretPattern('Stripe live secret key', r'\b(sk|rk)_live_[0-9a-zA-Z]{20,}',
+      Severity.critical),
+  SecretPattern(
+      'GitHub token',
+      r'\b(ghp|gho|ghs|ghu)_[A-Za-z0-9]{36}\b|github_pat_[A-Za-z0-9_]{50,}',
+      Severity.critical),
+  SecretPattern(
+      'Slack token', r'\bxox[baprs]-[A-Za-z0-9-]{10,}', Severity.critical),
+  SecretPattern(
+      'Anthropic API key', r'\bsk-ant-[A-Za-z0-9_\-]{20,}', Severity.critical),
+  SecretPattern(
+      'OpenAI API key', r'\bsk-(proj-)?[A-Za-z0-9_\-]{32,}', Severity.critical),
+  SecretPattern('SendGrid API key',
+      r'\bSG\.[A-Za-z0-9_\-]{16,}\.[A-Za-z0-9_\-]{30,}', Severity.critical),
+  SecretPattern('Firebase Cloud Messaging server key',
+      r'\bAAAA[A-Za-z0-9_\-]{7}:[A-Za-z0-9_\-]{100,}', Severity.critical),
+  SecretPattern('Mapbox secret token', r'\bsk\.eyJ[A-Za-z0-9_\-]{20,}',
+      Severity.critical),
+  SecretPattern('Private key', r'-----BEGIN ([A-Z]+ )?PRIVATE KEY-----',
+      Severity.critical),
+  SecretPattern(
+      'Google API key', r'\bAIza[0-9A-Za-z_\-]{35}\b', Severity.medium),
 ];
 
 class HardcodedSecretRule extends Rule {
@@ -103,9 +116,13 @@ class HardcodedSecretRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D01',
-        title: Bilingual(En.dartRulesHardcodedSecretInDartCode, Ar.dartRulesHardcodedSecretInDartCode),
-        description: Bilingual(En.dartRulesStringsAreStoredInPlainTextInsideLibappSo, Ar.dartRulesStringsAreStoredInPlainTextInsideLibappSo),
-        fix: Bilingual(En.dartRulesMoveSecretsToYourBackendKeysThatMust, Ar.dartRulesMoveSecretsToYourBackendKeysThatMust),
+        title: Bilingual(En.dartRulesHardcodedSecretInDartCode,
+            Ar.dartRulesHardcodedSecretInDartCode),
+        description: Bilingual(
+            En.dartRulesStringsAreStoredInPlainTextInsideLibappSo,
+            Ar.dartRulesStringsAreStoredInPlainTextInsideLibappSo),
+        fix: Bilingual(En.dartRulesMoveSecretsToYourBackendKeysThatMust,
+            Ar.dartRulesMoveSecretsToYourBackendKeysThatMust),
         severity: Severity.high,
         masvs: ['MASVS-STORAGE-1'],
         maswe: ['MASWE-0004'],
@@ -132,7 +149,10 @@ class HardcodedSecretRule extends Rule {
           if (pat.name == 'Google API key' && isFirebaseOptions) break;
           if (pat.name == 'Private key') {
             final next = f.at(i + 1);
-            if (!pemBodyFollows(v, m.end, next: next != null && next.isString ? next.value : null)) break;
+            if (!pemBodyFollows(v, m.end,
+                next: next != null && next.isString ? next.value : null)) {
+              break;
+            }
           }
           out.add(at(f, i, En.dartRulesFound(value1: pat.name),
               messageAr: Ar.dartRulesFound(value1: pat.name),
@@ -143,7 +163,9 @@ class HardcodedSecretRule extends Rule {
 
         final jwt = jwtRole(v);
         if (jwt != null) {
-          out.add(at(f, i,
+          out.add(at(
+              f,
+              i,
               jwt == 'service_role'
                   ? 'Supabase service_role JWT found. It bypasses Row Level Security.'
                   : 'Hardcoded JWT found.',
@@ -172,7 +194,8 @@ class HardcodedSecretRule extends Rule {
 /// Returns the `role` claim of a JWT, `''` when it is a JWT without a
 /// role, or null when [v] is not a JWT.
 String? jwtRole(String v) {
-  final m = RegExp(r'\beyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}')
+  final m = RegExp(
+          r'\beyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}')
       .firstMatch(v);
   if (m == null) return null;
   try {
@@ -195,9 +218,12 @@ class CleartextUrlRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D02',
-        title: Bilingual(En.dartRulesCleartextHttpUrlInCode, Ar.dartRulesCleartextHttpUrlInCode),
-        description: Bilingual(En.dartRulesRequestsToHttpUrlsCanBeReadAnd, Ar.dartRulesRequestsToHttpUrlsCanBeReadAnd),
-        fix: Bilingual(En.dartRulesUseHttpsForEveryEndpoint, Ar.dartRulesUseHttpsForEveryEndpoint),
+        title: Bilingual(En.dartRulesCleartextHttpUrlInCode,
+            Ar.dartRulesCleartextHttpUrlInCode),
+        description: Bilingual(En.dartRulesRequestsToHttpUrlsCanBeReadAnd,
+            Ar.dartRulesRequestsToHttpUrlsCanBeReadAnd),
+        fix: Bilingual(En.dartRulesUseHttpsForEveryEndpoint,
+            Ar.dartRulesUseHttpsForEveryEndpoint),
         severity: Severity.medium,
         l2Severity: Severity.high,
         masvs: ['MASVS-NETWORK-1'],
@@ -230,9 +256,13 @@ class TlsBypassRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D03',
-        title: Bilingual(En.dartRulesTlsCertificateValidationDisabled, Ar.dartRulesTlsCertificateValidationDisabled),
-        description: Bilingual(En.dartRulesACertificateCallbackThatAlwaysReturnsTrueAccepts, Ar.dartRulesACertificateCallbackThatAlwaysReturnsTrueAccepts),
-        fix: Bilingual(En.dartRulesRemoveTheCallbackForSelfSignedDevServersUse, Ar.dartRulesRemoveTheCallbackForSelfSignedDevServersUse),
+        title: Bilingual(En.dartRulesTlsCertificateValidationDisabled,
+            Ar.dartRulesTlsCertificateValidationDisabled),
+        description: Bilingual(
+            En.dartRulesACertificateCallbackThatAlwaysReturnsTrueAccepts,
+            Ar.dartRulesACertificateCallbackThatAlwaysReturnsTrueAccepts),
+        fix: Bilingual(En.dartRulesRemoveTheCallbackForSelfSignedDevServersUse,
+            Ar.dartRulesRemoveTheCallbackForSelfSignedDevServersUse),
         severity: Severity.critical,
         masvs: ['MASVS-NETWORK-1'],
         maswe: ['MASWE-0027'],
@@ -240,7 +270,11 @@ class TlsBypassRule extends Rule {
         profiles: _all,
       );
 
-  static const _names = {'badCertificateCallback', 'onBadCertificate', 'validateCertificate'};
+  static const _names = {
+    'badCertificateCallback',
+    'onBadCertificate',
+    'validateCertificate'
+  };
 
   @override
   RuleCheck check(Project project, ProfileSet profile) {
@@ -331,9 +365,14 @@ class InsecureStorageRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D04',
-        title: Bilingual(En.dartRulesSensitiveDataInPlainStorage, Ar.dartRulesSensitiveDataInPlainStorage),
-        description: Bilingual(En.dartRulesSharedpreferencesGetstorageAndPlainHiveBoxesAreUnencrypted, Ar.dartRulesSharedpreferencesGetstorageAndPlainHiveBoxesAreUnencrypted),
-        fix: Bilingual(En.dartRulesStoreTokensPasswordsAndPinsInFlutterSecureStorageKeychain, Ar.dartRulesStoreTokensPasswordsAndPinsInFlutterSecureStorageKeychain),
+        title: Bilingual(En.dartRulesSensitiveDataInPlainStorage,
+            Ar.dartRulesSensitiveDataInPlainStorage),
+        description: Bilingual(
+            En.dartRulesSharedpreferencesGetstorageAndPlainHiveBoxesAreUnencrypted,
+            Ar.dartRulesSharedpreferencesGetstorageAndPlainHiveBoxesAreUnencrypted),
+        fix: Bilingual(
+            En.dartRulesStoreTokensPasswordsAndPinsInFlutterSecureStorageKeychain,
+            Ar.dartRulesStoreTokensPasswordsAndPinsInFlutterSecureStorageKeychain),
         severity: Severity.medium,
         l2Severity: Severity.high,
         masvs: ['MASVS-STORAGE-1'],
@@ -385,7 +424,8 @@ class InsecureStorageRule extends Rule {
         if (!hit) continue;
         out.add(at(f, c.nameIndex,
             'Sensitive value "${shorten(keyName, 40)}" written with ${c.receivers.isEmpty ? '' : '${c.receivers.first}.'}${c.name}().',
-            messageAr: 'قيمة حساسة "${shorten(keyName, 40)}" بتتخزن بـ ${c.name}() من غير تشفير.'));
+            messageAr:
+                'قيمة حساسة "${shorten(keyName, 40)}" بتتخزن بـ ${c.name}() من غير تشفير.'));
       }
     }
     return RuleCheck(out);
@@ -398,9 +438,12 @@ class WeakCryptoRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D05',
-        title: Bilingual(En.dartRulesWeakCryptography, Ar.dartRulesWeakCryptography),
-        description: Bilingual(En.dartRulesMd5Sha1AreBrokenForSecurityUseAndEcb, Ar.dartRulesMd5Sha1AreBrokenForSecurityUseAndEcb),
-        fix: Bilingual(En.dartRulesUseSha256OrBetterForHashingArgon2Pbkdf2For, Ar.dartRulesUseSha256OrBetterForHashingArgon2Pbkdf2For),
+        title: Bilingual(
+            En.dartRulesWeakCryptography, Ar.dartRulesWeakCryptography),
+        description: Bilingual(En.dartRulesMd5Sha1AreBrokenForSecurityUseAndEcb,
+            Ar.dartRulesMd5Sha1AreBrokenForSecurityUseAndEcb),
+        fix: Bilingual(En.dartRulesUseSha256OrBetterForHashingArgon2Pbkdf2For,
+            Ar.dartRulesUseSha256OrBetterForHashingArgon2Pbkdf2For),
         severity: Severity.medium,
         masvs: ['MASVS-CRYPTO-1'],
         maswe: ['MASWE-0007', 'MASWE-0008'],
@@ -421,19 +464,30 @@ class WeakCryptoRule extends Rule {
       }
       for (var i = 0; i + 2 < f.tokens.length; i++) {
         final t = f.tokens[i];
-        if (t.isIdent && t.text == 'AESMode' && f.tokens[i + 1].isPunct('.') &&
+        if (t.isIdent &&
+            t.text == 'AESMode' &&
+            f.tokens[i + 1].isPunct('.') &&
             f.tokens[i + 2].text == 'ecb') {
-          out.add(at(f, i, En.dartRulesAesInEcbMode, messageAr: Ar.dartRulesAesInEcbMode));
+          out.add(at(f, i, En.dartRulesAesInEcbMode,
+              messageAr: Ar.dartRulesAesInEcbMode));
         }
-        if (t.isIdent && (t.text == 'MD5Digest' || t.text == 'SHA1Digest' || t.text == 'DESedeEngine' || t.text == 'DESEngine' || t.text == 'RC4Engine')) {
+        if (t.isIdent &&
+            (t.text == 'MD5Digest' ||
+                t.text == 'SHA1Digest' ||
+                t.text == 'DESedeEngine' ||
+                t.text == 'DESEngine' ||
+                t.text == 'RC4Engine')) {
           out.add(at(f, i, En.dartRulesIsAWeakAlgorithm(value1: t.text),
               messageAr: Ar.dartRulesIsAWeakAlgorithm(value1: t.text)));
         }
         if (t.isString) {
           final v = (t.value ?? '').toUpperCase();
-          if (RegExp(r'^(AES/ECB|DES/|DESEDE/|RC4(/|$)|AES/CBC/NOPADDING)').hasMatch(v)) {
-            out.add(at(f, i, En.dartRulesWeakCipherTransformation(value1: t.value),
-                messageAr: Ar.dartRulesWeakCipherTransformation(value1: t.value)));
+          if (RegExp(r'^(AES/ECB|DES/|DESEDE/|RC4(/|$)|AES/CBC/NOPADDING)')
+              .hasMatch(v)) {
+            out.add(at(
+                f, i, En.dartRulesWeakCipherTransformation(value1: t.value),
+                messageAr:
+                    Ar.dartRulesWeakCipherTransformation(value1: t.value)));
           }
         }
       }
@@ -448,9 +502,13 @@ class StaticKeyRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D06',
-        title: Bilingual(En.dartRulesHardcodedEncryptionKeyOrIv, Ar.dartRulesHardcodedEncryptionKeyOrIv),
-        description: Bilingual(En.dartRulesAKeyOrIvWrittenInTheCode, Ar.dartRulesAKeyOrIvWrittenInTheCode),
-        fix: Bilingual(En.dartRulesGenerateKeysAtRuntimeKeyFromsecurerandomRandomSecureKeep, Ar.dartRulesGenerateKeysAtRuntimeKeyFromsecurerandomRandomSecureKeep),
+        title: Bilingual(En.dartRulesHardcodedEncryptionKeyOrIv,
+            Ar.dartRulesHardcodedEncryptionKeyOrIv),
+        description: Bilingual(En.dartRulesAKeyOrIvWrittenInTheCode,
+            Ar.dartRulesAKeyOrIvWrittenInTheCode),
+        fix: Bilingual(
+            En.dartRulesGenerateKeysAtRuntimeKeyFromsecurerandomRandomSecureKeep,
+            Ar.dartRulesGenerateKeysAtRuntimeKeyFromsecurerandomRandomSecureKeep),
         severity: Severity.high,
         masvs: ['MASVS-CRYPTO-2'],
         maswe: ['MASWE-0013', 'MASWE-0014'],
@@ -469,15 +527,18 @@ class StaticKeyRule extends Rule {
         if (args.isEmpty) continue;
         final a = args.first;
         if (a.start == a.end && f.tokens[a.start].isString) {
-          out.add(at(f, c.nameIndex, En.dartRulesIsCalledWithALiteral(r: r, value2: c.name),
+          out.add(at(f, c.nameIndex,
+              En.dartRulesIsCalledWithALiteral(r: r, value2: c.name),
               messageAr: Ar.dartRulesIsCalledWithALiteral(r: r, value2: c.name),
-              snippet: '$r.${c.name}(${redact(f.tokens[a.start].value ?? '')})'));
+              snippet:
+                  '$r.${c.name}(${redact(f.tokens[a.start].value ?? '')})'));
         }
       }
       for (final c in f.calls({'IV'})) {
         final args = f.args(c.open);
         if (args.isEmpty) continue;
-        final txt = f.text(args.first.start, args.first.end).replaceAll(' ', '');
+        final txt =
+            f.text(args.first.start, args.first.end).replaceAll(' ', '');
         if (RegExp(r'^Uint8List\(\d+\)$').hasMatch(txt)) {
           out.add(at(f, c.nameIndex, En.dartRulesIvMadeOfZeroBytes(txt: txt),
               messageAr: Ar.dartRulesIvMadeOfZeroBytes(txt: txt)));
@@ -494,9 +555,13 @@ class InsecureRandomRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D07',
-        title: Bilingual(En.dartRulesPredictableRandomForSecurityValues, Ar.dartRulesPredictableRandomForSecurityValues),
-        description: Bilingual(En.dartRulesRandomIsNotCryptographicallySecureTokensOtpsNonces, Ar.dartRulesRandomIsNotCryptographicallySecureTokensOtpsNonces),
-        fix: Bilingual(En.dartRulesUseRandomSecureForAnythingSecurityRelated, Ar.dartRulesUseRandomSecureForAnythingSecurityRelated),
+        title: Bilingual(En.dartRulesPredictableRandomForSecurityValues,
+            Ar.dartRulesPredictableRandomForSecurityValues),
+        description: Bilingual(
+            En.dartRulesRandomIsNotCryptographicallySecureTokensOtpsNonces,
+            Ar.dartRulesRandomIsNotCryptographicallySecureTokensOtpsNonces),
+        fix: Bilingual(En.dartRulesUseRandomSecureForAnythingSecurityRelated,
+            Ar.dartRulesUseRandomSecureForAnythingSecurityRelated),
         severity: Severity.medium,
         masvs: ['MASVS-CRYPTO-1'],
         maswe: ['MASWE-0012'],
@@ -515,10 +580,12 @@ class InsecureRandomRule extends Rule {
       for (final c in f.calls({'Random'})) {
         if (c.receivers.isNotEmpty && c.receiver != 'math') continue;
         final line = f.lineOfToken(c.nameIndex);
-        final window = [for (var l = line - 3; l <= line + 3; l++) f.lineText(l)].join(' ');
+        final window = [
+          for (var l = line - 3; l <= line + 3; l++) f.lineText(l)
+        ].join(' ');
         if (_securityContext.hasMatch(window)) {
-          out.add(at(f, c.nameIndex,
-              En.dartRulesRandomUsedNearSecuritySensitiveCode,
+          out.add(at(
+              f, c.nameIndex, En.dartRulesRandomUsedNearSecuritySensitiveCode,
               messageAr: Ar.dartRulesRandomUsedNearSecuritySensitiveCode));
         }
       }
@@ -533,9 +600,13 @@ class SensitiveLoggingRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D08',
-        title: Bilingual(En.dartRulesSensitiveDataWrittenToLogs, Ar.dartRulesSensitiveDataWrittenToLogs),
-        description: Bilingual(En.dartRulesLogsSurviveInLogcatCrashReportsAndDevice, Ar.dartRulesLogsSurviveInLogcatCrashReportsAndDevice),
-        fix: Bilingual(En.dartRulesNeverLogSecretsWrapDebugLoggingInIf, Ar.dartRulesNeverLogSecretsWrapDebugLoggingInIf),
+        title: Bilingual(En.dartRulesSensitiveDataWrittenToLogs,
+            Ar.dartRulesSensitiveDataWrittenToLogs),
+        description: Bilingual(
+            En.dartRulesLogsSurviveInLogcatCrashReportsAndDevice,
+            Ar.dartRulesLogsSurviveInLogcatCrashReportsAndDevice),
+        fix: Bilingual(En.dartRulesNeverLogSecretsWrapDebugLoggingInIf,
+            Ar.dartRulesNeverLogSecretsWrapDebugLoggingInIf),
         severity: Severity.medium,
         masvs: ['MASVS-STORAGE-2'],
         maswe: ['MASWE-0005'],
@@ -543,8 +614,25 @@ class SensitiveLoggingRule extends Rule {
         profiles: _all,
       );
 
-  static const _loggers = {'print', 'debugPrint', 'log', 'd', 'i', 'w', 'e', 'v', 't', 'info', 'debug', 'warning', 'severe', 'fine'};
-  static final _loggerReceivers = RegExp(r'^(_?log(ger)?|developer|talker|_?logService)$', caseSensitive: false);
+  static const _loggers = {
+    'print',
+    'debugPrint',
+    'log',
+    'd',
+    'i',
+    'w',
+    'e',
+    'v',
+    't',
+    'info',
+    'debug',
+    'warning',
+    'severe',
+    'fine'
+  };
+  static final _loggerReceivers = RegExp(
+      r'^(_?log(ger)?|developer|talker|_?logService)$',
+      caseSensitive: false);
 
   @override
   RuleCheck check(Project project, ProfileSet profile) {
@@ -552,7 +640,8 @@ class SensitiveLoggingRule extends Rule {
     for (final f in project.dartFiles) {
       for (final c in f.calls(_loggers)) {
         final r = c.receiver;
-        final isBare = r == null && const {'print', 'debugPrint', 'log'}.contains(c.name);
+        final isBare =
+            r == null && const {'print', 'debugPrint', 'log'}.contains(c.name);
         final isLogger = r != null && _loggerReceivers.hasMatch(r);
         if (!isBare && !isLogger) continue;
         final idents = <String>[];
@@ -570,18 +659,22 @@ class SensitiveLoggingRule extends Rule {
         final hit = idents.firstWhere(isSecretName, orElse: () => '');
         if (hit.isEmpty) continue;
         if (_guardedByDebug(f, c.nameIndex)) continue;
-        out.add(at(f, c.nameIndex, '"$hit" is passed to ${r == null ? '' : '$r.'}${c.name}().',
+        out.add(at(f, c.nameIndex,
+            '"$hit" is passed to ${r == null ? '' : '$r.'}${c.name}().',
             messageAr: '"$hit" بيتبعت لـ ${c.name}() وبيتكتب في الـ logs.'));
       }
       for (final c in f.calls({'LogInterceptor', 'PrettyDioLogger'})) {
         if (_guardedByDebug(f, c.nameIndex)) continue;
         final args = f.text(c.open, c.close).replaceAll(' ', '');
-        if (args.contains('requestHeader:false') && args.contains('responseHeader:false') && c.name == 'LogInterceptor') {
+        if (args.contains('requestHeader:false') &&
+            args.contains('responseHeader:false') &&
+            c.name == 'LogInterceptor') {
           continue;
         }
         out.add(at(f, c.nameIndex,
             En.dartRulesIsAddedWithoutAKdebugmodeGuardAnd(value1: c.name),
-            messageAr: Ar.dartRulesIsAddedWithoutAKdebugmodeGuardAnd(value1: c.name)));
+            messageAr:
+                Ar.dartRulesIsAddedWithoutAKdebugmodeGuardAnd(value1: c.name)));
       }
     }
     return RuleCheck(out);
@@ -602,7 +695,8 @@ List<(String, String?)> riskyAssetPaths(Project project) {
     if (riskyAssetFile.hasMatch(a)) {
       out.add((a, null));
     } else if (a.endsWith('/')) {
-      for (final r in project.findFiles(a.substring(0, a.length - 1), riskyAssetFile.hasMatch)) {
+      for (final r in project.findFiles(
+          a.substring(0, a.length - 1), riskyAssetFile.hasMatch)) {
         out.add((r, a));
       }
     }
@@ -616,9 +710,12 @@ class BundledSecretsRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D09',
-        title: Bilingual(En.dartRulesSecretFileBundledAsAnAsset, Ar.dartRulesSecretFileBundledAsAnAsset),
-        description: Bilingual(En.dartRulesAssetsArePlainFilesInsideTheApkIpaA, Ar.dartRulesAssetsArePlainFilesInsideTheApkIpaA),
-        fix: Bilingual(En.dartRulesRemoveTheFileFromFlutterAssetsUseDartDefine, Ar.dartRulesRemoveTheFileFromFlutterAssetsUseDartDefine),
+        title: Bilingual(En.dartRulesSecretFileBundledAsAnAsset,
+            Ar.dartRulesSecretFileBundledAsAnAsset),
+        description: Bilingual(En.dartRulesAssetsArePlainFilesInsideTheApkIpaA,
+            Ar.dartRulesAssetsArePlainFilesInsideTheApkIpaA),
+        fix: Bilingual(En.dartRulesRemoveTheFileFromFlutterAssetsUseDartDefine,
+            Ar.dartRulesRemoveTheFileFromFlutterAssetsUseDartDefine),
         severity: Severity.high,
         masvs: ['MASVS-STORAGE-1'],
         maswe: ['MASWE-0004'],
@@ -626,17 +723,19 @@ class BundledSecretsRule extends Rule {
         profiles: _all,
       );
 
-
   @override
   RuleCheck check(Project project, ProfileSet profile) {
     final out = <Finding>[];
     for (final (path, folder) in riskyAssetPaths(project)) {
       if (folder == null) {
-        out.add(inFile('pubspec.yaml', null, En.dartRulesIsBundledAsAnAsset(path: path),
+        out.add(inFile(
+            'pubspec.yaml', null, En.dartRulesIsBundledAsAnAsset(path: path),
             messageAr: Ar.dartRulesIsBundledAsAnAsset(path: path)));
       } else {
-        out.add(inFile(path, null, En.dartRulesIsBundledThroughTheAsset(path: path, folder: folder),
-            messageAr: Ar.dartRulesIsBundledThroughTheAsset(path: path, folder: folder)));
+        out.add(inFile(path, null,
+            En.dartRulesIsBundledThroughTheAsset(path: path, folder: folder),
+            messageAr: Ar.dartRulesIsBundledThroughTheAsset(
+                path: path, folder: folder)));
       }
     }
     return RuleCheck(out);
@@ -649,9 +748,14 @@ class WebViewRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-D10',
-        title: Bilingual(En.dartRulesWebviewExposesNativeBridgeOrDebugging, Ar.dartRulesWebviewExposesNativeBridgeOrDebugging),
-        description: Bilingual(En.dartRulesAJavascriptChannelWithoutNavigationRestrictionsLetsAny, Ar.dartRulesAJavascriptChannelWithoutNavigationRestrictionsLetsAny),
-        fix: Bilingual(En.dartRulesRestrictNavigationWithNavigationdelegateOnnavigationrequestOrShouldoverrideurlloadingToYour, Ar.dartRulesRestrictNavigationWithNavigationdelegateOnnavigationrequestOrShouldoverrideurlloadingToYour),
+        title: Bilingual(En.dartRulesWebviewExposesNativeBridgeOrDebugging,
+            Ar.dartRulesWebviewExposesNativeBridgeOrDebugging),
+        description: Bilingual(
+            En.dartRulesAJavascriptChannelWithoutNavigationRestrictionsLetsAny,
+            Ar.dartRulesAJavascriptChannelWithoutNavigationRestrictionsLetsAny),
+        fix: Bilingual(
+            En.dartRulesRestrictNavigationWithNavigationdelegateOnnavigationrequestOrShouldoverrideurlloadingToYour,
+            Ar.dartRulesRestrictNavigationWithNavigationdelegateOnnavigationrequestOrShouldoverrideurlloadingToYour),
         severity: Severity.medium,
         masvs: ['MASVS-PLATFORM-2'],
         maswe: ['MASWE-0033', 'MASWE-0035'],
@@ -663,34 +767,49 @@ class WebViewRule extends Rule {
   RuleCheck check(Project project, ProfileSet profile) {
     final out = <Finding>[];
     for (final f in project.dartFiles) {
-      final bridges = f.calls({'addJavaScriptChannel', 'JavascriptChannel', 'addJavaScriptHandler', 'addJavascriptChannel'});
+      final bridges = f.calls({
+        'addJavaScriptChannel',
+        'JavascriptChannel',
+        'addJavaScriptHandler',
+        'addJavascriptChannel'
+      });
       if (bridges.isNotEmpty) {
         final restricted = f.source.contains('onNavigationRequest') ||
             f.source.contains('shouldOverrideUrlLoading');
         if (!restricted) {
-          out.add(at(f, bridges.first.nameIndex,
-              En.dartRulesJavascriptBridgeWithoutNavigationRestrictions(value1: bridges.first.name),
-              messageAr: Ar.dartRulesJavascriptBridgeWithoutNavigationRestrictions(value1: bridges.first.name)));
+          out.add(at(
+              f,
+              bridges.first.nameIndex,
+              En.dartRulesJavascriptBridgeWithoutNavigationRestrictions(
+                  value1: bridges.first.name),
+              messageAr:
+                  Ar.dartRulesJavascriptBridgeWithoutNavigationRestrictions(
+                      value1: bridges.first.name)));
         }
       }
       for (var i = 0; i + 2 < f.tokens.length; i++) {
         final t = f.tokens[i];
         if (!t.isIdent) continue;
-        final isFlag = t.text == 'isInspectable' || t.text == 'setWebContentsDebuggingEnabled';
+        final isFlag = t.text == 'isInspectable' ||
+            t.text == 'setWebContentsDebuggingEnabled';
         if (!isFlag) continue;
         final window = f.text(i, (i + 4).clamp(0, f.tokens.length - 1).toInt());
         if (window.contains('true') && !_guardedByDebug(f, i)) {
-          out.add(at(f, i, En.dartRulesWebviewDebuggingIsEnabled(value1: t.text),
-              messageAr: Ar.dartRulesWebviewDebuggingIsEnabled(value1: t.text)));
+          out.add(at(
+              f, i, En.dartRulesWebviewDebuggingIsEnabled(value1: t.text),
+              messageAr:
+                  Ar.dartRulesWebviewDebuggingIsEnabled(value1: t.text)));
         }
       }
     }
     for (final s in project.androidNativeSources) {
-      final m = RegExp(r'setWebContentsDebuggingEnabled\s*\(\s*true\s*\)').firstMatch(s.text);
+      final m = RegExp(r'setWebContentsDebuggingEnabled\s*\(\s*true\s*\)')
+          .firstMatch(s.text);
       if (m != null && !s.text.contains('BuildConfig.DEBUG')) {
         out.add(inFile(s.path, lineAt(s.text, m.start),
             En.dartRulesWebviewSetwebcontentsdebuggingenabledTrueInNativeCode,
-            messageAr: Ar.dartRulesWebviewSetwebcontentsdebuggingenabledTrueInNativeCode));
+            messageAr: Ar
+                .dartRulesWebviewSetwebcontentsdebuggingenabledTrueInNativeCode));
       }
     }
     return RuleCheck(out);

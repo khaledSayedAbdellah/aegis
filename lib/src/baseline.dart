@@ -170,7 +170,9 @@ class Baseline {
   /// bundles and APK sets use the same APK-style entry names. Runtime
   /// findings can also point to a preselected APK directory.
   static String? normalizeFile(String? file) => file?.replaceFirst(
-      RegExp(r'^[^/]*(?:\.(?:apks?|aab|ipa)!/|!/(?=runtime$))', caseSensitive: false), 'apk!/');
+      RegExp(r'^[^/]*(?:\.(?:apks?|aab|ipa)!/|!/(?=runtime$))',
+          caseSensitive: false),
+      'apk!/');
 
   /// Rule + file + message, ignoring line numbers, numbers in the message
   /// (counts, versions), whitespace, and whether it says APK or AAB.
