@@ -29,7 +29,7 @@ configuration are evidence only. Automatic collectors exist for these controls:
 
 | Probe target | Launch observer (every probe run) | Instrumented observer (only once it started) |
 |---|---|---|
-| Android emulator | AEG-P11, AEG-N07, AEG-A14 | adds AEG-N06, alongside the Frida check |
+| Android emulator | AEG-P11, AEG-N07, AEG-A14 | adds AEG-N06, when the app keeps running under the Frida check |
 | iOS Simulator | AEG-P11, AEG-N05, AEG-N06, AEG-I12, AEG-N07 | none |
 | Physical iOS device | none | none |
 
@@ -38,7 +38,9 @@ in JSON: `control`, `instrumented`). A launch observer that the run asked for
 but never reached, or one that started and returned no verified facts, leaves
 its controls incomplete; the evidence states which of the two happened. The
 Android instrumented observer is optional, so AEG-N06 is requested there only
-when that observer started: a run without a Frida check leaves it evidence only.
+when that observer started. It starts only when the app kept running under the
+Frida check: a run without that check, or an app whose protection exited under
+Frida, leaves AEG-N06 evidence only, since that observation was never possible.
 
 A collector bound affects only its own control: the view bound applies to
 AEG-P11/N07/A14, the file bound to AEG-N05 and the key-query bound to AEG-N06.
