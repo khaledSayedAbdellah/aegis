@@ -1,6 +1,6 @@
 # Contributing to aegis
 
-Thanks for helping. Bug reports, wrong findings, missed problems and pull requests are all welcome.
+Thanks for helping. Bug reports, wrong findings, missed problems and pull requests are all welcome. Everyone taking part is expected to follow the [Code of Conduct](CODE_OF_CONDUCT.md).
 
 ## Reporting
 
