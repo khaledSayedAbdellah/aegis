@@ -9,7 +9,7 @@
 Most scanners ask *"do you have RASP?"*. aegis also asks *"is it started, configured for your app, and does a detected threat trigger a real reaction?"* Every rule is mapped to **OWASP MASVS v2**, **MASWE** and **CWE**, and the score adapts to the **OWASP MAS profile** your app needs (L1, L2, R).
 
 ```text
-🛡  Aegis security audit  ·  aegis 0.10.0
+🛡  Aegis security audit  ·  aegis 0.10.1
 ────────────────────────────────────────────────────────────────
 Project: my_bank
 MAS profile: L2+R
@@ -60,7 +60,7 @@ Other sources, when you need them:
 
 ```bash
 # A specific released version
-dart pub global activate aegis 0.10.0
+dart pub global activate aegis 0.10.1
 
 # Unreleased changes from GitHub
 dart pub global activate --source git https://github.com/khaledSayedAbdellah/aegis.git --git-ref main
@@ -576,14 +576,14 @@ resources:
     type: github
     endpoint: <your GitHub service connection>
     name: khaledSayedAbdellah/aegis
-    ref: refs/tags/v0.10.0
+    ref: refs/tags/v0.10.1
 
 steps:
 - template: ci/azure-pipelines/aegis-steps.yml@aegis
   parameters:
     aegisSource: git
     aegisGitUrl: https://github.com/khaledSayedAbdellah/aegis.git
-    aegisGitRef: v0.10.0
+    aegisGitRef: v0.10.1
     failOn: high
 ```
 
@@ -660,7 +660,7 @@ The tests need no network, emulator or Android tools: the CLI tests run `bin/aeg
 **Releasing.** Set the new version in `pubspec.yaml` and `lib/src/version.dart`, add its section to `CHANGELOG.md`, merge to `main`, then push a tag with the same version:
 
 ```bash
-git tag v0.10.1 && git push origin v0.10.1
+git tag vX.Y.Z && git push origin vX.Y.Z   # X.Y.Z: the version in pubspec.yaml
 ```
 
 The `Publish to pub.dev` workflow publishes that tag. It fails when the tag and `pubspec.yaml` disagree.

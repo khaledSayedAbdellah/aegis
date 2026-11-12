@@ -1,3 +1,8 @@
+## 0.10.1
+
+* The README installs aegis from pub.dev (`dart pub global activate aegis`), shows the pub.dev version, pub points and CI badges, and documents the release steps. Installing from GitHub or a local clone remains available.
+* Releases are published from version tags through pub.dev's GitHub Actions publishing.
+
 ## 0.10.0
 
 ### Breaking changes

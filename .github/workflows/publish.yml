@@ -1,5 +1,5 @@
 # Publishes to pub.dev when a version tag is pushed, for example:
-#   git tag v0.10.1 && git push origin v0.10.1
+#   git tag vX.Y.Z && git push origin vX.Y.Z
 # The tag must match `version:` in pubspec.yaml. pub.dev accepts only runs
 # from this repository started by a tag matching its pattern `v{{version}}`.
 name: Publish to pub.dev
