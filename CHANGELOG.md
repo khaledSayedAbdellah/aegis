@@ -1,3 +1,7 @@
+## 0.10.2
+
+* The README starts with a table of contents linking every section. The translation catalog and extended MASVS analysis sections now come before License.
+
 ## 0.10.1
 
 * The README installs aegis from pub.dev (`dart pub global activate aegis`), shows the pub.dev version, pub points and CI badges, and documents the release steps. Installing from GitHub or a local clone remains available.
