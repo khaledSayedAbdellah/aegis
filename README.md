@@ -1,5 +1,9 @@
 # aegis 🛡
 
+[![pub package](https://img.shields.io/pub/v/aegis.svg)](https://pub.dev/packages/aegis)
+[![pub points](https://img.shields.io/pub/points/aegis)](https://pub.dev/packages/aegis/score)
+[![CI](https://github.com/khaledSayedAbdellah/aegis/actions/workflows/ci.yml/badge.svg)](https://github.com/khaledSayedAbdellah/aegis/actions/workflows/ci.yml)
+
 **Security audit for Flutter apps that checks whether your protections actually work — not just whether they exist.**
 
 Most scanners ask *"do you have RASP?"*. aegis also asks *"is it started, configured for your app, and does a detected threat trigger a real reaction?"* Every rule is mapped to **OWASP MASVS v2**, **MASWE** and **CWE**, and the score adapts to the **OWASP MAS profile** your app needs (L1, L2, R).
@@ -46,13 +50,22 @@ aegis has **no dependency on `package:analyzer`**: it uses its own Dart tokenize
 
 aegis is a Dart command-line tool. It needs the Dart 3 SDK (the one inside Flutter is fine).
 
-**1. Activate it.** Pick one:
+**1. Activate it** from [pub.dev](https://pub.dev/packages/aegis):
 
 ```bash
-# A released version, from GitHub
-dart pub global activate --source git https://github.com/khaledSayedAbdellah/aegis.git --git-ref v0.10.0
+dart pub global activate aegis
+```
 
-# Or your local clone: every change in the clone is used right away, no reinstall
+Other sources, when you need them:
+
+```bash
+# A specific released version
+dart pub global activate aegis 0.10.0
+
+# Unreleased changes from GitHub
+dart pub global activate --source git https://github.com/khaledSayedAbdellah/aegis.git --git-ref main
+
+# Your local clone: every change in the clone is used right away, no reinstall
 dart pub global activate --source path ~/path/to/aegis
 ```
 
@@ -82,7 +95,7 @@ dart pub global list       # shows where it was activated from
 | `aegis --version` shows an older version than `dart pub global list` | An old compiled copy is cached. Run `dart pub global deactivate aegis`, delete `.dart_tool/pub/bin` in the aegis clone (for a path activation), activate again and `hash -r`. |
 | Errors like `No such file or directory` for packages | The pub cache was cleaned. Run `dart pub get` in the aegis clone, then activate again. |
 
-Update: run the same `activate` command with the new tag (a path activation needs nothing). Uninstall: `dart pub global deactivate aegis`, and `aegis setup --remove` first if you installed the probe tools.
+Update: run `dart pub global activate aegis` again (for a git activation, pass the new `--git-ref`; a path activation needs nothing). Uninstall: `dart pub global deactivate aegis`, and `aegis setup --remove` first if you installed the probe tools.
 
 ## Quick start
 
@@ -643,6 +656,14 @@ dart test -N "apk mode"                                 # tests whose name conta
 ```
 
 The tests need no network, emulator or Android tools: the CLI tests run `bin/aegis.dart` on temporary projects with `--offline` and `--no-probe`, and the probe tests use a fake host and a fake device (`test/support/fake_host.dart`, `test/probe_runner_test.dart`). To try your change as the real `aegis` command, activate the clone with `--source path` (see Install).
+
+**Releasing.** Set the new version in `pubspec.yaml` and `lib/src/version.dart`, add its section to `CHANGELOG.md`, merge to `main`, then push a tag with the same version:
+
+```bash
+git tag v0.10.1 && git push origin v0.10.1
+```
+
+The `Publish to pub.dev` workflow publishes that tag. It fails when the tag and `pubspec.yaml` disagree.
 
 ## Use from Dart
 

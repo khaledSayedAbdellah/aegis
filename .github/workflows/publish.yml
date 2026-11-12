@@ -1,0 +1,16 @@
+# Publishes to pub.dev when a version tag is pushed, for example:
+#   git tag v0.10.1 && git push origin v0.10.1
+# The tag must match `version:` in pubspec.yaml. pub.dev accepts only runs
+# from this repository started by a tag matching its pattern `v{{version}}`.
+name: Publish to pub.dev
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  publish:
+    permissions:
+      id-token: write # pub.dev authenticates the run with GitHub's OIDC token
+    uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
