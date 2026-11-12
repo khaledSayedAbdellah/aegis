@@ -105,6 +105,26 @@ const toolNeeds = <String, List<String>>{
   'frida': ['python'],
 };
 
+/// Where the aegis AVDs live: `$ANDROID_AVD_HOME`, else `~/.android/avd`.
+String? androidAvdHome(Host host) {
+  final v = host.env('ANDROID_AVD_HOME');
+  if (v != null && v.isNotEmpty) return v;
+  final h = host.home;
+  if (h == null) return null;
+  return (host.os == 'windows' ? p.windows : p.posix)
+      .join(h, '.android', 'avd');
+}
+
+/// Pins avdmanager and the emulator to [androidAvdHome]. Without it they pick
+/// the folder themselves, from variables such as `ANDROID_USER_HOME` or
+/// `XDG_CONFIG_HOME` (set on GitHub's Linux runners), so an AVD that
+/// avdmanager created could be missing where aegis checks it or where the
+/// emulator looks.
+Map<String, String>? avdEnvironmentFor(Host host) {
+  final home = androidAvdHome(host);
+  return home == null ? null : {'ANDROID_AVD_HOME': home};
+}
+
 class Toolchain {
   Toolchain(this.host);
 
@@ -498,13 +518,11 @@ class Toolchain {
     return ToolCheck(id, ToolState.installable, issue: Issue.missing);
   }
 
-  /// `$ANDROID_AVD_HOME`, else `~/.android/avd`.
-  String? get avdHome {
-    final v = host.env('ANDROID_AVD_HOME');
-    if (v != null && v.isNotEmpty) return v;
-    final h = host.home;
-    return h == null ? null : _p.join(h, '.android', 'avd');
-  }
+  /// Where the aegis AVDs live: `$ANDROID_AVD_HOME`, else `~/.android/avd`.
+  String? get avdHome => androidAvdHome(host);
+
+  /// The environment for avdmanager and the emulator (see [avdEnvironment]).
+  Map<String, String>? get avdEnvironment => avdEnvironmentFor(host);
 
   Future<ToolCheck> checkAvd({bool control = false}) async {
     final id = control ? 'control-avd' : 'avd';

@@ -58,6 +58,14 @@ class FakeHost implements Host {
   /// installed (e.g. sdkmanager creating folders).
   final effects = <String, void Function()>{};
 
+  /// Called after a successful [run] of a program, with the environment it
+  /// got, to simulate what it wrote (e.g. avdmanager creating an AVD).
+  final runEffects =
+      <String, void Function(List<String> args, Map<String, String>? env)>{};
+
+  /// Environments passed to [spawn], by command line.
+  final spawnEnvOf = <String, Map<String, String>?>{};
+
   void addFile(String path, [String content = '']) {
     files[path] = content.codeUnits;
     _addParents(path);
@@ -154,9 +162,10 @@ class FakeHost implements Host {
     log.add('run: $line');
     envOf[line] = environment;
     inputOf[line] = input;
-    final canned = commands[line];
-    if (canned != null) return canned;
-    return installed.contains(exe) ? Proc(0, '', '') : null;
+    final result =
+        commands[line] ?? (installed.contains(exe) ? Proc(0, '', '') : null);
+    if (result != null && result.ok) runEffects[exe]?.call(args, environment);
+    return result;
   }
 
   @override
@@ -173,7 +182,9 @@ class FakeHost implements Host {
   @override
   Future<void> spawn(String exe, List<String> args,
       {Map<String, String>? environment, String? logPath}) async {
-    log.add('spawn: ${[exe, ...args].join(' ')}');
+    final line = [exe, ...args].join(' ');
+    log.add('spawn: $line');
+    spawnEnvOf[line] = environment;
   }
 
   @override

@@ -14,6 +14,26 @@ final xzSha = crypto.sha256.convert(xzBytes).toString();
 const sm = '$sdk/cmdline-tools/latest/bin/sdkmanager';
 const avdmanager = '$sdk/cmdline-tools/latest/bin/avdmanager';
 
+/// A fake avdmanager that writes where the real one does: ANDROID_AVD_HOME
+/// when set, else `$XDG_CONFIG_HOME/.android/avd` when that is set (GitHub's
+/// Linux runners), else `~/.android/avd`.
+FakeHost withAvdmanager(FakeHost h) {
+  h
+    ..addFile(avdmanager)
+    ..installed.add(avdmanager);
+  h.runEffects[avdmanager] = (args, env) {
+    if (args.take(2).join(' ') != 'create avd') return;
+    final name = args[args.indexOf('-n') + 1];
+    final xdg = h.env('XDG_CONFIG_HOME');
+    final home = env?['ANDROID_AVD_HOME'] ??
+        h.env('ANDROID_AVD_HOME') ??
+        (xdg != null ? '$xdg/.android/avd' : '${h.home}/.android/avd');
+    h.addDir('$home/$name.avd');
+    h.addFile('$home/$name.ini', 'path=$home/$name.avd');
+  };
+  return h;
+}
+
 void main() {
   test('the SDK packages go in one sdkmanager call, with JAVA_HOME', () async {
     final h = studioMac()..installed.add(sm);
@@ -26,9 +46,7 @@ void main() {
   });
 
   test('avdmanager gets "no" on stdin and no --force', () async {
-    final h = studioMac()
-      ..addFile(avdmanager)
-      ..installed.add(avdmanager);
+    final h = withAvdmanager(studioMac());
     final err = await Setup(Toolchain(h)).install('avd');
     expect(err, isNull);
     final line = h.ran.singleWhere((c) => c.contains('avdmanager'));
@@ -41,9 +59,7 @@ void main() {
   test(
       'setup plans both image downloads and creates the control with Google Play',
       () async {
-    final h = studioMac()
-      ..addFile(avdmanager)
-      ..installed.add(avdmanager);
+    final h = withAvdmanager(studioMac());
     final toolchain = Toolchain(h);
     final setup = Setup(toolchain);
     final plan = setup.buildPlan(await toolchain.checkAll());
@@ -177,6 +193,46 @@ void main() {
     expect(json, contains('"java"'));
     expect(json, contains('"android-sdk"'));
     expect(json, isNot(contains('"frida-server"')));
+  });
+
+  group('the AVD folder', () {
+    test('is pinned for avdmanager, so XDG_CONFIG_HOME cannot move it',
+        () async {
+      // GitHub's Linux runners set XDG_CONFIG_HOME; avdmanager then writes
+      // under it while aegis checks ~/.android/avd.
+      final h = withAvdmanager(
+          studioMac()..envs['XDG_CONFIG_HOME'] = '/Users/dev/.config');
+      final toolchain = Toolchain(h);
+      expect(await Setup(toolchain).install('avd'), isNull);
+      final line = h.ran.singleWhere((c) => c.contains('avdmanager'));
+      expect(h.envOf[line]?['ANDROID_AVD_HOME'], '/Users/dev/.android/avd');
+      expect(h.envOf[line]?['JAVA_HOME'], studioJbr);
+      expect(h.dirExists('/Users/dev/.android/avd'), isTrue);
+      expect((await toolchain.checkAvd()).state, ToolState.present);
+      expect(h.dirExists('/Users/dev/.config/.android/avd/aegis-probe.avd'),
+          isFalse);
+    });
+
+    test('follows ANDROID_AVD_HOME when the user set it', () async {
+      final h = withAvdmanager(studioMac()..envs['ANDROID_AVD_HOME'] = '/avds');
+      final toolchain = Toolchain(h);
+      expect(await Setup(toolchain).install('control-avd'), isNull);
+      final line = h.ran.singleWhere((c) => c.contains('avdmanager'));
+      expect(h.envOf[line]?['ANDROID_AVD_HOME'], '/avds');
+      expect(
+          (await toolchain.checkAvd(control: true)).state, ToolState.present);
+      expect(
+          h.fileExists('/avds/aegis-probe-control.avd/.aegis-created'), isTrue);
+    });
+
+    test('an AVD avdmanager put elsewhere fails setup at once', () async {
+      final h = studioMac()
+        ..addFile(avdmanager)
+        ..installed.add(avdmanager);
+      // Reports success but writes nothing where aegis looks.
+      final err = await Setup(Toolchain(h)).install('avd');
+      expect(err, contains('aegis-probe is not in /Users/dev/.android/avd'));
+    });
   });
 
   group('remove', () {

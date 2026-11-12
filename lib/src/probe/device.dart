@@ -153,8 +153,10 @@ class Device implements ProbeDevice, PlatformObserver {
   }
 
   Future<Proc?> _run(List<String> cmd,
-          {Duration timeout = const Duration(seconds: 30)}) =>
-      host.run(cmd.first, cmd.sublist(1), timeout: timeout);
+          {Duration timeout = const Duration(seconds: 30),
+          Map<String, String>? environment}) =>
+      host.run(cmd.first, cmd.sublist(1),
+          timeout: timeout, environment: environment);
 
   /// Automatic, noninteractive inspection of the currently running control app.
   @override
@@ -261,7 +263,10 @@ class Device implements ProbeDevice, PlatformObserver {
     }
     log?.call('starting the emulator…');
     if (_serial == null) {
-      final available = await _run([tools.emulator!, '-list-avds']);
+      // The same AVD folder setup created them in.
+      final avdEnv = avdEnvironmentFor(host);
+      final available =
+          await _run([tools.emulator!, '-list-avds'], environment: avdEnv);
       if (available?.ok != true ||
           !available!.out.split(RegExp(r'\s+')).contains(avdName)) {
         return 'AVD $avdName is unavailable';
@@ -280,6 +285,7 @@ class Device implements ProbeDevice, PlatformObserver {
             'none',
             '-no-audio',
           ],
+          environment: avdEnv,
           logPath: logPath);
     }
     for (var i = 0; i * 3 < timeoutSeconds; i++) {
