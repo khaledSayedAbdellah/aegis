@@ -85,6 +85,31 @@ String generate(Map<String, dynamic> en, Map<String, dynamic> ar) {
   return out.toString();
 }
 
+/// [source] without the whitespace between tokens. The generated file is kept
+/// formatted, and the formatter only moves whitespace outside string literals,
+/// so a formatted file and fresh generator output compare equal through this.
+String significant(String source) {
+  final out = StringBuffer();
+  var inString = false;
+  for (var i = 0; i < source.length; i++) {
+    final char = source[i];
+    if (inString) {
+      out.write(char);
+      if (char == r'\' && i + 1 < source.length) {
+        out.write(source[++i]);
+      } else if (char == '"') {
+        inString = false;
+      }
+    } else if (char == '"') {
+      inString = true;
+      out.write(char);
+    } else if (char.trim().isNotEmpty) {
+      out.write(char);
+    }
+  }
+  return out.toString();
+}
+
 void main(List<String> args) {
   try {
     if (args.any((a) => a != '--check')) {
@@ -99,7 +124,8 @@ void main(List<String> args) {
             as Map<String, dynamic>);
     final output = File('${folder.path}/messages.g.dart');
     if (args.contains('--check')) {
-      if (!output.existsSync() || output.readAsStringSync() != result) {
+      if (!output.existsSync() ||
+          significant(output.readAsStringSync()) != significant(result)) {
         throw const FormatException(
             'Generated translations are stale. Run dart run tool/generate_l10n.dart.');
       }
@@ -107,6 +133,13 @@ void main(List<String> args) {
           .writeln('ARB catalogs and generated translations are synchronized.');
     } else {
       output.writeAsStringSync(result);
+      // Keep the generated file formatted like the rest of the package.
+      final formatted =
+          Process.runSync(Platform.resolvedExecutable, ['format', output.path]);
+      if (formatted.exitCode != 0) {
+        throw FormatException(
+            'Could not format ${output.path}: ${formatted.stderr}');
+      }
       stdout.writeln('Generated ${output.path}');
     }
   } on FormatException catch (e) {

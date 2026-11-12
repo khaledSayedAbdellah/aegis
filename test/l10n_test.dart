@@ -19,9 +19,23 @@ void main() {
         as Map<String, dynamic>;
     final ar = jsonDecode(File('lib/src/l10n/app_ar.arb').readAsStringSync())
         as Map<String, dynamic>;
-    expect(generator.generate(en, ar),
-        File('lib/src/l10n/messages.g.dart').readAsStringSync());
+    // The generated file is kept formatted: compare tokens, not whitespace.
+    expect(
+        generator.significant(generator.generate(en, ar)),
+        generator.significant(
+            File('lib/src/l10n/messages.g.dart').readAsStringSync()));
     expect(en.keys.where((k) => !k.startsWith('@')).length, greaterThan(500));
+  });
+
+  test('the staleness check ignores formatting but not message text', () {
+    const flat = 'static const a = "one  two \\" three"; String get b => x;';
+    const wrapped =
+        'static const a =\n      "one  two \\" three";\n  String get b =>\n      x;';
+    expect(generator.significant(wrapped), generator.significant(flat));
+    expect(generator.significant(flat.replaceFirst('one  two', 'one two')),
+        isNot(generator.significant(flat)));
+    expect(generator.significant(flat.replaceFirst('=> x', '=> y')),
+        isNot(generator.significant(flat)));
   });
 
   test(
