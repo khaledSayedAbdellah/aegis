@@ -9,7 +9,7 @@
 Most scanners ask *"do you have RASP?"*. aegis also asks *"is it started, configured for your app, and does a detected threat trigger a real reaction?"* Every rule is mapped to **OWASP MASVS v2**, **MASWE** and **CWE**, and the score adapts to the **OWASP MAS profile** your app needs (L1, L2, R).
 
 ```text
-🛡  Aegis security audit  ·  aegis 0.10.2
+🛡  Aegis security audit  ·  aegis 0.11.0
 ────────────────────────────────────────────────────────────────
 Project: my_bank
 MAS profile: L2+R
@@ -92,7 +92,7 @@ Other sources, when you need them:
 
 ```bash
 # A specific released version
-dart pub global activate aegis 0.10.2
+dart pub global activate aegis 0.11.0
 
 # Unreleased changes from GitHub
 dart pub global activate --source git https://github.com/khaledSayedAbdellah/aegis.git --git-ref main
@@ -610,14 +610,14 @@ resources:
     type: github
     endpoint: <your GitHub service connection>
     name: khaledSayedAbdellah/aegis
-    ref: refs/tags/v0.10.2
+    ref: refs/tags/v0.11.0
 
 steps:
 - template: ci/azure-pipelines/aegis-steps.yml@aegis
   parameters:
     aegisSource: git
     aegisGitUrl: https://github.com/khaledSayedAbdellah/aegis.git
-    aegisGitRef: v0.10.2
+    aegisGitRef: v0.11.0
     failOn: high
 ```
 
