@@ -6,16 +6,20 @@ import 'package:aegis/src/scoring.dart' show computeScore, findingFactor;
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
-RuleMeta meta(String id) => [...allRules, ...apkRules].firstWhere((r) => r.meta.id == id).meta;
+RuleMeta meta(String id) =>
+    [...allRules, ...apkRules].firstWhere((r) => r.meta.id == id).meta;
 
 RuleResult failed(String id, Severity s, {int findings = 1}) => RuleResult(
-    meta: meta(id),
-    status: RuleStatus.failed,
-    severity: s,
-    findings: [for (var i = 0; i < findings; i++) Finding(ruleId: id, message: 'x $i')]);
+        meta: meta(id),
+        status: RuleStatus.failed,
+        severity: s,
+        findings: [
+          for (var i = 0; i < findings; i++)
+            Finding(ruleId: id, message: 'x $i')
+        ]);
 
-RuleResult passed(String id) =>
-    RuleResult(meta: meta(id), status: RuleStatus.passed, severity: meta(id).severity);
+RuleResult passed(String id) => RuleResult(
+    meta: meta(id), status: RuleStatus.passed, severity: meta(id).severity);
 
 /// The open problems of the Aldrees workspace, source only, profile L2+R
 /// (release-20261107.1).
@@ -56,7 +60,8 @@ void main() {
     });
 
     test('any number of lower problems never reaches the next band', () {
-      final manyLows = computeScore([for (var i = 0; i < 40; i++) failed('AEG-C02', Severity.low)]);
+      final manyLows = computeScore(
+          [for (var i = 0; i < 40; i++) failed('AEG-C02', Severity.low)]);
       expect(manyLows.value, greaterThanOrEqualTo(90));
       final manyMediums = computeScore([
         failed('AEG-D01', Severity.high),
@@ -81,8 +86,10 @@ void main() {
       final all = aldreesL2r();
       final before = computeScore(all).value;
       for (final f in all.where((r) => r.status == RuleStatus.failed)) {
-        final after = computeScore(all.where((r) => !identical(r, f)).toList()).value;
-        expect(after, greaterThanOrEqualTo(before), reason: 'fixing ${f.meta.id}');
+        final after =
+            computeScore(all.where((r) => !identical(r, f)).toList()).value;
+        expect(after, greaterThanOrEqualTo(before),
+            reason: 'fixing ${f.meta.id}');
       }
     });
 
@@ -91,7 +98,8 @@ void main() {
       expect(findingFactor(3), closeTo(1.4, 0.01));
       expect(findingFactor(1000), 2);
       final one = computeScore([failed('AEG-D01', Severity.high)]).value;
-      final three = computeScore([failed('AEG-D01', Severity.high, findings: 3)]).value;
+      final three =
+          computeScore([failed('AEG-D01', Severity.high, findings: 3)]).value;
       expect(three, lessThan(one));
     });
   });
@@ -102,7 +110,8 @@ void main() {
       expect(s.blockingRules, ['AEG-D01', 'AEG-P01']);
       expect(s.afterBlockingFixed, 80);
       expect(s.band, (40, 70));
-      expect(s.gains.keys.first, 'AEG-D01', reason: 'three findings weigh more than one');
+      expect(s.gains.keys.first, 'AEG-D01',
+          reason: 'three findings weigh more than one');
       expect(s.gains.values.every((g) => g >= 0), isTrue);
     });
 
@@ -126,8 +135,8 @@ void main() {
   test('reports explain the band and the best fixes', () async {
     final dir = Directory.systemTemp.createTempSync('aegis_score_');
     addTearDown(() => dir.deleteSync(recursive: true));
-    File(p.join(dir.path, 'pubspec.yaml'))
-        .writeAsStringSync('name: app\ndependencies:\n  flutter:\n    sdk: flutter\n');
+    File(p.join(dir.path, 'pubspec.yaml')).writeAsStringSync(
+        'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n');
     File(p.join(dir.path, 'lib', 'a.dart'))
       ..parent.createSync()
       ..writeAsStringSync("const awsKey = 'AKIAZ7QW3RT5YU8IO2PL';\n");
@@ -137,7 +146,8 @@ void main() {
     final console = ConsoleReporter(color: false).render(r);
     expect(console, contains('40-69 while a HIGH problem is open'));
     expect(console, contains('Biggest single gains: AEG-D01'));
-    expect(ConsoleReporter(color: false, lang: 'ar').render(r), contains('بين 40-69'));
+    expect(ConsoleReporter(color: false, lang: 'ar').render(r),
+        contains('بين 40-69'));
 
     expect(renderMarkdown(r), contains('🔴'));
     expect(renderHtml(r), contains('<small class="muted">AEG-D01'));

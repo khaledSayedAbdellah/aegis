@@ -7,15 +7,31 @@ import 'package:path/path.dart' as p;
 
 import 'baseline.dart';
 import 'binary/apk.dart';
+import 'binary/ipa.dart';
+import 'binary/ios_static.dart';
+import 'binary/ios_signature.dart';
+import 'binary/signing.dart';
 import 'config.dart';
+import 'l10n/messages.g.dart';
 import 'masvs.dart';
 import 'model.dart';
 import 'probe/probe_model.dart';
 import 'project.dart';
+import 'project/native_files.dart';
+import 'rules/android_rules.dart';
+import 'rules/platform_security_rules.dart';
+import 'rules/platform_protection_rules.dart';
+import 'rules/native_security_rules.dart';
+import 'rules/native_source_rules.dart';
 import 'rules/probe_rules.dart';
+import 'rules/ios_rules.dart';
+import 'rules/ipa_rules.dart';
 import 'rules/registry.dart';
 import 'rules/rule.dart';
 import 'scoring.dart';
+import 'security/evidence.dart';
+import 'security/runtime_security.dart';
+import 'rules/runtime_security_rules.dart';
 import 'version.dart';
 
 class AuditReport {
@@ -33,6 +49,8 @@ class AuditReport {
     this.baselinePath,
     this.baselineResolved = const [],
     this.probe,
+    this.iosStatic,
+    this.securityEvidence = const [],
   });
 
   final String projectName;
@@ -65,12 +83,28 @@ class AuditReport {
   /// reflected in rules AEG-R01..R04) or why it was skipped.
   final ProbeOutcome? probe;
 
+  /// Packaged iOS binary facts; these never replace runtime probe verdicts.
+  final IosStaticAnalysis? iosStatic;
+  final List<SecurityEvidence> securityEvidence;
+
   Iterable<RuleResult> get failed =>
       results.where((r) => r.status == RuleStatus.failed);
   Iterable<RuleResult> get passed =>
       results.where((r) => r.status == RuleStatus.passed);
   Iterable<RuleResult> get notApplicable =>
       results.where((r) => r.status == RuleStatus.notApplicable);
+
+  /// Rules that listed review evidence without reaching a verdict.
+  Iterable<RuleResult> get evidenceOnly =>
+      results.where((r) => r.status == RuleStatus.evidenceOnly);
+
+  Iterable<RuleResult> get incomplete =>
+      results.where((r) => r.status == RuleStatus.incomplete || r.incomplete);
+
+  bool get complete =>
+      probe?.incomplete != true &&
+      incomplete.isEmpty &&
+      results.any((r) => r.counts);
 
   int get suppressed => results.fold(0, (s, r) => s + r.suppressed);
 
@@ -94,7 +128,8 @@ class AuditReport {
   /// Failed rules at or above [s] with new findings. Rules whose findings are
   /// all in the baseline are not counted, so --fail-on only reacts to new
   /// problems.
-  int countAtLeast(Severity s) => newFailed.where((r) => r.severity >= s).length;
+  int countAtLeast(Severity s) =>
+      newFailed.where((r) => r.severity >= s).length;
 }
 
 /// Facts read from the APK, shown at the top of reports.
@@ -110,6 +145,8 @@ class BinaryInfo {
     this.abis = const [],
     this.isFlutter = false,
     this.certificates = const [],
+    this.encrypted,
+    this.signatureVerified,
     this.kind = 'APK',
   });
 
@@ -129,6 +166,31 @@ class BinaryInfo {
             CertificateInfo(c.commonName, c.scheme, c.sha256Base64, c.sha256Hex)
         ],
       );
+
+  factory BinaryInfo.fromIpa(IpaContext ipa, IosSignature signature) {
+    final der = signature.certificate;
+    final cert = der == null ? null : SigningCert(der, 'Apple code signing');
+    return BinaryInfo(
+      file: ipa.label,
+      sizeBytes: ipa.archive.bytes.length,
+      packageName: ipa.bundleId,
+      versionName: ipa.version,
+      versionCode: ipa.build,
+      abis: ipa.machO.map((slice) => slice.architecture).toSet().toList(),
+      isFlutter: ipa.isFlutter,
+      encrypted: ipa.encrypted,
+      signatureVerified: signature.valid,
+      kind: 'IPA',
+      certificates: [
+        if (cert != null)
+          CertificateInfo(cert.commonName, cert.scheme, cert.sha256Base64,
+              cert.sha256Hex.replaceAll(':', '').toLowerCase()),
+      ],
+    );
+  }
+
+  final bool? encrypted;
+  final bool? signatureVerified;
 
   final String file;
   final int sizeBytes;
@@ -155,12 +217,15 @@ class BinaryInfo {
         'targetSdk': targetSdk,
         'abis': abis,
         'flutter': isFlutter,
+        if (kind == 'IPA') 'encrypted': encrypted,
+        if (kind == 'IPA') 'signatureVerified': signatureVerified,
         'certificates': [for (final c in certificates) c.toJson()],
       };
 }
 
 class CertificateInfo {
-  CertificateInfo(this.commonName, this.scheme, this.sha256Base64, this.sha256Hex);
+  CertificateInfo(
+      this.commonName, this.scheme, this.sha256Base64, this.sha256Hex);
   final String? commonName;
   final String scheme;
 
@@ -176,13 +241,81 @@ class CertificateInfo {
       };
 }
 
-/// Runs one rule; a crashing rule is reported as not applicable instead of
+/// Runs one rule; a crashing rule is reported as incomplete instead of
 /// stopping the whole audit.
-Future<RuleCheck> _safeCheck(Rule rule, Project project, ProfileSet profile) async {
+Future<RuleCheck> _safeCheck(
+    Rule rule, Project project, ProfileSet profile) async {
   try {
-    return await rule.check(project, profile);
+    final androidConfig = androidRules.contains(rule) ||
+        rule is AndroidLinksRule ||
+        rule is AndroidPermissionStrengthRule;
+    final iosConfig = iosRules.contains(rule) || rule is AtsForwardSecrecyRule;
+    final platformConfig = rule is PlatformProtectionRule &&
+        project.apk == null &&
+        project.ipa == null;
+    if (project.nativeOnly &&
+        (androidConfig ||
+            (iosConfig && project.ipa == null) ||
+            platformConfig)) {
+      final contexts = project.nativeContexts.where(
+          (c) => platformConfig || (androidConfig ? c.hasAndroid : c.hasIos));
+      final checks = <RuleCheck>[];
+      for (final context in contexts) {
+        context.offline = project.offline;
+        context.gitignore
+          ..clear()
+          ..addAll(project.gitignore);
+        context.probe = project.probe;
+        if (iosConfig &&
+            context.infoPlistData == null &&
+            rule.meta.id != 'AEG-I03') {
+          checks.add(RuleCheck.incompleteLocalized(
+              En.nativeConfigUnavailable, Ar.nativeConfigUnavailable));
+        } else {
+          try {
+            checks.add(await rule.check(context, profile));
+          } catch (e) {
+            checks.add(RuleCheck.incompleteLocalized(
+                En.ruleError(error: e), Ar.ruleError(error: e)));
+          }
+        }
+        project.securityEvidence.addAll(context.securityEvidence);
+        context.securityEvidence.clear();
+      }
+      final findings = [for (final c in checks) ...c.findings];
+      if (checks.any((c) => c.isIncomplete) ||
+          project.nativeSourceIssues.isNotEmpty) {
+        return RuleCheck.incompleteLocalized(
+            {
+              if (project.nativeSourceIssues.isNotEmpty) En.nativeSourceScope,
+              ...checks
+                  .where((c) => c.isIncomplete)
+                  .map((c) => c.note)
+                  .whereType<String>()
+            }.join(' '),
+            {
+              if (project.nativeSourceIssues.isNotEmpty) Ar.nativeSourceScope,
+              ...checks
+                  .where((c) => c.isIncomplete)
+                  .map((c) => c.noteAr ?? c.note)
+                  .whereType<String>()
+            }.join(' '),
+            findings);
+      }
+      return checks.any((c) => c.applicable)
+          ? RuleCheck(findings)
+          : RuleCheck.notApplicable();
+    }
+    final check = await rule.check(project, profile);
+    if (project.nativeSourceIssues.isNotEmpty &&
+        (rule is NativeSecurityRule || rule is NativeSourceRule)) {
+      return RuleCheck.incompleteLocalized(
+          En.nativeSourceScope, Ar.nativeSourceScope, check.findings);
+    }
+    return check;
   } catch (e) {
-    return RuleCheck.notApplicable('Rule error: $e');
+    return RuleCheck.incompleteLocalized(
+        En.ruleError(error: e), Ar.ruleError(error: e));
   }
 }
 
@@ -196,19 +329,51 @@ Future<AuditReport> runAudit(
   bool offline = false,
   List<Rule>? rules,
   String? apkPath,
+  String? ipaPath,
   Baseline? baseline,
   ProbeOutcome? probe,
+  RuntimeSecurityResult? runtimeSecurity,
 }) async {
+  if (apkPath != null && ipaPath != null) {
+    throw const FormatException(
+        'Audit one artifact at a time with --apk or --ipa.');
+  }
+  final ipa = ipaPath == null ? null : IpaContext.load(ipaPath);
+  IosSignature? signature;
+  if (ipa != null) {
+    if (Platform.isMacOS) {
+      final staging = Directory.systemTemp.createTempSync('aegis-ipa-');
+      try {
+        final app = ipa.stage(staging);
+        signature = await verifyIosSignature(app, staging);
+      } finally {
+        staging.deleteSync(recursive: true);
+      }
+    } else {
+      signature = (
+        valid: null,
+        evidence: En.signatureMacOnly,
+        evidenceAr: Ar.signatureMacOnly,
+        certificate: null
+      );
+    }
+  }
   final apk = apkPath == null ? null : ApkContext.load(apkPath);
   final hasPubspec = File(p.join(path, 'pubspec.yaml')).existsSync();
+  final hasNative = !hasPubspec &&
+      discoverNativeFiles(path, excluded: config?.isExcluded).recognized;
   final Project project;
-  if (!hasPubspec && apk != null) {
+  if (!hasPubspec && !hasNative && apk != null) {
     project = Project.binaryOnly(path, apk, config: config);
+  } else if (!hasPubspec && !hasNative && ipa != null) {
+    project = Project.ipaOnly(path, ipa, config: config);
   } else {
     project = Project.load(path, config: config)..apk = apk;
   }
+  if (ipa != null) project.useIpa(ipa, signature!);
   project.offline = offline;
   project.probe = probe;
+  project.runtimeSecurity = runtimeSecurity;
   final cfg = project.config;
   final profile = cfg.profile;
   final results = <RuleResult>[];
@@ -241,16 +406,30 @@ Future<AuditReport> runAudit(
 
   final ruleSet = rules ??
       [
-        if (project.hasSource) ...allRules,
+        if (project.hasSource && !project.nativeOnly) ...allRules,
+        if (project.nativeOnly) ...[...androidRules, ...iosRules],
+        ...extendedRules,
+        if (runtimeSecurity != null) ...runtimeSecurityRules,
         if (project.apk != null) ...apkRules,
-        // Only in a run that tried the probe (aegis run --mode apk|aab|all).
+        if (ipa != null) ...[
+          if (!project.hasSource) ...iosRules,
+          ...ipaRules,
+        ],
+        // Only in a run that tried the probe (aegis run --mode apk|aab).
         if (project.apk != null && probe != null) ...probeRules,
+        if (ipa != null && probe != null) ...iosProbeRules,
       ];
   // Binary rules are written for APKs; for a bundle they say "AAB".
   final bundle = project.apk?.isBundle ?? false;
   String bundleText(String s) => s.replaceAll('APK', 'AAB');
-  RuleMeta metaOf(Rule rule) =>
-      bundle && rule.meta.id.startsWith('AEG-B') ? rule.meta.mapText(bundleText) : rule.meta;
+  RuleMeta metaOf(Rule rule) {
+    final meta =
+        rule is ProbeRule ? rule.reportMeta(project.probe?.report) : rule.meta;
+    return bundle && meta.id.startsWith('AEG-B')
+        ? meta.mapText(bundleText)
+        : meta;
+  }
+
   Finding findingOf(Finding f) => !bundle || !f.ruleId.startsWith('AEG-B')
       ? f
       : Finding(
@@ -259,26 +438,35 @@ Future<AuditReport> runAudit(
           messageAr: f.messageAr == null ? null : bundleText(f.messageAr!),
           file: f.file,
           line: f.line,
-          snippet: f.snippet);
+          snippet: f.snippet,
+          snippetAr: f.snippetAr);
 
   for (final rule in ruleSet) {
     final meta = metaOf(rule);
-    final severity = cfg.severityOverrides[meta.id] ?? meta.severityFor(profile);
+    final severity =
+        cfg.severityOverrides[meta.id] ?? meta.severityFor(profile);
     if (cfg.disabledRules.contains(meta.id)) {
-      results.add(RuleResult(meta: meta, status: RuleStatus.disabled, severity: severity));
+      results.add(RuleResult(
+          meta: meta, status: RuleStatus.disabled, severity: severity));
       continue;
     }
     if (!profile.includesAny(meta.profiles)) {
-      results.add(RuleResult(meta: meta, status: RuleStatus.outOfProfile, severity: severity));
+      results.add(RuleResult(
+          meta: meta, status: RuleStatus.outOfProfile, severity: severity));
       continue;
     }
     final check = await _safeCheck(rule, project, profile);
-    if (!check.applicable) {
+    if (!check.applicable && check.findings.isEmpty) {
       results.add(RuleResult(
           meta: meta,
-          status: RuleStatus.notApplicable,
+          status: check.isIncomplete
+              ? RuleStatus.incomplete
+              : check.isEvidenceOnly
+                  ? RuleStatus.evidenceOnly
+                  : RuleStatus.notApplicable,
           severity: severity,
-          note: check.note));
+          note: check.note,
+          noteAr: check.noteAr));
       continue;
     }
     final kept = <Finding>[];
@@ -292,7 +480,14 @@ Future<AuditReport> runAudit(
     }
     results.add(RuleResult(
       meta: meta,
-      status: kept.isEmpty ? RuleStatus.passed : RuleStatus.failed,
+      status: kept.isNotEmpty
+          ? RuleStatus.failed
+          : check.isIncomplete
+              ? RuleStatus.incomplete
+              : RuleStatus.passed,
+      incomplete: check.isIncomplete,
+      note: check.note,
+      noteAr: check.noteAr,
       severity: severity,
       findings: kept,
       suppressed: hidden,
@@ -320,10 +515,17 @@ Future<AuditReport> runAudit(
         .where((m) => !(apk != null && m.id == 'AEG-M05'))
         .toList(),
     generatedAt: DateTime.now(),
-    binary: apk == null ? null : BinaryInfo.from(apk),
+    binary: ipa != null
+        ? BinaryInfo.fromIpa(ipa, signature!)
+        : apk == null
+            ? null
+            : BinaryInfo.from(apk),
     scannedPackages: project.scannedPackages,
-    baselinePath: baseline == null ? null : (baseline.path ?? defaultBaselineFile),
+    baselinePath:
+        baseline == null ? null : (baseline.path ?? defaultBaselineFile),
     baselineResolved: resolved,
     probe: probe,
+    iosStatic: ipa?.staticAnalysis,
+    securityEvidence: project.securityEvidence,
   );
 }

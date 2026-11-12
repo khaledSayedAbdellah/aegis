@@ -1,6 +1,7 @@
 /// Self-contained HTML report to share with people who don't use a terminal.
 library;
 
+import '../l10n/messages.g.dart';
 import 'dart:convert';
 
 import '../engine.dart';
@@ -9,6 +10,8 @@ import '../model.dart';
 import '../probe/probe_model.dart';
 import 'i18n.dart';
 import 'probe_view.dart';
+import 'ios_static_view.dart';
+import 'security_view.dart';
 
 /// Escapes text for HTML. `/` is left as is so paths and Base64 hashes stay
 /// readable and copyable.
@@ -24,9 +27,11 @@ String _binaryHtml(AuditReport r, Strings t) {
       : '<div class="muted">${_e(t.packages)}: ${_e(r.scannedPackages.join(', '))}</div>';
   final bin = r.binary;
   if (bin == null) return pkgs;
-  final b = StringBuffer('$pkgs<div class="muted">${_e(t.binaryKind(bin.kind))}: <code>${_e(bin.file)}</code> ${_e(bin.packageName ?? '')} ${_e(bin.versionName ?? '')}</div>');
+  final b = StringBuffer(
+      '$pkgs<div class="muted">${_e(t.binaryKind(bin.kind))}: <code>${_e(bin.file)}</code> ${_e(bin.packageName ?? '')} ${_e(bin.versionName ?? '')}</div>');
   for (final c in bin.certificates) {
-    b.write('<div class="muted">${_e(t.signer)}: ${_e(c.commonName ?? '?')} (${c.scheme})${bin.kind == 'AAB' ? ' · ${_e(t.uploadKey)}' : ''}<br>${_e(t.certHash)}: <code>${_e(c.sha256Base64)}</code></div>');
+    b.write(
+        '<div class="muted">${_e(t.signer)}: ${_e(c.commonName ?? '?')} (${c.scheme})${bin.kind == 'AAB' ? ' · ${_e(t.uploadKey)}' : ''}<br>${_e(t.certHash(bin.kind))}: <code>${_e(c.sha256Base64)}</code></div>');
   }
   return b.toString();
 }
@@ -36,7 +41,10 @@ String renderHtml(AuditReport r, {String lang = 'en'}) {
   final dir = t.ar ? 'rtl' : 'ltr';
   // Coloured like the band, as the categories are.
   final scoreColor = switch (r.score.worst) {
-    null || Severity.low || Severity.info => 'var(--ok)',
+    null ||
+    Severity.low ||
+    Severity.info =>
+      r.complete ? 'var(--ok)' : 'var(--warn)',
     Severity.medium => 'var(--warn)',
     _ => 'var(--bad)',
   };
@@ -46,7 +54,7 @@ String renderHtml(AuditReport r, {String lang = 'en'}) {
   String findingLi(Finding f) =>
       '<li${f.baselined ? ' class="known"' : ''}>${f.location.isEmpty ? '' : '<code>${_e(f.location)}</code> '}${_e(f.messageOf(lang))}'
       '${f.baselined ? ' <span class="tag">${_e(t.isKnown)}</span>' : ''}'
-      '${f.snippet == null ? '' : '<pre>${_e(f.snippet!)}</pre>'}</li>';
+      '${f.snippet == null ? '' : '<pre>${_e(f.snippetOf(lang)!)}</pre>'}</li>';
 
   final newFailed = r.newFailed.toList();
   final knownOnly = r.failed.where((x) => !x.hasNew).toList();
@@ -54,12 +62,19 @@ String renderHtml(AuditReport r, {String lang = 'en'}) {
   for (final res in [...newFailed, ...knownOnly]) {
     final m = res.meta;
     if (knownOnly.isNotEmpty && identical(res, knownOnly.first)) {
-      failed.writeln('<h2>≈ ${_e(t.known)} (${knownOnly.length})</h2><p class="muted">${_e(t.knownHint)}</p>');
+      failed.writeln(
+          '<h2>≈ ${_e(t.known)} (${knownOnly.length})</h2><p class="muted">${_e(t.knownHint)}</p>');
     }
-    failed.writeln('<details class="card${res.hasNew ? '' : ' known'}"${res.hasNew ? ' open' : ''}>');
-    failed.writeln('<summary><span class="${sevClass(res.severity)}">${_e(t.severity(res.severity))}</span> '
+    failed.writeln(
+        '<details class="card${res.hasNew ? '' : ' known'}"${res.hasNew ? ' open' : ''}>');
+    failed.writeln(
+        '<summary><span class="${sevClass(res.severity)}">${_e(t.severity(res.severity))}</span> '
         '<strong>${_e(m.title.of(lang))}</strong> <code>${m.id}</code></summary>');
-    failed.writeln('<p class="muted">${_e([...m.masvs, ...m.maswe, if (m.cwe != null) m.cwe!].join(' · '))}</p>');
+    failed.writeln('<p class="muted">${_e([
+      ...m.masvs,
+      ...m.maswe,
+      if (m.cwe != null) m.cwe!
+    ].join(' · '))}</p>');
     failed.writeln('<ul>');
     // New findings first.
     for (final f in [...res.newFindings, ...res.knownFindings]) {
@@ -67,7 +82,8 @@ String renderHtml(AuditReport r, {String lang = 'en'}) {
     }
     failed.writeln('</ul>');
     failed.writeln('<p><b>${_e(t.why)}:</b> ${_e(m.description.of(lang))}</p>');
-    failed.writeln('<p class="fix"><b>${_e(t.fix)}:</b> ${_e(m.fix.of(lang))}</p>');
+    failed.writeln(
+        '<p class="fix"><b>${_e(t.fix)}:</b> ${_e(m.fix.of(lang))}</p>');
     failed.writeln('</details>');
   }
 
@@ -80,8 +96,11 @@ String renderHtml(AuditReport r, {String lang = 'en'}) {
       Severity.medium => 'var(--warn)',
       _ => 'var(--bad)',
     };
-    final open = c.failedRuleIds.isEmpty ? '' : '<small class="muted">${_e(c.failedRuleIds.join(' · '))}</small>';
-    cats.writeln('<div class="cat"><span>${_e(masvsCategories[c.category]?.of(lang) ?? c.category)}$open</span>'
+    final open = c.failedRuleIds.isEmpty
+        ? ''
+        : '<small class="muted">${_e(c.failedRuleIds.join(' · '))}</small>';
+    cats.writeln(
+        '<div class="cat"><span>${_e(masvsCategories[c.category]?.of(lang) ?? c.category)}$open</span>'
         '<div class="bar"><i style="width:${c.score}%;background:$color"></i></div><b style="color:$color">${c.score}</b></div>');
   }
 
@@ -100,11 +119,18 @@ String renderHtml(AuditReport r, {String lang = 'en'}) {
   final probe = StringBuffer();
   if (probeView != null) {
     probe.writeln('<h2>🧪 ${_e(probeView.heading)}</h2><section class="card">');
-    if (probeView.message != null) probe.writeln('<p>⏸️ ${_e(probeView.message!)}</p>');
-    if (probeView.details.isNotEmpty) probe.writeln('<pre>${_e(probeView.details.join('\n'))}</pre>');
-    if (probeView.baseline != null) probe.writeln('<p>${_e(probeView.baseline!)}</p>');
+    if (probeView.message != null) {
+      probe.writeln('<p>⏸️ ${_e(probeView.message!)}</p>');
+    }
+    if (probeView.details.isNotEmpty) {
+      probe.writeln('<pre>${_e(probeView.details.join('\n'))}</pre>');
+    }
+    if (probeView.baseline != null) {
+      probe.writeln('<p>${_e(probeView.baseline!)}</p>');
+    }
     if (probeView.lines.isNotEmpty) {
-      probe.writeln('<table class="probe"><tr><th>${_e(t.probeCheck)}</th><th>${_e(t.result)}</th>'
+      probe.writeln(
+          '<table class="probe"><tr><th>${_e(t.probeCheck)}</th><th>${_e(t.result)}</th>'
           '<th>${_e(t.probeObserved)}</th><th>MASVS · MASTG</th><th>${_e(t.rules)}</th></tr>');
       for (final l in probeView.lines) {
         final color = switch (l.status) {
@@ -112,21 +138,32 @@ String renderHtml(AuditReport r, {String lang = 'en'}) {
           ProbeStatus.notBlocked => 'var(--bad)',
           ProbeStatus.inconclusive => 'var(--warn)',
         };
-        probe.writeln('<tr><td>${_e(l.title)}</td><td style="color:$color;text-align:center">${_e(l.mark)}</td>'
+        probe.writeln(
+            '<tr><td>${_e(l.title)}</td><td style="color:$color;text-align:center">${_e(l.mark)}</td>'
             '<td>${_e(l.evidence)}${l.note == null ? '' : '<div class="muted">${_e(l.note!)}</div>'}</td>'
             '<td class="muted">${_e(l.tag)}</td><td><code>${_e(l.ruleId ?? '')}</code></td></tr>');
       }
       probe.writeln('</table>');
     }
     if (probeView.caveats.isNotEmpty) {
-      probe.writeln('<ul class="muted">${probeView.caveats.map((c) => '<li>${_e(c)}</li>').join()}</ul>');
+      probe.writeln(
+          '<ul class="muted">${probeView.caveats.map((c) => '<li>${_e(c)}</li>').join()}</ul>');
     }
     probe.writeln('</section>');
   }
 
-  final passed = r.passed.map((x) => '<li>✓ ${_e(x.meta.passTitle.of(lang))} <code>${x.meta.id}</code></li>').join();
-  final manual = r.manual.map((m) => '<li>${_e(m.text.of(lang))} <code>${m.masvs}</code></li>').join();
+  final passed = r.passed
+      .map((x) =>
+          '<li>✓ ${_e(x.meta.passTitle.of(lang))} <code>${x.meta.id}</code></li>')
+      .join();
+  final manual = r.manual
+      .map((m) => '<li>${_e(m.text.of(lang))} <code>${m.masvs}</code></li>')
+      .join();
 
+  final incomplete = r.incomplete.isEmpty
+      ? ''
+      : '<h2>${L10n(lang).incompleteChecks}</h2><ul>'
+          '${r.incomplete.map((res) => '<li>${_e(res.meta.id)} · ${_e(res.noteOf(lang) ?? res.meta.title.of(lang))}</li>').join()}</ul>';
   return '''<!doctype html>
 <html lang="$lang" dir="$dir">
 <head>
@@ -143,8 +180,10 @@ h1{font-size:22px;margin:0 0 4px}h2{font-size:17px;margin:32px 0 12px}
 .ring{width:120px;height:120px;border-radius:50%;display:grid;place-items:center;background:conic-gradient($scoreColor ${r.score.value * 3.6}deg,var(--line) 0)}
 .ring div{width:96px;height:96px;border-radius:50%;background:var(--card);display:grid;place-items:center;text-align:center}
 .ring b{font-size:30px;line-height:1}.cat{display:grid;grid-template-columns:170px 1fr 36px;gap:10px;align-items:center;margin:6px 0}.cat small{display:block;font-size:11.5px}
+.score-warning{border-inline-start:4px solid var(--warn);padding-inline-start:12px;margin:10px 0}.score-warning p{margin:4px 0}
 .bar{height:8px;background:var(--line);border-radius:6px;overflow:hidden}.bar i{display:block;height:100%}
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:10px 0}
+.evidence-items{list-style:none;padding:0;margin:12px 0 0}.evidence-item{padding:10px 0;overflow-wrap:anywhere}.evidence-item+.evidence-item{border-top:1px solid var(--line)}.evidence-item p{margin:0 0 6px}.evidence-item pre{overflow-wrap:anywhere}
 summary{cursor:pointer}pre{white-space:pre-wrap;background:var(--bg);padding:6px 8px;border-radius:6px;margin:4px 0;font-size:13px}
 code{font-size:12.5px;color:var(--muted)}.fix{border-inline-start:3px solid var(--ok);padding-inline-start:10px}
 .sev{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:20px;color:#fff}
@@ -159,7 +198,11 @@ ul{padding-inline-start:20px}.known{opacity:.7}.tag{font-size:11px;border:1px so
 <section class="hero">
 <div class="ring"><div><span><b>${r.score.value}</b><br><span class="muted">${r.score.grade}</span></span></div></div>
 <div style="flex:1;min-width:240px">
-<div><b>${_e(t.score)}</b>${[t.band(r.score), t.bestFixes(r.score)].whereType<String>().map((x) => '<div class="muted">${_e(x)}</div>').join()}</div>
+<div><b>${_e(t.score)}</b>${[
+    t.band(r.score),
+    t.bestFixes(r.score)
+  ].whereType<String>().map((x) => '<div class="muted">${_e(x)}</div>').join()}</div>
+${r.complete ? '' : '<div class="score-warning" role="note"><strong>${_e(L10n(lang).scoreProvisional)}</strong><p>${_e(L10n(lang).scoreProvisionalDetail)}</p></div>'}
 <div class="muted">${_e(t.coverage)}: ${_e(t.coverageLine(r.coverage.checked, r.coverage.inScope, r.coverage.percent))}</div>
 ${_binaryHtml(r, t)}
 $baselineLine
@@ -167,6 +210,9 @@ ${cats.toString()}
 </div>
 </section>
 ${probe.toString()}
+${r.iosStatic == null ? '' : IosStaticView(r.iosStatic!, lang).html()}
+${SecurityView(r.securityEvidence, lang).html()}
+$incomplete
 <h2>✗ ${_e(failedTitle)} (${newFailed.length})</h2>
 ${newFailed.isEmpty ? '<p>${_e(emptyText)}</p>' : ''}${failed.toString()}
 $resolved

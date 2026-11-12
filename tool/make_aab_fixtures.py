@@ -44,6 +44,22 @@ def load_pb():
 pb = load_pb()
 
 
+def resource_table(file_path, service_jwt):
+    table = pb.ResourceTable()
+    table.source_pool.data = service_jwt.encode()
+    package = table.package.add()
+    package.package_id.id = 0x7f
+    package.package_name = 'com.myshop.app'
+    resource_type = package.type.add()
+    resource_type.type_id.id = 0x15
+    resource_type.name = 'xml'
+    entry = resource_type.entry.add()
+    entry.entry_id.id = 1
+    entry.name = 'nsc'
+    entry.config_value.add().value.item.file.path = file_path
+    return table.SerializeToString()
+
+
 def proto_xml(root, compiled_only=()):
     """root: el(...) tree. Attributes named in compiled_only get no raw
     `value` string, only a compiled item, to exercise the fallback."""
@@ -137,8 +153,9 @@ def main():
         # debuggable, minSdkVersion and networkSecurityConfig only as compiled items.
         'base/manifest/AndroidManifest.xml': proto_xml(
             manifest, compiled_only={'debuggable', 'minSdkVersion', 'networkSecurityConfig'}),
-        'base/res/xml/nsc.xml': proto_xml(nsc),
-        'base/resources.pb': b'\x0a\x00' + service_jwt.encode() + b'\x00',
+        'base/res/xml/unused.xml': proto_xml(el('network-security-config')),
+        'base/res/a.xml': proto_xml(nsc),
+        'base/resources.pb': resource_table('res/a.xml', service_jwt),
         'base/dex/classes.dex': b'dex\n035\x00' + b'\x00' * 32 + b'\x10com/someplugin/SmsReceiver\x00',
         'base/lib/arm64-v8a/libflutter.so': fake_so(['FlutterEngine']),
         'base/lib/arm64-v8a/libapp.so': fake_so([

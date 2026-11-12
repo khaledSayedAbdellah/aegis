@@ -320,7 +320,10 @@ class DartFile {
       if (segStart >= endExclusive) return;
       final a = tokens[segStart];
       final b = at(segStart + 1);
-      if (a.isIdent && b != null && b.isPunct(':') && segStart + 2 < endExclusive) {
+      if (a.isIdent &&
+          b != null &&
+          b.isPunct(':') &&
+          segStart + 2 < endExclusive) {
         out.add(Arg(a.text, segStart + 2, endExclusive - 1));
       } else {
         out.add(Arg(null, segStart, endExclusive - 1));
@@ -357,9 +360,14 @@ class DartFile {
 
   /// Finds the body of a function or method declared as `name(...) {` or
   /// `name(...) =>` in this file. Returns the token range of the body.
-  ({int start, int end})? functionBody(String name) {
+  ({int start, int end})? functionBody(String name, {bool topLevel = false}) {
     for (var i = 0; i < tokens.length; i++) {
       final t = tokens[i];
+      if (topLevel && (t.isPunct('{') || t.isPunct('(') || t.isPunct('['))) {
+        final end = matchOf(i);
+        if (end != null) i = end;
+        continue;
+      }
       if (!t.isIdent || t.text != name) continue;
       final open = at(i + 1);
       if (open == null || !open.isPunct('(')) continue;
@@ -367,7 +375,9 @@ class DartFile {
       if (close == null) continue;
       var b = close + 1;
       final n = at(b);
-      if (n != null && n.isIdent && (n.text == 'async' || n.text == 'sync')) b++;
+      if (n != null && n.isIdent && (n.text == 'async' || n.text == 'sync')) {
+        b++;
+      }
       final body = at(b);
       if (body == null) continue;
       if (body.isPunct('{')) {
@@ -510,7 +520,8 @@ class _Lexer {
               _isDigit(src.codeUnitAt(e + 1))) {
             e++;
           } else if ((d == 0x2B || d == 0x2D) &&
-              (src.codeUnitAt(e - 1) == 0x65 || src.codeUnitAt(e - 1) == 0x45) &&
+              (src.codeUnitAt(e - 1) == 0x65 ||
+                  src.codeUnitAt(e - 1) == 0x45) &&
               !src.substring(i, e).toLowerCase().startsWith('0x')) {
             e++;
           } else {

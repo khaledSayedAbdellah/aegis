@@ -10,7 +10,7 @@ resources:
     type: github
     endpoint: <your GitHub service connection>
     name: khaledSayedAbdellah/aegis
-    ref: refs/tags/v0.7.0
+    ref: refs/tags/v0.9.0
 
 steps:
 - template: ci/azure-pipelines/aegis-steps.yml@aegis
@@ -18,7 +18,7 @@ steps:
     projectDir: $(Build.SourcesDirectory)
     aegisSource: git
     aegisGitUrl: https://github.com/khaledSayedAbdellah/aegis.git
-    aegisGitRef: v0.7.0
+    aegisGitRef: v0.9.0
 ```
 
 Azure Pipelines reads templates from GitHub through a service connection
@@ -53,7 +53,7 @@ an APK audit on `main`.
 | `baseline` | `aegis-baseline.json` | Another baseline file. |
 | `offline` | `false` | Skip the OSV vulnerability lookup. |
 | `aegisSource` | `hosted` | `hosted` (pub.dev), `git` or `path`. |
-| `aegisVersion` | latest | For `hosted`, e.g. `^0.7.0`. |
+| `aegisVersion` | latest | For `hosted`, e.g. `^0.9.0`. |
 | `aegisGitUrl`, `aegisGitRef` | | For `git`. Pin a tag so a change to aegis can't change your build. |
 | `aegisPath` | | For `path`, a checked-out copy (`- checkout: aegis`). |
 | `outputDir` | `$(Build.ArtifactStagingDirectory)/aegis` | Absolute path. |

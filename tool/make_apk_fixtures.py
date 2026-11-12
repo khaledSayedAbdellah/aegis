@@ -121,6 +121,24 @@ def axml(root, utf8=False, strip_android_names=False):
 
 
 # ------------------------------------------------------------ certificates
+def resource_table(resource_id, path):
+    """Minimal table with one dense XML file entry and its global string pool."""
+    def chunk(kind, header, body):
+        return struct.pack('<HHI', kind, 8 + len(header), 8 + len(header) + len(body)) + header + body
+
+    encoded = struct.pack('<H', len(path)) + path.encode('utf-16-le') + b'\0\0'
+    pool = chunk(1, struct.pack('<5I', 1, 0, 0, 32, 0),
+                 struct.pack('<I', 0) + encoded + b'\0' * (-len(encoded) % 4))
+    target = resource_id & 0xffff
+    offsets = struct.pack('<I', 0xffffffff) * target + struct.pack('<I', 0)
+    header = struct.pack('<BBHIII', (resource_id >> 16) & 255, 0, 0,
+                         target + 1, 24 + len(offsets), 4)
+    entry = struct.pack('<HHIHBBI', 8, 0, 0, 8, 0, 3, 0)
+    package = chunk(0x200, struct.pack('<I', resource_id >> 24) + b'\0' * 276,
+                    chunk(0x201, header, offsets + entry))
+    return chunk(2, struct.pack('<I', 1), pool + package)
+
+
 def make_cert(cn):
     key = ec.generate_private_key(ec.SECP256R1())
     name = x509.Name([
@@ -224,10 +242,11 @@ def main():
     debug_der, debug_cert = make_cert('Android Debug')
     build_apk(os.path.join(OUT, 'vulnerable.apk'), {
         'AndroidManifest.xml': axml(manifest),
-        'res/xml/nsc.xml': axml(nsc, utf8=True),
+        'res/xml/unused.xml': axml(el('network-security-config')),
+        'res/a.xml': axml(nsc, utf8=True),
         'res/layout/main.xml': axml(layout, utf8=True),
         'classes.dex': b'dex\n035\x00' + b'\x00' * 32 + b'\x10com/someplugin/SmsReceiver\x00',
-        'resources.arsc': b'\x02\x00\x0c\x00' + b'\x00' * 16,
+        'resources.arsc': resource_table(0x7f150001, 'res/a.xml'),
         'lib/arm64-v8a/libflutter.so': fake_so(['FlutterEngine']),
         'lib/arm64-v8a/libapp.so': fake_so([
             '_kDartIsolateSnapshotData',

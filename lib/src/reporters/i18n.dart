@@ -1,6 +1,8 @@
 /// UI strings for reports.
 library;
 
+import '../l10n/messages.g.dart';
+
 import '../model.dart';
 import '../scoring.dart';
 
@@ -9,32 +11,31 @@ class Strings {
   final String lang;
 
   bool get ar => lang == 'ar';
-  String _t(String en, String ar) => this.ar ? ar : en;
 
-  String get title => _t('Aegis security audit', 'تقرير aegis الأمني');
-  String get project => _t('Project', 'المشروع');
-  String get profile => _t('MAS profile', 'مستوى الحماية (MAS)');
-  String get score => _t('Security score', 'السكور الأمني');
-  String get coverage => _t('MASVS coverage', 'تغطية MASVS');
-  String get control => _t('Control', 'البند');
-  String get result => _t('Result', 'النتيجة');
-  String get rules => _t('Rules', 'القواعد');
-  String get probeCheck => _t('Check', 'الفحص');
-  String get probeObserved => _t('Observed', 'اللي حصل');
-  String get coverageLegend => _t(
-      '✅ checked and passed · ❌ checked, has problems (in bold) · ❔ check it yourself · — not covered by aegis',
-      '✅ اتفحص وسليم · ❌ اتفحص وفيه مشاكل (القواعد اللي بالـ bold) · ❔ لازم تتأكد منه بنفسك · — aegis مش بيغطيه');
-  String coverageLine(int checked, int total, int pct) => _t(
-      '$checked of $total controls checked automatically ($pct%)',
-      'اتفحص $checked من $total بند أوتوماتيك ($pct%)');
-  String get failed => _t('Needs fixing', 'محتاج يتصلح');
-  String get passed => _t('Passed', 'سليم');
-  String get notApplicable => _t('Not applicable', 'مش منطبق');
-  String get manual => _t('Check manually (no tool can verify these)', 'لازم تتأكد منها بنفسك (مفيش أداة تقدر تفحصها)');
-  String get fix => _t('Fix', 'الحل');
-  String get why => _t('Why', 'ليه مهم');
-  String get categories => _t('By category', 'حسب القسم');
-  String get suppressed => _t('suppressed by aegis:ignore', 'متخفي بـ aegis:ignore');
+  String get title => L10n(lang).i18nAegisSecurityAudit;
+  String get project => L10n(lang).i18nProject;
+  String get profile => L10n(lang).i18nMasProfile;
+  String get score => L10n(lang).i18nSecurityScore;
+  String get coverage => L10n(lang).i18nMasvsCoverage;
+  String get control => L10n(lang).i18nControl;
+  String get result => L10n(lang).i18nResult;
+  String get rules => L10n(lang).i18nRules;
+  String get probeCheck => L10n(lang).i18nCheck;
+  String get probeObserved => L10n(lang).i18nObserved;
+  String get coverageLegend => L10n(lang).i18nCheckedAndPassedCheckedHas;
+  String coverageLine(int checked, int total, int pct) =>
+      L10n(lang).i18nOfControlsCheckedAutomatically(
+          checked: checked, total: total, pct: pct);
+  String get failed => L10n(lang).i18nNeedsFixing;
+  String get passed => L10n(lang).i18nPassed;
+  String get notApplicable => L10n(lang).i18nNotApplicable;
+  String get evidenceOnly => L10n(lang).i18nEvidenceOnly;
+  String get manual => L10n(lang).i18nCheckManuallyNoToolCanVerifyThese;
+  String get fix => L10n(lang).i18nFix;
+  String get why => L10n(lang).i18nWhy;
+  String get categories => L10n(lang).i18nByCategory;
+  String get suppressed => L10n(lang).i18nSuppressedByAegisIgnore;
+
   /// Why the score is in its band and what lifts it out, e.g. "40-69 while
   /// a HIGH problem is open (AEG-D01, AEG-P01); fixing them gives 80".
   /// Null when nothing above low is open.
@@ -46,9 +47,8 @@ class Strings {
     final rules = s.blockingRules.join(', ');
     final range = '${b.$1}-${b.$2 - 1}';
     final after = s.afterBlockingFixed;
-    return _t(
-        '$range while a $sev problem is open ($rules); fixing ${s.blockingRules.length == 1 ? 'it' : 'them'} gives $after',
-        'بين $range طول ما فيه مشكلة $sev مفتوحة ($rules)، ولو اتصلحت يبقى $after');
+    return L10n(lang)
+        .scoreBand(range: range, severity: sev, rules: rules, after: after);
   }
 
   /// The single fixes worth most points, e.g. "AEG-D01 +4 · AEG-P05 +2".
@@ -56,52 +56,50 @@ class Strings {
     final top = s.gains.entries.where((e) => e.value > 0).take(3).toList();
     if (top.isEmpty) return null;
     final list = top.map((e) => '${e.key} +${e.value}').join(' · ');
-    return _t('Biggest single gains: $list', 'أكبر تحسن من إصلاح واحد: $list');
+    return L10n(lang).i18nBiggestSingleGains(list: list);
   }
 
-  String get rulesCol => _t('Rules passed', 'القواعد السليمة');
-  String get problemsCol => _t('Open problems', 'المشاكل المفتوحة');
-  String get packages => _t('Packages scanned', 'المكتبات اللي اتفحصت');
-  String get binary => _t('APK', 'الـ APK');
-  String binaryKind(String kind) =>
-      kind == 'AAB' ? _t('App bundle (AAB)', 'الـ App Bundle (AAB)') : binary;
-  String get uploadKey => _t('upload key: Google Play re-signs the app with the app signing key',
-      'upload key: Google Play بيعيد توقيع التطبيق بالـ app signing key');
-  String get signer => _t('Signed by', 'متوقع بواسطة');
-  String get certHash => _t('Certificate SHA-256 (Base64, for freeRASP signingCertHashes)',
-      'الـ SHA-256 بتاع الشهادة (Base64، لـ signingCertHashes في freeRASP)');
-  String get baseline => _t('Baseline', 'الـ Baseline');
-  String baselineLine(int known, int fresh, int fixed) => _t(
-      '$known known · $fresh new · $fixed fixed since the baseline',
-      '$known معروفة · $fresh جديدة · $fixed اتصلحت من وقت الـ baseline');
-  String get newIssues => _t('New issues (not in the baseline)', 'مشاكل جديدة (مش في الـ baseline)');
-  String get noNewIssues => _t('No new issues since the baseline.', 'مفيش مشاكل جديدة من وقت الـ baseline.');
-  String get known => _t('Known issues (accepted in the baseline)', 'مشاكل معروفة (متسجلة في الـ baseline)');
-  String knownCount(int n) => _t('$n known', '$n معروفة');
-  String get knownHint => _t(
-      'Known issues still count in the score. They do not fail the build (--fail-on) until they change.',
-      'المشاكل المعروفة لسه بتأثر على السكور، بس مش بتوقّع الـ build (‎--fail-on) إلا لو اتغيرت.');
-  String get resolved => _t('Fixed since the baseline', 'اتصلحت من وقت الـ baseline');
-  String get updateHint => _t(
-      'Run aegis --update-baseline to remove fixed issues from the baseline.',
-      'شغّل aegis --update-baseline علشان تشيل اللي اتصلح من الـ baseline.');
-  String get noIssues => _t('No issues found.', 'مفيش مشاكل.');
-  String get isKnown => _t('known', 'معروفة');
-  String get disclaimer => _t(
-      'This score measures how well known protections are implemented in the code and config. It does not prove the app cannot be attacked: backend security and runtime behavior must be tested separately.',
-      'السكور ده بيقيس قد إيه الحمايات المعروفة متطبقة في الكود والإعدادات. هو مش إثبات إن التطبيق مستحيل يتخترق: أمان الـ backend وسلوك التطبيق وقت التشغيل لازم يتفحصوا لوحدهم.');
+  String get rulesCol => L10n(lang).i18nRulesPassed;
+  String get problemsCol => L10n(lang).i18nOpenProblems;
+  String get packages => L10n(lang).i18nPackagesScanned;
+  String get binary => L10n(lang).i18nApk;
+  String binaryKind(String kind) => switch (kind) {
+        'AAB' => L10n(lang).i18nAppBundleAab,
+        'IPA' => L10n(lang).i18nIosApplicationIpa,
+        _ => binary,
+      };
+  String get uploadKey => L10n(lang).i18nUploadKeyGooglePlayReSignsTheAppWith;
+  String get signer => L10n(lang).i18nSignedBy;
+  String certHash(String kind) => kind == 'IPA'
+      ? L10n(lang).i18nSigningCertificateSha256Base64
+      : L10n(lang).i18nCertificateSha256Base64ForFreeraspSigningcerthashes;
+  String get baseline => L10n(lang).i18nBaseline;
+  String baselineLine(int known, int fresh, int fixed) => L10n(lang)
+      .i18nKnownNewFixedSinceThe(known: known, fresh: fresh, fixed: fixed);
+  String get newIssues => L10n(lang).i18nNewIssuesNotInTheBaseline;
+  String get noNewIssues => L10n(lang).i18nNoNewIssuesSinceTheBaseline;
+  String get known => L10n(lang).i18nKnownIssuesAcceptedInTheBaseline;
+  String knownCount(int n) => L10n(lang).i18nKnown(n: n);
+  String get knownHint => L10n(lang).i18nKnownIssuesStillCountInTheScoreThey;
+  String get resolved => L10n(lang).i18nFixedSinceTheBaseline;
+  String get updateHint =>
+      L10n(lang).i18nRunAegisUpdateBaselineToRemoveFixedIssuesFrom;
+  String get noIssues => L10n(lang).i18nNoIssuesFound;
+  String get isKnown => L10n(lang).i18nKnown2;
+  String get disclaimer =>
+      L10n(lang).i18nThisScoreMeasuresHowWellKnownProtectionsAre;
   String severity(Severity s) {
     switch (s) {
       case Severity.critical:
-        return _t('CRITICAL', 'خطير جداً');
+        return L10n(lang).i18nCritical;
       case Severity.high:
-        return _t('HIGH', 'عالي');
+        return L10n(lang).i18nHigh;
       case Severity.medium:
-        return _t('MEDIUM', 'متوسط');
+        return L10n(lang).i18nMedium;
       case Severity.low:
-        return _t('LOW', 'منخفض');
+        return L10n(lang).i18nLow;
       case Severity.info:
-        return _t('INFO', 'معلومة');
+        return L10n(lang).i18nInfo;
     }
   }
 }

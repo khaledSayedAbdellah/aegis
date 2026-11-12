@@ -1,0 +1,25 @@
+# pub reads this file instead of .gitignore in this folder, so the
+# .gitignore entries are repeated here.
+
+# Dart / Flutter
+.dart_tool/
+.packages
+build/
+pubspec.lock
+
+# aegis output
+aegis-report.*
+
+# Leftover from copying files onto this machine
+.aegis-transfer.tgz
+
+# macOS / IDE
+.DS_Store
+.idea/
+*.iml
+
+# Python
+__pycache__/
+
+# Not part of the published package: historical implementation plans.
+doc/plans/

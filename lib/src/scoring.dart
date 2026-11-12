@@ -66,7 +66,11 @@ class CategoryScore {
 
 class Score {
   Score(this.value, this.categories,
-      {this.worst, this.blockingRules = const [], this.penalty = 0, this.gains = const {}, this.afterBlockingFixed});
+      {this.worst,
+      this.blockingRules = const [],
+      this.penalty = 0,
+      this.gains = const {},
+      this.afterBlockingFixed});
 
   final int value;
   final Map<String, CategoryScore> categories;
@@ -115,7 +119,8 @@ class Score {
   }
   if (worst == null) return (100, null, 0);
   final (from, to) = severityBand[worst]!;
-  final value = (from + (to - from) * math.exp(-penalty / penaltyScale)).floor();
+  final value =
+      (from + (to - from) * math.exp(-penalty / penaltyScale)).floor();
   return (value.clamp(from, to - 1).toInt(), worst, penalty);
 }
 
@@ -128,13 +133,16 @@ Score computeScore(List<RuleResult> results) {
   final cats = <String, CategoryScore>{};
   for (final e in byCat.entries) {
     final (value, worst, _) = _scoreOf(e.value);
-    final failedIds = [for (final r in e.value) if (r.status == RuleStatus.failed) r.meta.id];
+    final failedIds = [
+      for (final r in e.value)
+        if (r.status == RuleStatus.failed) r.meta.id
+    ];
     cats[e.key] = CategoryScore(e.key, value, e.value.length, failedIds.length,
         worst: worst, failedRuleIds: failedIds);
   }
 
   final (value, worst, penalty) = _scoreOf(counted);
-  if (worst == null) return Score(value, cats);
+  if (worst == null) return Score(counted.isEmpty ? 0 : value, cats);
 
   final failed = counted.where((r) => r.status == RuleStatus.failed).toList();
   final gains = <String, int>{};
@@ -144,8 +152,12 @@ Score computeScore(List<RuleResult> results) {
   }
   final sortedGains = Map.fromEntries(
       gains.entries.toList()..sort((a, b) => b.value.compareTo(a.value)));
-  final blocking = [for (final r in failed) if (r.severity == worst) r.meta.id];
-  final (afterBlocking, _, _) = _scoreOf(failed.where((r) => r.severity != worst));
+  final blocking = [
+    for (final r in failed)
+      if (r.severity == worst) r.meta.id
+  ];
+  final (afterBlocking, _, _) =
+      _scoreOf(failed.where((r) => r.severity != worst));
 
   return Score(value, cats,
       worst: worst,
@@ -158,7 +170,8 @@ Score computeScore(List<RuleResult> results) {
 enum ControlStatus { checked, manualOnly, notCovered }
 
 class ControlCoverage {
-  ControlCoverage(this.control, this.status, this.ruleIds, [this.failedRuleIds = const []]);
+  ControlCoverage(this.control, this.status, this.ruleIds,
+      [this.failedRuleIds = const []]);
   final MasvsControl control;
 
   /// Whether the control is checked automatically. Not whether it passed:
@@ -187,20 +200,21 @@ Coverage computeCoverage(List<RuleResult> results, ProfileSet profile) {
   for (final c in masvsControls) {
     if (c.resilienceOnly && !profile.resilience) continue;
     final ids = results
-        .where((r) => r.counts && r.meta.masvs.contains(c.id))
+        .where((r) => r.counts && !r.incomplete && r.meta.masvs.contains(c.id))
         .map((r) => r.meta.id)
         .toList();
     final ControlStatus status;
     if (ids.isNotEmpty) {
       status = ControlStatus.checked;
-    } else if (manualChecks.any(
-        (m) => m.masvs == c.id && profile.includesAny(m.profiles))) {
+    } else if (manualChecks
+        .any((m) => m.masvs == c.id && profile.includesAny(m.profiles))) {
       status = ControlStatus.manualOnly;
     } else {
       status = ControlStatus.notCovered;
     }
     final failed = results
-        .where((r) => r.status == RuleStatus.failed && r.meta.masvs.contains(c.id))
+        .where(
+            (r) => r.status == RuleStatus.failed && r.meta.masvs.contains(c.id))
         .map((r) => r.meta.id)
         .toList();
     out.add(ControlCoverage(c, status, ids, failed));

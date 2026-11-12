@@ -198,6 +198,7 @@ class Finding {
     this.file,
     this.line,
     this.snippet,
+    this.snippetAr,
     this.messageAr,
   });
 
@@ -215,6 +216,9 @@ class Finding {
 
   /// Short, already-redacted excerpt.
   final String? snippet;
+  final String? snippetAr;
+  String? snippetOf(String lang) =>
+      lang == 'ar' ? snippetAr ?? snippet : snippet;
 
   /// True when this finding is listed in the baseline (a known issue).
   bool baselined = false;
@@ -234,6 +238,7 @@ class Finding {
         if (file != null) 'file': file,
         if (line != null) 'line': line,
         if (snippet != null) 'snippet': snippet,
+        if (snippetAr != null) 'snippetAr': snippetAr,
         if (baselined) 'baselined': true,
       };
 }
@@ -249,6 +254,14 @@ enum RuleStatus {
   /// The rule does not apply (e.g. no `ios/` folder).
   notApplicable,
 
+  /// The rule applies and finished, but can only list facts for review. It is
+  /// neither a pass nor a failure, stays outside the score, and does not make
+  /// the audit incomplete.
+  evidenceOnly,
+
+  /// The rule could not complete or reach a verdict.
+  incomplete,
+
   /// The rule is disabled in `aegis.yaml`.
   disabled,
 
@@ -263,11 +276,14 @@ class RuleResult {
     required this.severity,
     this.findings = const [],
     this.suppressed = 0,
+    this.incomplete = false,
     this.note,
+    this.noteAr,
   });
 
   final RuleMeta meta;
   final RuleStatus status;
+  final bool incomplete;
 
   /// Effective severity for the selected profile.
   final Severity severity;
@@ -278,13 +294,13 @@ class RuleResult {
 
   /// Why the rule was not applicable, if relevant.
   final String? note;
+  final String? noteAr;
+  String? noteOf(String lang) => lang == 'ar' ? noteAr ?? note : note;
 
-  bool get counts =>
-      status == RuleStatus.passed || status == RuleStatus.failed;
+  bool get counts => status == RuleStatus.passed || status == RuleStatus.failed;
 
   /// Findings that are not in the baseline.
-  List<Finding> get newFindings =>
-      findings.where((f) => !f.baselined).toList();
+  List<Finding> get newFindings => findings.where((f) => !f.baselined).toList();
 
   /// Findings accepted by the baseline.
   List<Finding> get knownFindings =>

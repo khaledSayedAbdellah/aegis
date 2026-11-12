@@ -24,6 +24,20 @@ jobs:
       - run: dart pub get
       - run: dart analyze
       - run: dart test
+      - run: PYTHONDONTWRITEBYTECODE=1 python3 test/runtime_driver_test.py -v
+
+  # pubspec.yaml promises every Dart 3 SDK: keep the lowest one working.
+  min-sdk:
+    name: Test (lowest Dart SDK)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 3.0.0
+      - run: dart pub get
+      - run: dart analyze lib bin
+      - run: dart test
 
   # aegis audits its own intentionally vulnerable example app. The example's
   # aegis.yaml fails on high findings, so exit code 1 is the expected result.
@@ -40,7 +54,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          dart run aegis example/vulnerable_app --offline -f console,json,sarif,html -o build/aegis-example
+          dart run aegis example/vulnerable_app --strict --offline -f console,json,sarif,html -o build/aegis-example
           code=$?
           set -e
           echo "exit code: $code"
@@ -52,3 +66,55 @@ jobs:
         with:
           name: aegis-example-report
           path: build/aegis-example.*
+
+  android-probe:
+    name: Android resilience probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      CI: 'true'
+      FLUTTER_SUPPRESS_ANALYTICS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/checkout@v4
+        with:
+          repository: flutter/flutter
+          ref: '3.41.9'
+          path: .dart_tool/ci-flutter
+          persist-credentials: false
+      - name: Prepare the Android toolchain
+        shell: bash
+        run: |
+          test -c /dev/kvm
+          sudo chmod a+rw /dev/kvm
+          echo "$GITHUB_WORKSPACE/.dart_tool/ci-flutter/bin" >> "$GITHUB_PATH"
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          (set +o pipefail; yes | "$sdkmanager" --sdk_root="$ANDROID_HOME" --licenses)
+          "$sdkmanager" --sdk_root="$ANDROID_HOME" 'platforms;android-35' 'build-tools;35.0.0'
+      - run: flutter --version
+      - run: dart pub get
+      - run: dart run aegis setup --android --yes --lang en
+      - name: Run both emulators against a root-blocking APK
+        run: bash tool/probe_smoke.sh protected-root
+      - name: Run a protected Split APK set
+        run: bash tool/probe_smoke.sh splits
+
+  runtime-transport:
+    name: Runtime TLS transport and collector contracts
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m venv /tmp/aegis-runtime-test-venv
+      - run: /tmp/aegis-runtime-test-venv/bin/python -m pip install mitmproxy==12.3.1
+      - run: /tmp/aegis-runtime-test-venv/bin/python test/runtime_driver_test.py -v
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+          AEGIS_TEST_MITMDUMP: /tmp/aegis-runtime-test-venv/bin/mitmdump

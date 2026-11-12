@@ -75,9 +75,13 @@ const installOrder = [
   'build-tools',
   'emulator',
   'system-image',
+  'control-image',
   'avd',
+  'control-avd',
   'frida',
   'frida-server',
+  'ios-gadget',
+  'ios-simulator-gadget',
   'bundletool',
 ];
 
@@ -93,7 +97,8 @@ class Setup {
     final byId = {for (final c in checks) c.id: c};
     final present = checks.where((c) => c.ok).toList();
     final manual = checks.where((c) => c.state == ToolState.manual).toList();
-    final optional = checks.where((c) => c.state == ToolState.optional).toList();
+    final optional =
+        checks.where((c) => c.state == ToolState.optional).toList();
     final willHave = {for (final c in present) c.id};
     final steps = <SetupStep>[];
     final blocked = <String, List<String>>{};
@@ -125,6 +130,7 @@ class Setup {
         'build-tools' => 'build-tools;${pins.buildToolsVersion}',
         'emulator' => 'emulator',
         'system-image' => toolchain.systemImagePackage,
+        'control-image' => toolchain.controlImagePackage,
         _ => null,
       };
 
@@ -228,14 +234,23 @@ class Setup {
     try {
       return switch (id) {
         'avd' => await _createAvd(),
+        'control-avd' => await _createAvd(control: true),
         'frida' => await _installFrida(log),
         'frida-server' => await _installFridaServer(log),
-        'bundletool' => await verifiedDownload(
-            pins.bundletoolUrl, toolchain.bundletoolPath, pins.bundletoolPin, log),
+        'ios-gadget' => await _installIosGadget(
+            toolchain.iosGadgetPath, pins.iosGadgetUrl, pins.iosGadgetPin, log),
+        'ios-simulator-gadget' => await _installIosGadget(
+            toolchain.iosSimulatorGadgetPath,
+            pins.iosSimulatorGadgetUrl,
+            pins.iosSimulatorGadgetPin,
+            log),
+        'bundletool' => await verifiedDownload(pins.bundletoolUrl,
+            toolchain.bundletoolPath, pins.bundletoolPin, log),
         'platform-tools' ||
         'build-tools' ||
         'emulator' ||
-        'system-image' =>
+        'system-image' ||
+        'control-image' =>
           await installSdk([sdkmanagerPackage(id)!], log: log),
         _ => 'unknown step: $id',
       };
@@ -244,19 +259,33 @@ class Setup {
     }
   }
 
-  Future<String?> _createAvd() async {
+  Future<String?> _createAvd({bool control = false}) async {
+    final name = control ? pins.controlAvdName : pins.avdName;
+    final image =
+        control ? toolchain.controlImagePackage : toolchain.systemImagePackage;
     final root = (await toolchain.findSdkRoot())?.path;
-    final avdmanager = root == null ? null : toolchain.sdkTool(root, 'avdmanager');
+    final avdmanager =
+        root == null ? null : toolchain.sdkTool(root, 'avdmanager');
     if (avdmanager == null) return 'avdmanager not found';
     // "no" declines the custom-hardware-profile question. No --force, so an
     // existing AVD of this name is never overwritten.
-    final r = await host.run(
-        avdmanager,
-        ['create', 'avd', '-n', pins.avdName, '-k', toolchain.systemImagePackage, '-d', pins.avdDevice],
-        environment: await _javaEnv(),
-        input: 'no\n');
+    // avdmanager requires an existing ANDROID_AVD_HOME folder.
+    final home = toolchain.avdHome;
+    if (home != null) host.mkdirs(home);
+    final r = await host.run(avdmanager,
+        ['create', 'avd', '-n', name, '-k', image, '-d', pins.avdDevice],
+        environment: await _avdToolEnv(), input: 'no\n');
     if (r == null) return 'could not run avdmanager';
-    return r.ok ? null : 'avdmanager exited ${r.exitCode}: ${r.text.trim()}';
+    if (!r.ok) return 'avdmanager exited ${r.exitCode}: ${r.text.trim()}';
+    // Fail here, not at the next check, if it still went somewhere else.
+    if ((await toolchain.checkAvd(control: control)).state !=
+        ToolState.present) {
+      return 'avdmanager reported success but $name is not in $home';
+    }
+    if (control && home != null) {
+      host.writeText(p.join(home, '$name.avd', '.aegis-created'), '');
+    }
+    return null;
   }
 
   Future<String?> _installFrida(void Function(String) log) async {
@@ -265,20 +294,27 @@ class Setup {
     final venvPython = toolchain.venvExe('python');
     if (!host.fileExists(venvPython) && !host.fileExists('${venvPython}3')) {
       log('python -m venv ${toolchain.tilde(toolchain.venvDir)}');
-      final code = await host.runAttached(py, ['-m', 'venv', toolchain.venvDir]);
+      final code =
+          await host.runAttached(py, ['-m', 'venv', toolchain.venvDir]);
       if (code != 0) return 'could not create the venv (exit $code)';
     }
     // The venv's pip comes from the system Python and can be too old for the
     // current Frida wheels (Xcode's Python 3.9 ships pip 21). Upgrade it inside
     // the venv only.
     log('pip install --upgrade pip');
-    final pipCode = await host.runAttached(
-        venvPython, ['-m', 'pip', 'install', '--upgrade', 'pip']);
-    if (pipCode != 0) return 'could not upgrade pip in the venv (exit $pipCode)';
+    final pipCode = await host
+        .runAttached(venvPython, ['-m', 'pip', 'install', '--upgrade', 'pip']);
+    if (pipCode != 0) {
+      return 'could not upgrade pip in the venv (exit $pipCode)';
+    }
     log('pip install frida==${pins.fridaVersion} frida-tools==${pins.fridaToolsVersion}');
     final code = await host.runAttached(venvPython, [
-      '-m', 'pip', 'install', '--upgrade',
-      'frida==${pins.fridaVersion}', 'frida-tools==${pins.fridaToolsVersion}',
+      '-m',
+      'pip',
+      'install',
+      '--upgrade',
+      'frida==${pins.fridaVersion}',
+      'frida-tools==${pins.fridaToolsVersion}',
     ]);
     return code == 0 ? null : 'pip install failed (exit $code)';
   }
@@ -287,8 +323,8 @@ class Setup {
     final dest = toolchain.fridaServerPath;
     final xz = '$dest.xz';
     final url = pins.fridaServerUrl(toolchain.fridaArch);
-    final verifyErr =
-        await verifiedDownload(url, xz, pins.fridaServerPin(toolchain.fridaArch), log);
+    final verifyErr = await verifiedDownload(
+        url, xz, pins.fridaServerPin(toolchain.fridaArch), log);
     if (verifyErr != null) return verifyErr;
     final bytes = XZDecoder().decodeBytes(host.readBytes(xz));
     host.writeBytes(dest, bytes);
@@ -297,10 +333,26 @@ class Setup {
     return null;
   }
 
+  Future<String?> _installIosGadget(String dest, String url, pins.Pinned pin,
+      void Function(String) log) async {
+    final staged = '$dest.${DateTime.now().microsecondsSinceEpoch}.tmp';
+    final xz = '$staged.xz';
+    try {
+      final error = await verifiedDownload(url, xz, pin, log);
+      if (error != null) return error;
+      host.writeBytes(staged, XZDecoder().decodeBytes(host.readBytes(xz)));
+      host.rename(staged, dest);
+      return null;
+    } finally {
+      host.deleteFile(xz);
+      host.deleteFile(staged);
+    }
+  }
+
   /// Downloads [url] to [dest] and checks its SHA-256 against [pin];
   /// a mismatch deletes the file and fails. Returns null on success.
-  Future<String?> verifiedDownload(
-      String url, String dest, pins.Pinned pin, void Function(String) log) async {
+  Future<String?> verifiedDownload(String url, String dest, pins.Pinned pin,
+      void Function(String) log) async {
     log('download $url');
     final err = await host.download(url, dest);
     if (err != null) return err;
@@ -315,30 +367,41 @@ class Setup {
   }
 
   /// Deletes what aegis installed under `~/.aegis` (the Frida venv, the tools
-  /// folder, tools.json) and the `aegis-probe` AVD. Never touches Java, the
+  /// folder, tools.json), the `aegis-probe` AVD and a control AVD it created.
+  /// Never touches Java, the
   /// Android SDK or its packages — those are the user's, not aegis's. Returns
   /// the paths/items removed.
   Future<List<String>> remove() async {
     final removed = <String>[];
-    for (final path in [toolchain.venvDir, toolchain.toolsDir, toolchain.toolsJsonPath]) {
+    for (final path in [
+      toolchain.venvDir,
+      toolchain.toolsDir,
+      toolchain.toolsJsonPath
+    ]) {
       if (host.fileExists(path) || host.dirExists(path)) {
         host.deletePath(path);
         removed.add(toolchain.tilde(path));
       }
     }
     final avdHome = toolchain.avdHome;
-    final avdDir = avdHome == null ? null : p.join(avdHome, '${pins.avdName}.avd');
-    if (avdDir != null && host.dirExists(avdDir)) {
+    if (avdHome == null) return removed;
+    final controlDir = p.join(avdHome, '${pins.controlAvdName}.avd');
+    final ownsControl = host.fileExists(p.join(controlDir, '.aegis-created'));
+    for (final name in [pins.avdName, if (ownsControl) pins.controlAvdName]) {
+      final avdDir = p.join(avdHome, '$name.avd');
+      if (!host.dirExists(avdDir)) continue;
       final root = (await toolchain.findSdkRoot())?.path;
-      final avdmanager = root == null ? null : toolchain.sdkTool(root, 'avdmanager');
+      final avdmanager =
+          root == null ? null : toolchain.sdkTool(root, 'avdmanager');
       if (avdmanager != null) {
-        await host.run(avdmanager, ['delete', 'avd', '-n', pins.avdName],
-            environment: await _javaEnv());
+        final result = await host.run(avdmanager, ['delete', 'avd', '-n', name],
+            environment: await _avdToolEnv());
+        if (result?.ok != true) continue;
       } else {
         host.deletePath(avdDir);
-        host.deleteFile(p.join(avdHome!, '${pins.avdName}.ini'));
+        host.deleteFile(p.join(avdHome, '$name.ini'));
       }
-      removed.add('AVD ${pins.avdName}');
+      removed.add('AVD $name');
     }
     return removed;
   }
@@ -348,5 +411,11 @@ class Setup {
   Future<Map<String, String>?> _javaEnv() async {
     final jdk = await toolchain.findJavaHome();
     return jdk == null ? null : {'JAVA_HOME': jdk.home};
+  }
+
+  /// JAVA_HOME plus the AVD folder aegis checks, for avdmanager.
+  Future<Map<String, String>?> _avdToolEnv() async {
+    final env = {...?await _javaEnv(), ...?toolchain.avdEnvironment};
+    return env.isEmpty ? null : env;
   }
 }

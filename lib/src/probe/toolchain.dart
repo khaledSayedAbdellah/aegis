@@ -1,4 +1,4 @@
-/// Finds the tools the resilience probe will need (docs/plans/probe-toolchain.md
+/// Finds the tools the resilience probe will need (doc/plans/probe-toolchain.md
 /// §3–4). Android SDK and Java are resolved in the same order Flutter uses, so
 /// aegis works with exactly the tools the app is built with.
 ///
@@ -39,6 +39,7 @@ enum Issue {
   pythonOld,
   pythonNoVenv,
   fridaOtherVersion,
+  xcodeMissing,
   optionalAab,
 }
 
@@ -82,7 +83,9 @@ const toolIds = [
   'build-tools',
   'emulator',
   'system-image',
+  'control-image',
   'avd',
+  'control-avd',
   'python',
   'frida',
   'frida-server',
@@ -96,9 +99,31 @@ const toolNeeds = <String, List<String>>{
   'build-tools': ['android-sdk', 'cmdline-tools', 'java'],
   'emulator': ['android-sdk', 'cmdline-tools', 'java'],
   'system-image': ['android-sdk', 'cmdline-tools', 'java'],
+  'control-image': ['android-sdk', 'cmdline-tools', 'java'],
   'avd': ['system-image', 'emulator', 'cmdline-tools', 'java'],
+  'control-avd': ['control-image', 'emulator', 'cmdline-tools', 'java'],
   'frida': ['python'],
 };
+
+/// Where the aegis AVDs live: `$ANDROID_AVD_HOME`, else `~/.android/avd`.
+String? androidAvdHome(Host host) {
+  final v = host.env('ANDROID_AVD_HOME');
+  if (v != null && v.isNotEmpty) return v;
+  final h = host.home;
+  if (h == null) return null;
+  return (host.os == 'windows' ? p.windows : p.posix)
+      .join(h, '.android', 'avd');
+}
+
+/// Pins avdmanager and the emulator to [androidAvdHome]. Without it they pick
+/// the folder themselves, from variables such as `ANDROID_USER_HOME` or
+/// `XDG_CONFIG_HOME` (set on GitHub's Linux runners), so an AVD that
+/// avdmanager created could be missing where aegis checks it or where the
+/// emulator looks.
+Map<String, String>? avdEnvironmentFor(Host host) {
+  final home = androidAvdHome(host);
+  return home == null ? null : {'ANDROID_AVD_HOME': home};
+}
 
 class Toolchain {
   Toolchain(this.host);
@@ -119,11 +144,20 @@ class Toolchain {
   /// Frida's name for the same architecture.
   String get fridaArch => host.arch == 'arm64' ? 'arm64' : 'x86_64';
 
-  String get systemImagePackage =>
-      'system-images;android-${pins.systemImageApi};google_apis;$abi';
+  String get systemImagePackage => _systemImagePackage(false);
+  String get controlImagePackage => _systemImagePackage(true);
+
+  String _systemImagePackage(bool control) =>
+      'system-images;android-${pins.systemImageApi};'
+      '${control ? 'google_apis_playstore' : 'google_apis'};$abi';
 
   String get fridaServerPath =>
       _p.join(toolsDir, pins.fridaServerName(fridaArch));
+  String get iosFridaCache => _p.join(toolsDir, 'ios-${pins.fridaVersion}');
+  String get iosGadgetPath =>
+      _p.join(iosFridaCache, 'frida', 'gadget-ios.dylib');
+  String get iosSimulatorGadgetPath => _p.join(
+      toolsDir, 'ios-simulator-gadget-${pins.iosSimulatorGadgetVersion}.dylib');
   String get bundletoolPath => _p.join(toolsDir, pins.bundletoolName);
 
   String venvExe(String name) => _win
@@ -256,8 +290,10 @@ class Toolchain {
     }
     final doctor = await flutterDoctor();
     if (doctor != null) {
-      final m = RegExp(r'Android SDK at (.+)$', multiLine: true).firstMatch(doctor);
-      final path = m == null ? null : longestExisting(m.group(1)!, host.dirExists);
+      final m =
+          RegExp(r'Android SDK at (.+)$', multiLine: true).firstMatch(doctor);
+      final path =
+          m == null ? null : longestExisting(m.group(1)!, host.dirExists);
       if (path != null) return (path: path, source: 'flutter doctor');
     }
     return null;
@@ -279,7 +315,8 @@ class Toolchain {
   Future<ToolCheck> checkAndroidSdk() async {
     final sdk = await findSdkRoot();
     if (sdk == null) {
-      return ToolCheck('android-sdk', ToolState.manual, issue: Issue.sdkMissing);
+      return ToolCheck('android-sdk', ToolState.manual,
+          issue: Issue.sdkMissing);
     }
     return ToolCheck('android-sdk', ToolState.present,
         path: sdk.path, source: sdk.source);
@@ -304,7 +341,8 @@ class Toolchain {
     if (doctor != null) {
       final m =
           RegExp(r'Java binary at: (.+)$', multiLine: true).firstMatch(doctor);
-      final bin = m == null ? null : longestExisting(m.group(1)!, host.fileExists);
+      final bin =
+          m == null ? null : longestExisting(m.group(1)!, host.fileExists);
       if (bin != null) {
         // …/bin/java → the home is two levels up.
         final home = _p.dirname(_p.dirname(bin));
@@ -401,7 +439,8 @@ class Toolchain {
 
   Future<ToolCheck> checkCmdlineTools(String? sdkRoot) async {
     if (sdkRoot == null) {
-      return ToolCheck('cmdline-tools', ToolState.manual, issue: Issue.sdkMissing);
+      return ToolCheck('cmdline-tools', ToolState.manual,
+          issue: Issue.sdkMissing);
     }
     final sm = sdkTool(sdkRoot, 'sdkmanager');
     if (sm != null) {
@@ -420,12 +459,14 @@ class Toolchain {
     if (host.fileExists(adb)) {
       return ToolCheck('platform-tools', ToolState.present, path: adb);
     }
-    return ToolCheck('platform-tools', ToolState.installable, issue: Issue.missing);
+    return ToolCheck('platform-tools', ToolState.installable,
+        issue: Issue.missing);
   }
 
   Future<ToolCheck> checkBuildTools(String? sdkRoot) async {
     if (sdkRoot == null) {
-      return ToolCheck('build-tools', ToolState.installable, issue: Issue.missing);
+      return ToolCheck('build-tools', ToolState.installable,
+          issue: Issue.missing);
     }
     final base = _p.join(sdkRoot, 'build-tools');
     // Newest version first; accept one that has both apksigner and zipalign.
@@ -436,7 +477,10 @@ class Toolchain {
       final major = int.tryParse(name.split('.').first) ?? -1;
       final hasSigner = host.fileExists(_p.join(dir, _bat('apksigner')));
       final hasAlign = host.fileExists(_p.join(dir, _exe('zipalign')));
-      if (hasSigner && hasAlign && major >= pins.minBuildToolsMajor && major > bestMajor) {
+      if (hasSigner &&
+          hasAlign &&
+          major >= pins.minBuildToolsMajor &&
+          major > bestMajor) {
         best = dir;
         bestMajor = major;
       }
@@ -445,7 +489,8 @@ class Toolchain {
       return ToolCheck('build-tools', ToolState.present,
           path: best, version: _p.basename(best));
     }
-    return ToolCheck('build-tools', ToolState.installable, issue: Issue.missing);
+    return ToolCheck('build-tools', ToolState.installable,
+        issue: Issue.missing);
   }
 
   Future<ToolCheck> checkEmulator(String? sdkRoot) async {
@@ -459,34 +504,36 @@ class Toolchain {
     return ToolCheck('emulator', ToolState.installable, issue: Issue.missing);
   }
 
-  Future<ToolCheck> checkSystemImage(String? sdkRoot) async {
-    if (sdkRoot == null) {
-      return ToolCheck('system-image', ToolState.installable, issue: Issue.missing);
+  Future<ToolCheck> checkSystemImage(String? sdkRoot,
+      {bool control = false}) async {
+    final id = control ? 'control-image' : 'system-image';
+    if (sdkRoot != null) {
+      final dir =
+          _p.joinAll([sdkRoot, ..._systemImagePackage(control).split(';')]);
+      if (host.fileExists(_p.join(dir, 'system.img')) &&
+          host.fileExists(_p.join(dir, 'source.properties'))) {
+        return ToolCheck(id, ToolState.present, path: dir);
+      }
     }
-    final dir = _p.joinAll(
-        [sdkRoot, 'system-images', 'android-${pins.systemImageApi}', 'google_apis', abi]);
-    if (host.dirExists(dir)) {
-      return ToolCheck('system-image', ToolState.present, path: dir);
-    }
-    return ToolCheck('system-image', ToolState.installable, issue: Issue.missing);
+    return ToolCheck(id, ToolState.installable, issue: Issue.missing);
   }
 
-  /// `$ANDROID_AVD_HOME`, else `~/.android/avd`.
-  String? get avdHome {
-    final v = host.env('ANDROID_AVD_HOME');
-    if (v != null && v.isNotEmpty) return v;
-    final h = host.home;
-    return h == null ? null : _p.join(h, '.android', 'avd');
-  }
+  /// Where the aegis AVDs live: `$ANDROID_AVD_HOME`, else `~/.android/avd`.
+  String? get avdHome => androidAvdHome(host);
 
-  Future<ToolCheck> checkAvd() async {
+  /// The environment for avdmanager and the emulator (see [avdEnvironment]).
+  Map<String, String>? get avdEnvironment => avdEnvironmentFor(host);
+
+  Future<ToolCheck> checkAvd({bool control = false}) async {
+    final id = control ? 'control-avd' : 'avd';
+    final name = control ? pins.controlAvdName : pins.avdName;
     final home = avdHome;
-    final dir = home == null ? null : _p.join(home, '${pins.avdName}.avd');
-    final ini = home == null ? null : _p.join(home, '${pins.avdName}.ini');
+    final dir = home == null ? null : _p.join(home, '$name.avd');
+    final ini = home == null ? null : _p.join(home, '$name.ini');
     if (dir != null && host.dirExists(dir) && host.fileExists(ini!)) {
-      return ToolCheck('avd', ToolState.present, path: dir);
+      return ToolCheck(id, ToolState.present, path: dir);
     }
-    return ToolCheck('avd', ToolState.installable, issue: Issue.missing);
+    return ToolCheck(id, ToolState.installable, issue: Issue.missing);
   }
 
   // --- Python + Frida -----------------------------------------------------
@@ -527,7 +574,8 @@ class Toolchain {
     if (r != null && r.ok && r.text.isNotEmpty) {
       final have = r.text.trim();
       if (have == pins.fridaVersion) {
-        return ToolCheck('frida', ToolState.present, path: frida, version: have);
+        return ToolCheck('frida', ToolState.present,
+            path: frida, version: have);
       }
       return ToolCheck('frida', ToolState.installable,
           issue: Issue.fridaOtherVersion,
@@ -542,7 +590,8 @@ class Toolchain {
       return ToolCheck('frida-server', ToolState.present,
           path: fridaServerPath, version: pins.fridaVersion);
     }
-    return ToolCheck('frida-server', ToolState.installable, issue: Issue.missing);
+    return ToolCheck('frida-server', ToolState.installable,
+        issue: Issue.missing);
   }
 
   Future<ToolCheck> checkBundletool({bool aab = false}) async {
@@ -550,12 +599,35 @@ class Toolchain {
       return ToolCheck('bundletool', ToolState.present,
           path: bundletoolPath, version: pins.bundletoolVersion);
     }
-    return ToolCheck('bundletool',
-        aab ? ToolState.installable : ToolState.optional,
+    return ToolCheck(
+        'bundletool', aab ? ToolState.installable : ToolState.optional,
         issue: aab ? Issue.missing : Issue.optionalAab);
   }
 
-  /// Every component, in [toolIds] order. [aab] makes bundletool required.
+  ToolCheck checkIosGadget({bool simulator = false}) {
+    final path = simulator ? iosSimulatorGadgetPath : iosGadgetPath;
+    return ToolCheck(simulator ? 'ios-simulator-gadget' : 'ios-gadget',
+        host.fileExists(path) ? ToolState.present : ToolState.installable,
+        path: path,
+        version:
+            simulator ? pins.iosSimulatorGadgetVersion : pins.fridaVersion);
+  }
+
+  Future<List<ToolCheck>> checkIos() async {
+    final xcode = await host.run('xcrun', ['--find', 'devicectl']);
+    if (xcode?.ok != true) {
+      return [ToolCheck('xcode', ToolState.manual, issue: Issue.xcodeMissing)];
+    }
+    return [
+      ToolCheck('xcode', ToolState.present, path: xcode!.out),
+      await checkPython(),
+      await checkFrida(),
+      checkIosGadget(),
+      checkIosGadget(simulator: true),
+    ];
+  }
+
+  /// Every Android component, in [toolIds] order. [aab] requires bundletool.
   Future<List<ToolCheck>> checkAll({bool aab = false}) async {
     final flutter = await checkFlutter();
     final sdk = await checkAndroidSdk();
@@ -570,7 +642,9 @@ class Toolchain {
       'build-tools': await checkBuildTools(root),
       'emulator': await checkEmulator(root),
       'system-image': await checkSystemImage(root),
+      'control-image': await checkSystemImage(root, control: true),
       'avd': await checkAvd(),
+      'control-avd': await checkAvd(control: true),
       'python': await checkPython(),
       'frida': await checkFrida(),
       'frida-server': await checkFridaServer(),

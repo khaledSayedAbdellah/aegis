@@ -19,10 +19,46 @@ aab: /abs/app.aab
       expect(AegisConfig.parse('apk: ""\n').apk, isNull);
     });
 
+    test('template placeholders are unset, actual paths and IDs remain usable',
+        () {
+      final config = AegisConfig.parse('''
+apk: <path-to-file>
+baseline: <path-to-file>
+ios_control_device: <stock-device-udid>
+ios_simulator: " <simulator-udid> "
+ios_simulator_flavor: <flavor>
+probe_cert_sha256: <sha256-fingerprint>
+ios_simulator_app: build/ios/iphonesimulator/Runner.app
+ios_simulator_target: lib/main_prod.dart
+''');
+      expect([
+        config.apk,
+        config.baseline,
+        config.iosControlDevice,
+        config.iosSimulator,
+        config.iosSimulatorFlavor,
+        config.probeCertSha256
+      ], everyElement(isNull));
+      expect(config.iosSimulatorApp, 'build/ios/iphonesimulator/Runner.app');
+      expect(config.iosSimulatorTarget, 'lib/main_prod.dart');
+      expect(AegisConfig.parse('apk: dist/<release>/app.apk').apk,
+          'dist/<release>/app.apk');
+    });
+
     test('resolve makes a relative path absolute against the project', () {
-      expect(AegisConfig.resolve('/proj', 'build/a.apk'), p.normalize('/proj/build/a.apk'));
+      expect(AegisConfig.resolve('/proj', 'build/a.apk'),
+          p.normalize('/proj/build/a.apk'));
       expect(AegisConfig.resolve('/proj', '/abs/a.apk'), '/abs/a.apk');
       expect(AegisConfig.resolve('/proj', null), isNull);
+    });
+
+    test('AAB probe settings survive CLI overrides of the audit profile', () {
+      final c = AegisConfig.parse('''
+probe_apk: dist/signed.apk
+probe_cert_sha256: " AB:CD "
+''').copyWith(profile: ProfileSet.tryParse('l2+r'));
+      expect(c.probeApk, 'dist/signed.apk');
+      expect(c.probeCertSha256, 'AB:CD');
     });
 
     test('survive copyWith (e.g. a --profile override)', () {

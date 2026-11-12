@@ -11,11 +11,47 @@ import '../project.dart';
 class RuleCheck {
   RuleCheck(this.findings)
       : applicable = true,
-        note = null;
+        note = null,
+        noteAr = null,
+        isIncomplete = false,
+        isEvidenceOnly = false;
 
   RuleCheck.notApplicable([this.note])
       : applicable = false,
-        findings = const [];
+        noteAr = null,
+        findings = const [],
+        isIncomplete = false,
+        isEvidenceOnly = false;
+
+  RuleCheck.notApplicableLocalized(this.note, this.noteAr)
+      : applicable = false,
+        findings = const [],
+        isIncomplete = false,
+        isEvidenceOnly = false;
+
+  /// The rule applies and completed, but automatic inspection can only list
+  /// facts for review: neither a pass nor a failure, and not an unfinished test.
+  RuleCheck.evidenceOnly(this.note, this.noteAr)
+      : applicable = false,
+        findings = const [],
+        isIncomplete = false,
+        isEvidenceOnly = true;
+
+  RuleCheck.incomplete(this.note, [this.findings = const []])
+      : applicable = false,
+        noteAr = null,
+        isIncomplete = true,
+        isEvidenceOnly = false;
+
+  RuleCheck.incompleteLocalized(this.note, this.noteAr,
+      [this.findings = const []])
+      : applicable = false,
+        isIncomplete = true,
+        isEvidenceOnly = false;
+
+  final String? noteAr;
+  final bool isIncomplete;
+  final bool isEvidenceOnly;
 
   final bool applicable;
   final List<Finding> findings;
@@ -32,7 +68,7 @@ abstract class Rule {
 
   /// Convenience for creating a finding in a Dart file at token [index].
   Finding at(DartFile f, int index, String message,
-      {String? messageAr, String? snippet}) {
+      {String? messageAr, String? snippet, String? snippetAr}) {
     final line = f.lineOfToken(index);
     return Finding(
       ruleId: meta.id,
@@ -40,12 +76,13 @@ abstract class Rule {
       messageAr: messageAr,
       file: f.path,
       line: line,
+      snippetAr: snippetAr,
       snippet: snippet ?? _short(f.lineText(line)),
     );
   }
 
   Finding inFile(String? file, int? line, String message,
-          {String? messageAr, String? snippet}) =>
+          {String? messageAr, String? snippet, String? snippetAr}) =>
       Finding(
         ruleId: meta.id,
         message: message,
@@ -53,6 +90,7 @@ abstract class Rule {
         file: file,
         line: line,
         snippet: snippet,
+        snippetAr: snippetAr,
       );
 
   static String _short(String s) =>

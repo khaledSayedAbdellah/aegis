@@ -1,6 +1,8 @@
 /// Rules for Android configuration: manifest, Gradle and network config.
 library;
 
+import '../l10n/messages.g.dart';
+
 import 'package:xml/xml.dart';
 
 import '../model.dart';
@@ -18,8 +20,8 @@ String? _releaseBlock(String gradle) {
   final bt = buildTypes.body;
   final direct = findBlock(bt, 'release');
   if (direct != null) return direct.body;
-  final m = RegExp(r'''getByName\s*\(\s*["']release["']\s*\)\s*\{''')
-      .firstMatch(bt);
+  final m =
+      RegExp(r'''getByName\s*\(\s*["']release["']\s*\)\s*\{''').firstMatch(bt);
   if (m == null) return null;
   final close = matchingBrace(bt, m.end - 1);
   return close == null ? null : bt.substring(m.end, close);
@@ -31,13 +33,14 @@ class DebuggableRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-A01',
-        title: Bilingual('Android app is debuggable', 'التطبيق قابل للـ debugging على Android'),
+        title: Bilingual(En.androidRulesAndroidAppIsDebuggable,
+            Ar.androidRulesAndroidAppIsDebuggable),
         description: Bilingual(
-            'A debuggable release lets anyone attach a debugger, read memory and bypass checks.',
-            'لو نسخة الـ release قابلة للـ debugging، أي حد يقدر يوصل debugger ويقرا الذاكرة ويتخطى أي فحص.'),
+            En.androidRulesADebuggableReleaseLetsAnyoneAttachADebugger,
+            Ar.androidRulesADebuggableReleaseLetsAnyoneAttachADebugger),
         fix: Bilingual(
-            'Remove android:debuggable from AndroidManifest.xml and never set debuggable/isDebuggable true for release.',
-            'شيل android:debuggable من AndroidManifest.xml، ومتخليش debuggable أو isDebuggable بـ true في الـ release.'),
+            En.androidRulesRemoveAndroidDebuggableFromAndroidmanifestXmlAndNeverSetDebuggableIsdebuggable,
+            Ar.androidRulesRemoveAndroidDebuggableFromAndroidmanifestXmlAndNeverSetDebuggableIsdebuggable),
         severity: Severity.critical,
         masvs: ['MASVS-RESILIENCE-4'],
         maswe: ['MASWE-0063'],
@@ -48,15 +51,21 @@ class DebuggableRule extends Rule {
   @override
   RuleCheck check(Project project, ProfileSet profile) {
     final m = project.androidManifest;
-    if (m == null || project.androidManifestXml == null) {
-      return RuleCheck.notApplicable('No AndroidManifest.xml');
+    if (m == null && !project.hasAndroid) {
+      return RuleCheck.notApplicable('No Android project');
+    }
+    if (m == null ||
+        project.androidManifestXml?.rootElement.name.local != 'manifest') {
+      return RuleCheck.incompleteLocalized(
+          En.androidManifestUnreadable, Ar.androidManifestUnreadable);
     }
     final out = <Finding>[];
     final app = firstElement(project.androidManifestXml!, 'application');
     if (app != null && androidAttr(app, 'debuggable') == 'true') {
       out.add(inFile(m.path, lineOfFirst(m.text, 'android:debuggable'),
-          'android:debuggable="true" is set in the main manifest.',
-          messageAr: 'android:debuggable="true" موجود في الـ manifest الأساسي.'));
+          En.androidRulesAndroidDebuggableTrueIsSetInTheMainManifest,
+          messageAr:
+              Ar.androidRulesAndroidDebuggableTrueIsSetInTheMainManifest));
     }
     final g = project.appGradle;
     if (g != null) {
@@ -64,9 +73,11 @@ class DebuggableRule extends Rule {
       if (release != null &&
           RegExp(r'(isDebuggable\s*=\s*true|debuggable\s*(=\s*)?true)')
               .hasMatch(release)) {
-        out.add(inFile(g.path, lineOfFirst(g.text, RegExp(r'[dD]ebuggable\s*(=\s*)?true')),
-            'The release build type is debuggable.',
-            messageAr: 'الـ release build type قابل للـ debugging.'));
+        out.add(inFile(
+            g.path,
+            lineOfFirst(g.text, RegExp(r'[dD]ebuggable\s*(=\s*)?true')),
+            En.androidRulesTheReleaseBuildTypeIsDebuggable,
+            messageAr: Ar.androidRulesTheReleaseBuildTypeIsDebuggable));
       }
     }
     return RuleCheck(out);
@@ -79,13 +90,14 @@ class AllowBackupRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-A02',
-        title: Bilingual('App data can be backed up', 'بيانات التطبيق ممكن تتاخد backup'),
+        title: Bilingual(En.androidRulesAppDataCanBeBackedUp,
+            Ar.androidRulesAppDataCanBeBackedUp),
         description: Bilingual(
-            'With backup allowed (the default) tokens and databases can be extracted through adb or cloud backups.',
-            'لو الـ backup مسموح (وده الافتراضي)، الـ tokens وقواعد البيانات ممكن تتسحب عن طريق adb أو الـ cloud backup.'),
+            En.androidRulesWithBackupAllowedTheDefaultTokensAndDatabases,
+            Ar.androidRulesWithBackupAllowedTheDefaultTokensAndDatabases),
         fix: Bilingual(
-            'Set android:allowBackup="false", or define android:dataExtractionRules / android:fullBackupContent that exclude sensitive files.',
-            'حط android:allowBackup="false"، أو اعمل dataExtractionRules / fullBackupContent تستثني الملفات الحساسة.'),
+            En.androidRulesSetAndroidAllowbackupFalseOrDefineAndroidDataextractionrulesAndroidFullbackupcontentThat,
+            Ar.androidRulesSetAndroidAllowbackupFalseOrDefineAndroidDataextractionrulesAndroidFullbackupcontentThat),
         severity: Severity.medium,
         l2Severity: Severity.high,
         masvs: ['MASVS-STORAGE-2'],
@@ -105,18 +117,21 @@ class AllowBackupRule extends Rule {
     if (v == 'false') return RuleCheck([]);
     final hasRules = androidAttr(app, 'dataExtractionRules') != null ||
         androidAttr(app, 'fullBackupContent') != null;
-    if (hasRules) return RuleCheck([]);
+    if (hasRules) {
+      return RuleCheck.incompleteLocalized(
+          En.platformBackupReferenceOnly, Ar.platformBackupReferenceOnly);
+    }
     if (v == 'true') {
       return RuleCheck([
         inFile(m.path, lineOfFirst(m.text, 'android:allowBackup'),
-            'android:allowBackup="true" without backup rules.',
-            messageAr: 'android:allowBackup="true" من غير قواعد backup.')
+            En.androidRulesAndroidAllowbackupTrueWithoutBackupRules,
+            messageAr: Ar.androidRulesAndroidAllowbackupTrueWithoutBackupRules)
       ]);
     }
     return RuleCheck([
       inFile(m.path, lineOfFirst(m.text, '<application'),
-          'android:allowBackup is not set, so backup is enabled by default.',
-          messageAr: 'android:allowBackup مش متحدد، فالـ backup شغال افتراضياً.')
+          En.androidRulesAndroidAllowbackupIsNotSetSoBackupIsEnabled,
+          messageAr: Ar.androidRulesAndroidAllowbackupIsNotSetSoBackupIsEnabled)
     ]);
   }
 }
@@ -127,13 +142,14 @@ class CleartextManifestRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-A03',
-        title: Bilingual('Cleartext HTTP traffic allowed (Android)', 'مسموح بـ HTTP غير مشفر (Android)'),
+        title: Bilingual(En.androidRulesCleartextHttpTrafficAllowedAndroid,
+            Ar.androidRulesCleartextHttpTrafficAllowedAndroid),
         description: Bilingual(
-            'usesCleartextTraffic="true" lets the app send data over plain HTTP that anyone on the network can read or change.',
-            'usesCleartextTraffic="true" بيخلي التطبيق يبعت بيانات على HTTP عادي، وأي حد على الشبكة يقدر يقراها أو يعدلها.'),
+            En.androidRulesUsescleartexttrafficTrueLetsTheAppSendDataOverPlain,
+            Ar.androidRulesUsescleartexttrafficTrueLetsTheAppSendDataOverPlain),
         fix: Bilingual(
-            'Remove android:usesCleartextTraffic="true". If one dev host needs HTTP, allow only that domain in a network security config under debug-overrides.',
-            'شيل android:usesCleartextTraffic="true". لو محتاج HTTP لسيرفر تطوير، اسمح بيه هو بس في network security config.'),
+            En.androidRulesRemoveAndroidUsescleartexttrafficTrueIfOneDevHostNeedsHttp,
+            Ar.androidRulesRemoveAndroidUsescleartexttrafficTrueIfOneDevHostNeedsHttp),
         severity: Severity.high,
         masvs: ['MASVS-NETWORK-1'],
         maswe: ['MASWE-0026'],
@@ -150,8 +166,8 @@ class CleartextManifestRule extends Rule {
     if (app != null && androidAttr(app, 'usesCleartextTraffic') == 'true') {
       return RuleCheck([
         inFile(m.path, lineOfFirst(m.text, 'usesCleartextTraffic'),
-            'android:usesCleartextTraffic="true" is set.',
-            messageAr: 'android:usesCleartextTraffic="true" متحدد.')
+            En.androidRulesAndroidUsescleartexttrafficTrueIsSet,
+            messageAr: Ar.androidRulesAndroidUsescleartexttrafficTrueIsSet)
       ]);
     }
     return RuleCheck([]);
@@ -164,13 +180,14 @@ class NetworkSecurityConfigRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-A04',
-        title: Bilingual('Weak network security config', 'إعدادات network security config ضعيفة'),
+        title: Bilingual(En.androidRulesWeakNetworkSecurityConfig,
+            Ar.androidRulesWeakNetworkSecurityConfig),
         description: Bilingual(
-            'The network security config allows cleartext traffic or trusts user-installed CAs, which makes interception with a proxy trivial.',
-            'الـ network security config بيسمح بـ HTTP أو بيثق في شهادات المستخدم، وده بيخلي اعتراض الترافيك بـ proxy سهل جداً.'),
+            En.androidRulesTheNetworkSecurityConfigAllowsCleartextTrafficOr,
+            Ar.androidRulesTheNetworkSecurityConfigAllowsCleartextTrafficOr),
         fix: Bilingual(
-            'Set cleartextTrafficPermitted="false" and keep <certificates src="user"/> only inside <debug-overrides>.',
-            'خلي cleartextTrafficPermitted="false"، وخلي <certificates src="user"/> جوه <debug-overrides> بس.'),
+            En.androidRulesSetCleartexttrafficpermittedFalseAndKeepCertificatesSrcUserOnlyInside,
+            Ar.androidRulesSetCleartexttrafficpermittedFalseAndKeepCertificatesSrcUserOnlyInside),
         severity: Severity.high,
         masvs: ['MASVS-NETWORK-1'],
         maswe: ['MASWE-0026', 'MASWE-0027'],
@@ -182,16 +199,26 @@ class NetworkSecurityConfigRule extends Rule {
   RuleCheck check(Project project, ProfileSet profile) {
     final f = project.networkSecurityConfig;
     final xml = project.networkSecurityConfigXml;
-    if (f == null || xml == null) {
-      return RuleCheck.notApplicable('No network security config');
+    if (f == null ||
+        xml == null ||
+        xml.rootElement.name.local != 'network-security-config') {
+      final ref = project.networkSecurityConfigReference;
+      return ref == null || ref == '@null'
+          ? RuleCheck.notApplicable('No network security config')
+          : RuleCheck.incompleteLocalized(
+              En.sourceNetworkConfigUnreadable(ref: ref),
+              Ar.sourceNetworkConfigUnreadable(ref: ref));
     }
     final out = <Finding>[];
     for (final tag in const ['base-config', 'domain-config']) {
       for (final e in xml.findAllElements(tag)) {
         if (e.getAttribute('cleartextTrafficPermitted') == 'true') {
-          out.add(inFile(f.path, lineOfFirst(f.text, 'cleartextTrafficPermitted="true"'),
-              '<$tag cleartextTrafficPermitted="true"> allows HTTP.',
-              messageAr: '<$tag cleartextTrafficPermitted="true"> بيسمح بـ HTTP.'));
+          out.add(inFile(
+              f.path,
+              lineOfFirst(f.text, 'cleartextTrafficPermitted="true"'),
+              En.androidRulesCleartexttrafficpermittedTrueAllowsHttp(tag: tag),
+              messageAr: Ar.androidRulesCleartexttrafficpermittedTrueAllowsHttp(
+                  tag: tag)));
         }
       }
     }
@@ -202,8 +229,9 @@ class NetworkSecurityConfigRule extends Rule {
           .any((a) => a.name.local == 'debug-overrides');
       if (!inDebug) {
         out.add(inFile(f.path, lineOfFirst(f.text, RegExp(r'src\s*=\s*"user"')),
-            'User-installed CA certificates are trusted in release builds.',
-            messageAr: 'شهادات الـ CA اللي المستخدم بيثبتها موثوقة في الـ release.'));
+            En.androidRulesUserInstalledCaCertificatesAreTrustedInReleaseBuilds,
+            messageAr: Ar
+                .androidRulesUserInstalledCaCertificatesAreTrustedInReleaseBuilds));
       }
     }
     return RuleCheck(out);
@@ -216,12 +244,13 @@ class PinExpirationRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-A05',
-        title: Bilingual('Certificate pins have expired', 'الـ certificate pins انتهت صلاحيتها'),
+        title: Bilingual(En.androidRulesCertificatePinsHaveExpired,
+            Ar.androidRulesCertificatePinsHaveExpired),
         description: Bilingual(
-            'After the pin-set expiration date Android stops enforcing the pins, silently disabling pinning.',
-            'بعد تاريخ الـ expiration، Android بيوقف تطبيق الـ pins، يعني الـ pinning بيتلغي من غير ما تحس.'),
-        fix: Bilingual('Rotate the pins and move the expiration date forward.',
-            'حدّث الـ pins وغيّر تاريخ الـ expiration.'),
+            En.androidRulesAfterThePinSetExpirationDateAndroidStopsEnforcing,
+            Ar.androidRulesAfterThePinSetExpirationDateAndroidStopsEnforcing),
+        fix: Bilingual(En.androidRulesRotateThePinsAndMoveTheExpirationDate,
+            Ar.androidRulesRotateThePinsAndMoveTheExpirationDate),
         severity: Severity.medium,
         l2Severity: Severity.high,
         masvs: ['MASVS-NETWORK-2'],
@@ -245,7 +274,8 @@ class PinExpirationRule extends Rule {
       final d = DateTime.tryParse(exp);
       if (d != null && d.isBefore(now)) {
         out.add(inFile(f.path, lineOfFirst(f.text, exp),
-            'pin-set expired on $exp.', messageAr: 'الـ pin-set انتهى في $exp.'));
+            En.androidRulesPinSetExpiredOn(exp: exp),
+            messageAr: Ar.androidRulesPinSetExpiredOn(exp: exp)));
       }
     }
     return RuleCheck(out);
@@ -258,13 +288,13 @@ class ExportedComponentRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-A06',
-        title: Bilingual('Exported component without permission', 'مكوّن exported من غير permission'),
-        description: Bilingual(
-            'Any app on the device can start an exported activity, service, receiver or provider that has no permission.',
-            'أي تطبيق على الجهاز يقدر يشغّل activity أو service أو receiver أو provider لو كان exported ومن غير permission.'),
+        title: Bilingual(En.androidRulesExportedComponentWithoutPermission,
+            Ar.androidRulesExportedComponentWithoutPermission),
+        description: Bilingual(En.androidRulesAnyAppOnTheDeviceCanStartAn,
+            Ar.androidRulesAnyAppOnTheDeviceCanStartAn),
         fix: Bilingual(
-            'Set android:exported="false" unless the component must be public, and protect public ones with android:permission.',
-            'خلي android:exported="false" إلا لو لازم يكون public، ولو public احميه بـ android:permission.'),
+            En.androidRulesSetAndroidExportedFalseUnlessTheComponentMustBePublic,
+            Ar.androidRulesSetAndroidExportedFalseUnlessTheComponentMustBePublic),
         severity: Severity.medium,
         masvs: ['MASVS-PLATFORM-1'],
         maswe: ['MASWE-0018'],
@@ -278,15 +308,25 @@ class ExportedComponentRule extends Rule {
     final xml = project.androidManifestXml;
     if (m == null || xml == null) return RuleCheck.notApplicable();
     final out = <Finding>[];
-    for (final tag in const ['activity', 'activity-alias', 'service', 'receiver', 'provider']) {
+    for (final tag in const [
+      'activity',
+      'activity-alias',
+      'service',
+      'receiver',
+      'provider'
+    ]) {
       for (final e in xml.findAllElements(tag)) {
         if (androidAttr(e, 'exported') != 'true') continue;
         if (androidAttr(e, 'permission') != null) continue;
         if (_isLauncher(e)) continue;
         final name = androidAttr(e, 'name') ?? tag;
-        out.add(inFile(m.path, lineOfFirst(m.text, name),
-            '<$tag $name> is exported without android:permission.',
-            messageAr: '<$tag $name> متعمله export من غير android:permission.'));
+        out.add(inFile(
+            m.path,
+            lineOfFirst(m.text, name),
+            En.androidRulesIsExportedWithoutAndroidPermission(
+                tag: tag, name: name),
+            messageAr: Ar.androidRulesIsExportedWithoutAndroidPermission(
+                tag: tag, name: name)));
       }
     }
     return RuleCheck(out);
@@ -294,14 +334,19 @@ class ExportedComponentRule extends Rule {
 
   bool _isLauncher(XmlElement e) {
     for (final f in e.findElements('intent-filter')) {
-      final actions = f.findElements('action').map((a) => androidAttr(a, 'name'));
-      final cats = f.findElements('category').map((a) => androidAttr(a, 'name'));
+      final actions =
+          f.findElements('action').map((a) => androidAttr(a, 'name'));
+      final cats =
+          f.findElements('category').map((a) => androidAttr(a, 'name'));
       if (actions.contains('android.intent.action.MAIN') &&
           cats.contains('android.intent.category.LAUNCHER')) {
         return true;
       }
       // App links / deep links are meant to be exported; validated elsewhere.
-      if (actions.contains('android.intent.action.VIEW')) return true;
+      if (actions.contains('android.intent.action.VIEW') &&
+          cats.contains('android.intent.category.BROWSABLE')) {
+        return true;
+      }
     }
     return false;
   }
@@ -313,12 +358,14 @@ class MinifyDisabledRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-A07',
-        title: Bilingual('R8 shrinking/obfuscation disabled', 'الـ R8 (shrinking/obfuscation) مقفول'),
+        title: Bilingual(En.androidRulesR8ShrinkingObfuscationDisabled,
+            Ar.androidRulesR8ShrinkingObfuscationDisabled),
         description: Bilingual(
-            'Flutter enables R8 for release builds by default; turning it off leaves the Java/Kotlin code of every plugin readable.',
-            'Flutter بيشغّل R8 في الـ release افتراضياً، ولو قفلته كود Java/Kotlin بتاع كل الـ plugins هيبقى مقروء.'),
-        fix: Bilingual('Remove minifyEnabled false / isMinifyEnabled = false from the release build type.',
-            'شيل minifyEnabled false أو isMinifyEnabled = false من الـ release.'),
+            En.androidRulesFlutterEnablesR8ForReleaseBuildsByDefault,
+            Ar.androidRulesFlutterEnablesR8ForReleaseBuildsByDefault),
+        fix: Bilingual(
+            En.androidRulesRemoveMinifyenabledFalseIsminifyenabledFalseFrom,
+            Ar.androidRulesRemoveMinifyenabledFalseIsminifyenabledFalseFrom),
         severity: Severity.low,
         l2Severity: Severity.medium,
         masvs: ['MASVS-RESILIENCE-3'],
@@ -333,12 +380,14 @@ class MinifyDisabledRule extends Rule {
     if (g == null) return RuleCheck.notApplicable('No app build.gradle');
     final release = _releaseBlock(g.text);
     if (release == null) return RuleCheck([]);
-    final re = RegExp(r'(isMinifyEnabled\s*=\s*false|minifyEnabled\s*(=\s*)?false)');
+    final re =
+        RegExp(r'(isMinifyEnabled\s*=\s*false|minifyEnabled\s*(=\s*)?false)');
     if (re.hasMatch(release)) {
       return RuleCheck([
         inFile(g.path, lineOfFirst(g.text, re),
-            'The release build type disables R8 (minifyEnabled false).',
-            messageAr: 'الـ release مقفول فيه R8 (minifyEnabled false).')
+            En.androidRulesTheReleaseBuildTypeDisablesR8MinifyenabledFalse,
+            messageAr:
+                Ar.androidRulesTheReleaseBuildTypeDisablesR8MinifyenabledFalse)
       ]);
     }
     return RuleCheck([]);
@@ -351,13 +400,14 @@ class DebugSigningRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-A08',
-        title: Bilingual('Release build signed with the debug key', 'نسخة الـ release متوقعة بمفتاح الـ debug'),
+        title: Bilingual(En.androidRulesReleaseBuildSignedWithTheDebugKey,
+            Ar.androidRulesReleaseBuildSignedWithTheDebugKey),
         description: Bilingual(
-            'The Flutter template signs release builds with the public debug key. Anyone can re-sign a modified copy, and signature checks become meaningless.',
-            'قالب Flutter بيوقّع الـ release بمفتاح الـ debug المعروف. أي حد يقدر يعدّل التطبيق ويوقعه تاني، وفحص التوقيع ملوش لازمة.'),
+            En.androidRulesTheFlutterTemplateSignsReleaseBuildsWithThe,
+            Ar.androidRulesTheFlutterTemplateSignsReleaseBuildsWithThe),
         fix: Bilingual(
-            'Create a release keystore, load it from key.properties (git-ignored) and set signingConfig = signingConfigs.getByName("release").',
-            'اعمل release keystore، واقراه من key.properties (يكون في .gitignore)، وخلي signingConfig = signingConfigs.getByName("release").'),
+            En.androidRulesCreateAReleaseKeystoreLoadItFromKeyProperties,
+            Ar.androidRulesCreateAReleaseKeystoreLoadItFromKeyProperties),
         severity: Severity.high,
         masvs: ['MASVS-RESILIENCE-2'],
         cwe: 'CWE-321',
@@ -375,8 +425,8 @@ class DebugSigningRule extends Rule {
     if (re.hasMatch(release)) {
       return RuleCheck([
         inFile(g.path, lineOfFirst(g.text, re),
-            'release uses signingConfigs.debug.',
-            messageAr: 'الـ release مستخدم signingConfigs.debug.')
+            En.androidRulesReleaseUsesSigningconfigsDebug,
+            messageAr: Ar.androidRulesReleaseUsesSigningconfigsDebug)
       ]);
     }
     return RuleCheck([]);
@@ -389,13 +439,14 @@ class SigningSecretsRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-A09',
-        title: Bilingual('Signing secrets exposed', 'أسرار التوقيع مكشوفة'),
+        title: Bilingual(En.androidRulesSigningSecretsExposed,
+            Ar.androidRulesSigningSecretsExposed),
         description: Bilingual(
-            'Keystore passwords in build.gradle, or keystores / key.properties that are not git-ignored, let anyone sign builds as you.',
-            'باسوردات الـ keystore في build.gradle، أو ملفات keystore و key.properties مش متضافة لـ .gitignore، بتخلي أي حد يوقّع تطبيقات باسمك.'),
+            En.androidRulesKeystorePasswordsInBuildGradleOrKeystoresKeyProperties,
+            Ar.androidRulesKeystorePasswordsInBuildGradleOrKeystoresKeyProperties),
         fix: Bilingual(
-            'Read passwords from key.properties or environment variables, and add key.properties, *.jks and *.keystore to .gitignore.',
-            'اقرا الباسوردات من key.properties أو environment variables، وضيف key.properties و *.jks و *.keystore لـ .gitignore.'),
+            En.androidRulesReadPasswordsFromKeyPropertiesOrEnvironmentVariablesAnd,
+            Ar.androidRulesReadPasswordsFromKeyPropertiesOrEnvironmentVariablesAnd),
         severity: Severity.high,
         masvs: ['MASVS-STORAGE-1'],
         maswe: ['MASWE-0004'],
@@ -413,20 +464,23 @@ class SigningSecretsRule extends Rule {
           r'''(?<![\['"])\b(storePassword|keyPassword)\s*(=\s*)?["']([^"'$\n\[\]]{3,})["']''');
       for (final m in re.allMatches(stripCComments(g.text))) {
         out.add(inFile(g.path, lineAt(g.text, m.start),
-            '${m.group(1)} is hardcoded in ${g.path}.',
-            messageAr: '${m.group(1)} مكتوب في ${g.path}.',
+            En.androidRulesIsHardcodedIn(value1: m.group(1), value2: g.path),
+            messageAr: Ar.androidRulesIsHardcodedIn(
+                value1: m.group(1), value2: g.path),
             snippet: '${m.group(1)} = ${redact(m.group(3)!)}'));
       }
     }
-    final files = project.findFiles('android', (r) =>
-        r.endsWith('.jks') ||
-        r.endsWith('.keystore') ||
-        r.endsWith('/key.properties'));
+    final files = project.findFiles(
+        project.androidSourceRoot,
+        (r) =>
+            r.endsWith('.jks') ||
+            r.endsWith('.keystore') ||
+            r.endsWith('/key.properties'));
     for (final f in files) {
       if (f.endsWith('debug.keystore')) continue;
       if (!project.isGitIgnored(f)) {
-        out.add(inFile(f, null, '$f is not in .gitignore and may be committed.',
-            messageAr: '$f مش موجود في .gitignore وممكن يكون اترفع على git.'));
+        out.add(inFile(f, null, En.androidRulesIsNotInGitignoreAndMayBe(f: f),
+            messageAr: Ar.androidRulesIsNotInGitignoreAndMayBe(f: f)));
       }
     }
     return RuleCheck(out);
@@ -439,11 +493,13 @@ class MinSdkRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-A10',
-        title: Bilingual('Very old Android versions supported', 'التطبيق بيدعم إصدارات Android قديمة جداً'),
+        title: Bilingual(En.androidRulesVeryOldAndroidVersionsSupported,
+            Ar.androidRulesVeryOldAndroidVersionsSupported),
         description: Bilingual(
-            'Android versions below 7.0 (API 24) miss important security fixes, such as distrusting user CAs by default.',
-            'إصدارات Android أقل من 7.0 (API 24) ناقصها إصلاحات أمنية مهمة، زي عدم الثقة في شهادات المستخدم افتراضياً.'),
-        fix: Bilingual('Raise minSdk to 24 or higher.', 'ارفع الـ minSdk لـ 24 أو أكتر.'),
+            En.androidRulesAndroidVersionsBelow70Api24MissImportant,
+            Ar.androidRulesAndroidVersionsBelow70Api24MissImportant),
+        fix: Bilingual(En.androidRulesRaiseMinsdkTo24OrHigher,
+            Ar.androidRulesRaiseMinsdkTo24OrHigher),
         severity: Severity.low,
         l2Severity: Severity.medium,
         masvs: ['MASVS-CODE-1'],
@@ -464,8 +520,8 @@ class MinSdkRule extends Rule {
     final v = int.parse(m.group(3)!);
     if (v < 24) {
       return RuleCheck([
-        inFile(g.path, lineOfFirst(g.text, re), 'minSdk is $v.',
-            messageAr: 'الـ minSdk = $v.')
+        inFile(g.path, lineOfFirst(g.text, re), En.androidRulesMinsdkIs(v: v),
+            messageAr: Ar.androidRulesMinsdkIs(v: v))
       ]);
     }
     return RuleCheck([]);

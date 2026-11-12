@@ -2,6 +2,8 @@
 /// each check observed, and why something could not be judged.
 library;
 
+import '../l10n/messages.g.dart';
+
 import '../engine.dart';
 import '../probe/probe_model.dart';
 import '../probe/probe_report.dart';
@@ -12,10 +14,15 @@ const probeRuleIds = {
   'hooking': 'AEG-R02',
   'debugger': 'AEG-R03',
   'repackage': 'AEG-R04',
+  'jailbreak': 'AEG-R05',
+  'ios-hooking': 'AEG-R06',
+  'ios-debugger': 'AEG-R07',
+  'ios-repackage': 'AEG-R08',
 };
 
 class ProbeLine {
-  ProbeLine(this.status, this.mark, this.title, this.evidence, this.tag, this.ruleId,
+  ProbeLine(
+      this.status, this.mark, this.title, this.evidence, this.tag, this.ruleId,
       {this.note});
   final ProbeStatus status;
   final String mark;
@@ -56,51 +63,49 @@ class ProbeView {
   static ProbeView? of(AuditReport r, String lang) {
     final o = r.probe;
     if (o == null) return null;
-    String t(String en, String ar) => lang == 'ar' ? ar : en;
+
+    final ios = r.binary?.kind == 'IPA';
     final caveats = [
-      t('A report-only RASP (one that silently tells a backend and keeps running) cannot be seen from the device; it shows as no reaction.',
-          'الحماية اللي بتبلّغ السيرفر بصمت وتفضل شغّالة مش بتبان من الجهاز؛ بتظهر كأنها مردتش.'),
-      t('This shows what happened on this emulator with this build, not a proof of security.',
-          'ده اللي حصل على الإيموليتر ده بالنسخة دي، مش إثبات أمان.'),
+      L10n(lang)
+          .probeViewAutomaticObservationsCoverProcessBehaviorAppEventsDescribe,
+      if (!ios) L10n(lang).probeViewThisShowsWhatHappenedOnThisEmulatorWith,
     ];
     final report = o.report;
-    if (report != null && report.blocked.any((x) => x.check.id == 'repackage')) {
-      caveats.add(t(
-          "The re-signed copy failing can be the app's integrity check, or a service bound to the original signing key (Google Maps, Firebase) failing; the probe cannot tell them apart.",
-          'فشل النسخة المعاد توقيعها ممكن يكون فحص سلامة في التطبيق، أو خدمة مربوطة بالتوقيع الأصلي (Google Maps، Firebase) وقعت؛ الأداة مش بتفرّق بينهم.'));
+    if (report?.platform == 'ios-simulator') {
+      caveats.add(L10n(lang)
+          .probeViewSimulatorObservationsApplyOnlyToThisSimulatorBuild);
     }
-    if (report != null && report.app.toLowerCase().endsWith('.aab')) {
-      caveats.add(t(
-          'The AAB was converted to an APK signed with a debug key, so a protection that pins your release certificate treats it as tampered from the start.',
-          'الـ AAB اتحوّل لـ APK متوقّع بمفتاح debug، فحماية بتثبّت شهادة الـ release هتعتبره نسخة معدّلة من البداية.'));
-    }
-    final heading = t('Resilience probe (emulator)', 'اختبار الحماية على الإيموليتر') +
+    final heading = (ios
+            ? L10n(lang).probeViewIosResilienceProbe
+            : L10n(lang).probeViewResilienceProbeEmulator) +
         (report == null ? '' : ' — ${report.app.split(RegExp(r'[\\/]')).last}');
     if (report == null) {
       return ProbeView(
           heading: heading,
           lines: const [],
           caveats: const [],
-          message: t('Skipped: ${o.skipped}', 'اتخطّى: ${o.skipped}'));
+          message: L10n(lang).probeViewSkipped(value1: o.skippedOf(lang)));
     }
     if (report.emulatorError != null) {
       return ProbeView(
           heading: heading,
           lines: const [],
           caveats: const [],
-          message: t('Could not run: ${report.emulatorError}',
-              'مقدرش يشتغل: ${report.emulatorError}'));
+          details: probeApkIdentityLines(report, lang),
+          message:
+              L10n(lang).probeViewCouldNotRun(value1: report.emulatorError));
     }
     if (!report.baselineAlive) {
       return ProbeView(
         heading: heading,
         lines: const [],
         caveats: caveats,
-        message: t(
-            'The app did not stay alive on a clean emulator, so no check could be judged (emulator detection, a crash or a slow first launch).',
-            'التطبيق مكمّلش شغّال على إيموليتر نضيف، فمفيش فحص اتحكم عليه (كشف إيموليتر أو كراش أو تشغيل أول بطيء).'),
+        message: ios
+            ? L10n(lang).probeViewTheIosControlProcessDidNotStayAlive
+            : L10n(lang).probeViewTheAppDidNotStayAliveOnA,
         details: [
-          for (final l in (report.baselineNote ?? '').split('\n'))
+          ...probeApkIdentityLines(report, lang),
+          for (final l in (report.baselineNoteOf(lang) ?? '').split('\n'))
             if (l.trim().isNotEmpty) l.trimRight(),
         ],
       );
@@ -112,19 +117,20 @@ class ProbeView {
     return ProbeView(
       heading: heading,
       caveats: caveats,
+      details: probeApkIdentityLines(report, lang),
       baseline: base == null
           ? null
-          : '✅ ${probeCheckTitle(base.check, lang)}: ${probeEvidence(base, lang)}',
+          : '✅ ${probeCheckTitle(base.check, lang)}: ${probeEvidence(base, lang)}${base.note == null ? '' : ' · ${probeNote(base, lang)}'}',
       lines: [
         for (final x in report.scored)
           ProbeLine(
-            x.status,
-            probeMark(x.status).trim(),
-            probeCheckTitle(x.check, lang),
+            x.observedStatus,
+            probeResultMark(x).trim(),
+            probeResultTitle(x, lang),
             probeEvidence(x, lang),
             [x.check.masvs, x.check.mastg].whereType<String>().join(' · '),
             probeRuleIds[x.check.id],
-            note: x.note,
+            note: probeNote(x, lang),
           ),
       ],
     );

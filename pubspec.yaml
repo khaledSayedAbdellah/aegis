@@ -1,9 +1,9 @@
 name: aegis
 description: >-
-  Security audit for Flutter apps that checks whether your protections actually
-  work, not just whether they exist. OWASP MASVS-mapped rules, MAS profile
-  scoring (L1/L2/R), and reports in English and Arabic.
-version: 0.7.0
+  Security audit for Flutter, React Native, KMP and native Android/iOS apps:
+  OWASP MASVS-mapped rules, MAS profile scoring (L1/L2/R), and reports in
+  English and Arabic.
+version: 0.10.0
 repository: https://github.com/khaledSayedAbdellah/aegis
 issue_tracker: https://github.com/khaledSayedAbdellah/aegis/issues
 
@@ -16,6 +16,12 @@ topics:
 
 environment:
   sdk: '>=3.0.0 <4.0.0'
+
+# A command-line tool for desktop and CI hosts; it does not run on devices.
+platforms:
+  linux:
+  macos:
+  windows:
 
 dependencies:
   archive: ^4.0.0
@@ -31,3 +37,11 @@ dev_dependencies:
 
 executables:
   aegis: aegis
+
+# Deliberately synthetic credentials used to exercise secret detection.
+# Keep this allowlist restricted to these test/fixture sources.
+false_secrets:
+  - /test/baseline_test.dart
+  - /test/scoring_test.dart
+  - /tool/make_apk_fixtures.py
+  - /tool/make_aab_fixtures.py

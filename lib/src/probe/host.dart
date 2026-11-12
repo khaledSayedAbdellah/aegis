@@ -5,6 +5,7 @@
 /// This is the only file in `lib/src/probe/` that imports `dart:io`.
 library;
 
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -69,7 +70,7 @@ abstract class Host {
   /// Runs a program and captures its output. Null when it can't be started
   /// (not installed). [input] is written to its stdin.
   Future<Proc?> run(String exe, List<String> args,
-      {Map<String, String>? environment, String? input});
+      {Map<String, String>? environment, String? input, Duration? timeout});
 
   /// Runs a program on the person's terminal, so they see its output and
   /// answer its questions (sdkmanager's license prompt). Returns the exit
@@ -207,23 +208,34 @@ class SystemHost implements Host {
 
   @override
   Future<Proc?> run(String exe, List<String> args,
-      {Map<String, String>? environment, String? input}) async {
+      {Map<String, String>? environment,
+      String? input,
+      Duration? timeout}) async {
     final Process p;
     try {
       p = await Process.start(exe, args, environment: environment);
     } on ProcessException {
       return null;
     }
-    final out = p.stdout.transform(const Utf8Decoder(allowMalformed: true)).join();
-    final err = p.stderr.transform(const Utf8Decoder(allowMalformed: true)).join();
+    final out =
+        p.stdout.transform(const Utf8Decoder(allowMalformed: true)).join();
+    final err =
+        p.stderr.transform(const Utf8Decoder(allowMalformed: true)).join();
     try {
       if (input != null) p.stdin.write(input);
       await p.stdin.close();
     } catch (_) {
       // The program does not read stdin.
     }
-    final code = await p.exitCode;
-    return Proc(code, await out, await err);
+    Future<Proc> collect() async =>
+        Proc(await p.exitCode, await out, await err);
+    if (timeout == null) return collect();
+    try {
+      return await collect().timeout(timeout);
+    } on TimeoutException {
+      p.kill(ProcessSignal.sigkill);
+      return Proc(124, '', 'Timed out after ${timeout.inSeconds}s: $exe');
+    }
   }
 
   @override
@@ -259,6 +271,7 @@ class SystemHost implements Host {
           log.writeAsBytesSync(data, mode: FileMode.append);
         } catch (_) {}
       }
+
       p.stdout.listen(append);
       p.stderr.listen(append);
     } on ProcessException {

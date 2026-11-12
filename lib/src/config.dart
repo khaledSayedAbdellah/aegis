@@ -24,6 +24,21 @@ class AegisConfig {
     this.file,
     this.apk,
     this.aab,
+    this.ipa,
+    this.iosControlDevice,
+    this.iosJailbreakDevice,
+    this.iosResignedIpa,
+    this.iosSimulator,
+    this.iosSimulatorApp,
+    this.iosSimulatorFlavor,
+    this.iosSimulatorTarget,
+    this.iosXcodeProject,
+    this.iosXcodeScheme,
+    this.iosXcodeConfiguration,
+    this.probeApk,
+    this.probeCertSha256,
+    this.trackerSignatures,
+    this.runtimeSecurity = const {},
   });
 
   final ProfileSet profile;
@@ -52,16 +67,35 @@ class AegisConfig {
   /// The aegis.yaml this was read from, if any.
   final String? file;
 
-  /// The release APK to audit with `aegis run --mode apk|all` and `aegis
+  /// The release APK to audit with `aegis run --mode apk` and `aegis
   /// probe`, as written in aegis.yaml (relative to the project or absolute).
   /// Build paths change with flavors and versions, so the developer keeps it
   /// up to date; aegis does not search build/ for it.
   final String? apk;
 
-  /// The release App Bundle, for `--mode aab|all`. Same rules as [apk].
+  /// The release App Bundle, for `--mode aab`. Same rules as [apk].
   final String? aab;
+  final String? ipa;
+  final String? iosControlDevice;
+  final String? iosJailbreakDevice;
+  final String? iosResignedIpa;
+  final String? iosSimulator;
+  final String? iosSimulatorApp;
+  final String? iosSimulatorFlavor;
+  final String? iosSimulatorTarget;
+  final String? iosXcodeProject;
+  final String? iosXcodeScheme;
+  final String? iosXcodeConfiguration;
 
-  /// [apk] or [aab] made absolute against [projectRoot], or null when unset.
+  /// Companion APK for the AAB probe, relative to the project or absolute.
+  final String? probeApk;
+
+  /// Expected SHA-256 fingerprint of the companion APK's signing certificate.
+  final String? probeCertSha256;
+  final String? trackerSignatures;
+  final Map<String, Object?> runtimeSecurity;
+
+  /// An artifact path made absolute against [projectRoot], or null when unset.
   static String? resolve(String projectRoot, String? path) {
     if (path == null || path.trim().isEmpty) return null;
     final v = path.trim();
@@ -127,17 +161,44 @@ class AegisConfig {
       exclude: exclude,
       severityOverrides: overrides,
       scanPackages: doc['scan_packages'] != false,
-      baseline: doc['baseline']?.toString(),
+      baseline: _path(doc['baseline']),
       langSet: doc['lang'] != null,
       file: file,
       apk: _path(doc['apk']),
       aab: _path(doc['aab']),
+      ipa: _path(doc['ipa']),
+      iosControlDevice: _path(doc['ios_control_device']),
+      iosJailbreakDevice: _path(doc['ios_jailbreak_device']),
+      iosResignedIpa: _path(doc['ios_resigned_ipa']),
+      iosSimulator: _path(doc['ios_simulator']),
+      iosSimulatorApp: _path(doc['ios_simulator_app']),
+      iosSimulatorFlavor: _path(doc['ios_simulator_flavor']),
+      iosSimulatorTarget: _path(doc['ios_simulator_target']),
+      iosXcodeProject: _path(doc['ios_xcode_project']),
+      iosXcodeScheme: _path(doc['ios_xcode_scheme']),
+      iosXcodeConfiguration: _path(doc['ios_xcode_configuration']),
+      probeApk: _path(doc['probe_apk']),
+      probeCertSha256: _path(doc['probe_cert_sha256']),
+      trackerSignatures: _path(doc['tracker_signatures']),
+      runtimeSecurity: _runtime(doc['runtime_security']),
     );
+  }
+
+  static Map<String, Object?> _runtime(Object? value) {
+    if (value == null) return const {};
+    if (value is! Map) {
+      throw const FormatException('runtime_security must be a map');
+    }
+    return value.map((k, v) => MapEntry(k.toString(), v));
   }
 
   static String? _path(Object? v) {
     final s = v?.toString().trim();
-    return s == null || s.isEmpty ? null : s;
+    // init includes editable placeholders for optional paths, IDs and flavors.
+    // They must not select a device or become a literal filesystem path.
+    return s == null || s.isEmpty || RegExp(r'^<[a-z][a-z0-9-]*>$').hasMatch(s)
+        ? null
+        : s;
   }
 
   static Object? _loadYaml(String text) {
@@ -168,5 +229,20 @@ class AegisConfig {
         file: file,
         apk: apk,
         aab: aab,
+        ipa: ipa,
+        iosControlDevice: iosControlDevice,
+        iosJailbreakDevice: iosJailbreakDevice,
+        iosResignedIpa: iosResignedIpa,
+        iosSimulator: iosSimulator,
+        iosSimulatorApp: iosSimulatorApp,
+        iosSimulatorFlavor: iosSimulatorFlavor,
+        iosSimulatorTarget: iosSimulatorTarget,
+        iosXcodeProject: iosXcodeProject,
+        iosXcodeScheme: iosXcodeScheme,
+        iosXcodeConfiguration: iosXcodeConfiguration,
+        probeApk: probeApk,
+        probeCertSha256: probeCertSha256,
+        trackerSignatures: trackerSignatures,
+        runtimeSecurity: runtimeSecurity,
       );
 }
