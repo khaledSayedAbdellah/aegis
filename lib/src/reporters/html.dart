@@ -36,7 +36,10 @@ String _binaryHtml(AuditReport r, Strings t) {
   return b.toString();
 }
 
-String renderHtml(AuditReport r, {String lang = 'en'}) {
+/// With [compact], only the header, the score with its category scores and
+/// the open findings (new and previously known, with their details) are
+/// rendered: the PDF report.
+String renderHtml(AuditReport r, {String lang = 'en', bool compact = false}) {
   final t = Strings(lang);
   final dir = t.ar ? 'rtl' : 'ltr';
   // Coloured like the band, as the categories are.
@@ -190,6 +193,8 @@ code{font-size:12.5px;color:var(--muted)}.fix{border-inline-start:3px solid var(
 .sev-critical{background:#b42318}.sev-high{background:var(--bad)}.sev-medium{background:var(--warn)}.sev-low{background:var(--accent)}.sev-info{background:var(--muted)}
 ul{padding-inline-start:20px}.known{opacity:.7}.tag{font-size:11px;border:1px solid var(--line);border-radius:10px;padding:0 6px;color:var(--muted)}.note{font-size:13px;color:var(--muted);margin-top:32px}
 .probe{width:100%;border-collapse:collapse;font-size:14px}.probe th,.probe td{border-bottom:1px solid var(--line);padding:6px 8px;text-align:start;vertical-align:top}
+@page{size:A4;margin:14mm 12mm}
+@media print{:root{--bg:#fff;--fg:#1c2330;--muted:#555f6d;--card:#fff;--line:#d0d5dd}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font-size:12.5px}main{max-width:none;padding:0}.hero,.card,.probe tr,.evidence-item{break-inside:avoid}h2{break-after:avoid}.known{opacity:1}summary{cursor:auto}}
 </style>
 </head>
 <body><main>
@@ -203,24 +208,24 @@ ul{padding-inline-start:20px}.known{opacity:.7}.tag{font-size:11px;border:1px so
     t.bestFixes(r.score)
   ].whereType<String>().map((x) => '<div class="muted">${_e(x)}</div>').join()}</div>
 ${r.complete ? '' : '<div class="score-warning" role="note"><strong>${_e(L10n(lang).scoreProvisional)}</strong><p>${_e(L10n(lang).scoreProvisionalDetail)}</p></div>'}
-<div class="muted">${_e(t.coverage)}: ${_e(t.coverageLine(r.coverage.checked, r.coverage.inScope, r.coverage.percent))}</div>
+${compact ? '' : '''<div class="muted">${_e(t.coverage)}: ${_e(t.coverageLine(r.coverage.checked, r.coverage.inScope, r.coverage.percent))}</div>
 ${_binaryHtml(r, t)}
-$baselineLine
+$baselineLine'''}
 ${cats.toString()}
 </div>
 </section>
-${probe.toString()}
+${compact ? '' : '''${probe.toString()}
 ${r.iosStatic == null ? '' : IosStaticView(r.iosStatic!, lang).html()}
 ${SecurityView(r.securityEvidence, lang).html()}
-$incomplete
+$incomplete'''}
 <h2>✗ ${_e(failedTitle)} (${newFailed.length})</h2>
 ${newFailed.isEmpty ? '<p>${_e(emptyText)}</p>' : ''}${failed.toString()}
-$resolved
+${compact ? '' : '''$resolved
 <h2>✓ ${_e(t.passed)} (${r.passed.length})</h2>
 <ul>$passed</ul>
 <h2>? ${_e(t.manual)}</h2>
 <ul>$manual</ul>
-<p class="note">${_e(t.disclaimer)}</p>
+<p class="note">${_e(t.disclaimer)}</p>'''}
 </main></body></html>
 ''';
 }

@@ -1,3 +1,8 @@
+## Unreleased
+
+* `aegis run` also saves a short PDF report named `<mode>-<profile>-<date>.pdf` (for example `apk-L2+R-2026-11-12.pdf`) next to the other reports. It contains the score, the category scores and the open findings only, new and previously known, each with its details. The new `pdf` format is on by default for `run` and available with `-f pdf` everywhere. It is printed in the report language with a headless Chrome, Edge, Chromium or Brave, or the browser in `AEGIS_BROWSER` / `CHROME_PATH`. Without a browser the PDF is skipped with a message and the run continues.
+* The HTML report has print styles: light colors, A4 pages and no cards split across pages.
+
 ## 0.10.2
 
 * The README starts with a table of contents linking every section. The translation catalog and extended MASVS analysis sections now come before License.

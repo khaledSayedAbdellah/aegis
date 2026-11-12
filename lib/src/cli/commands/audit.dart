@@ -9,6 +9,7 @@ import '../../l10n/messages.g.dart';
 import '../../probe/ios_target.dart';
 import '../../probe/messages.dart';
 import '../../probe/pins.dart' show avdName, controlAvdName;
+import '../../reporters/pdf.dart';
 import '../../rules/ipa_rules.dart';
 import '../../rules/registry.dart' show extendedRules;
 import '../../rules/runtime_security_rules.dart';
@@ -33,7 +34,9 @@ Future<void> auditCommand(ArgResults root, ArgParser parser) async {
       stdout.writeln(
           'Audits the project with the settings in aegis.yaml, prints the report and writes');
       stdout.writeln(
-          'build/aegis-report.html and opens it (--no-open to skip).\n');
+          'build/aegis-report.html and opens it (--no-open to skip), plus the score');
+      stdout.writeln(
+          'and open findings as build/<mode>-<profile>-<date>.pdf (needs Chrome, Edge or Chromium).\n');
       stdout.writeln(
           '--mode apk|aab|ipa audits the file set in aegis.yaml (relative to the project):');
       stdout.writeln('  apk: build/app/outputs/flutter-apk/app-release.apk');
@@ -386,6 +389,29 @@ Future<void> auditCommand(ArgResults root, ArgParser parser) async {
   if (formats.contains('sarif')) write('sarif', renderSarif(report));
   if (formats.contains('md')) write('md', renderMarkdown(report, lang: lang));
   if (formats.contains('html')) write('html', renderHtml(report, lang: lang));
+  if (formats.contains('pdf')) {
+    final reportMode = mode ??
+        (ipaPath != null
+            ? 'ipa'
+            : apkPath == null
+                ? 'code'
+                : apkPath.toLowerCase().endsWith('.aab')
+                    ? 'aab'
+                    : 'apk');
+    final pdf = p.join(p.dirname(output),
+        pdfReportName(reportMode, report.profile, report.generatedAt));
+    final browser = findPdfBrowser();
+    final problem = browser == null
+        ? 'no Chrome, Edge or Chromium found; install one or set AEGIS_BROWSER '
+            'to a Chromium-based browser'
+        : await writePdfReport(
+            renderHtml(report, lang: lang, compact: true), pdf, browser);
+    if (problem == null) {
+      written.add(pdf);
+    } else {
+      stderr.writeln('aegis: PDF report not written: $problem.');
+    }
+  }
   if (formats.contains('console')) {
     final color = (args['color'] as bool) &&
         stdout.hasTerminal &&

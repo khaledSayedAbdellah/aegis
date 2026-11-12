@@ -1,6 +1,14 @@
 import 'package:args/args.dart';
 
-const reportFormats = ['console', 'json', 'md', 'html', 'sarif', 'azure'];
+const reportFormats = [
+  'console',
+  'json',
+  'md',
+  'html',
+  'pdf',
+  'sarif',
+  'azure'
+];
 
 const auditModes = ['code', 'apk', 'aab', 'ipa'];
 
@@ -26,9 +34,11 @@ ArgParser auditParser({bool run = false}) => _iosOptions(
       ..addMultiOption('format',
           abbr: 'f',
           allowed: reportFormats,
-          defaultsTo: run ? ['console', 'html'] : ['console'],
+          defaultsTo: run ? ['console', 'html', 'pdf'] : ['console'],
           help:
-              'Output formats (comma separated). "azure" prints Azure Pipelines annotations for new findings.')
+              'Output formats (comma separated). "pdf" writes the score and open findings to <mode>-<profile>-<date>.pdf '
+              'next to the other reports, printed with Chrome, Edge or Chromium (or the browser in AEGIS_BROWSER). '
+              '"azure" prints Azure Pipelines annotations for new findings.')
       ..addOption('output',
           abbr: 'o',
           defaultsTo: run ? 'build/aegis-report' : 'aegis-report',

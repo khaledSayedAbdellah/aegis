@@ -141,7 +141,7 @@ aegis run                  # 3. choose code, apk, aab or ipa, then audit
 
 **Don't skip environment setup.** Choose Android in `aegis setup`, or run `aegis setup --android`, to prepare both Android emulators that `aegis run --mode apk|aab` uses to check whether your app's anti-tampering actually reacts (rules AEG-R01..R04). Without it, the APK/AAB gets the static checks only and the report says the probe was skipped. It installs only what's missing, so running it again is harmless; `aegis doctor` shows what's there. Details in [The resilience probe](#the-resilience-probe).
 
-`aegis run` prints the report, writes `build/aegis-report.html` and opens it in your browser (`--no-open` to skip; it never opens in CI). Choose what to audit with `--mode`:
+`aegis run` prints the report, writes `build/aegis-report.html` and opens it in your browser (`--no-open` to skip; it never opens in CI). It also saves a short PDF (the score, category scores and open findings) named after the mode, MAS profile and date, for example `build/apk-L2+R-2026-11-12.pdf` (see [PDF report](#full-control-ci)). Choose what to audit with `--mode`:
 
 | Command | Audits |
 |---|---|
@@ -265,7 +265,9 @@ aegis --profile banking --lang ar      # banking app, Arabic report
 aegis -f console,html,sarif -o build/aegis
 ```
 
-`-f/--format` picks the outputs: `console` (the terminal), `html` (a page to open in a browser), `md`, `json`, `sarif` (code-scanning dashboards) and `azure` (Azure Pipelines annotations). `-o` is the file name without extension.
+`-f/--format` picks the outputs: `console` (the terminal), `html` (a page to open in a browser), `pdf`, `md`, `json`, `sarif` (code-scanning dashboards) and `azure` (Azure Pipelines annotations). `-o` is the file name without extension.
+
+**PDF report.** `pdf` (on by default for `aegis run`) writes a short version of the report to `<mode>-<profile>-<date>.pdf` in the same folder, for example `code-L1-2026-11-12.pdf`. It has the score with its category scores and the open findings only: the new ones and, with a baseline, the ones already known, each with its locations, why it matters and how to fix it. Coverage, probe results, passed checks and manual checks are in the HTML report. A second audit on the same day with the same mode and profile replaces it. aegis prints it with Chrome, Edge, Chromium or Brave in headless mode; set `AEGIS_BROWSER` (or `CHROME_PATH`) to use another Chromium-based browser. Without one, the other reports are still written and aegis says why the PDF was skipped.
 
 ## Commands
 
@@ -276,13 +278,13 @@ Run `aegis --help`, or `aegis <command> --help`, for every option.
 | `aegis init` | Once per project: asks what kind of app it is and writes `aegis.yaml` (`--profile`, `--lang` to skip the questions, `--force` to overwrite). |
 | `aegis setup` | Choose Android, iOS or Both. Use `--android`, `--ios` or `--both` to select directly; `--yes` confirms installation, `--remove` uninstalls Aegis tools. |
 | `aegis doctor` | Lists the tools the probe needs and whether each is present. Changes nothing. |
-| `aegis run` | Audits with the settings in `aegis.yaml`, prints the report, writes `build/aegis-report.html` and opens it. |
+| `aegis run` | Audits with the settings in `aegis.yaml`, prints the report, writes `build/aegis-report.html` and opens it, and saves the score and open findings as `build/<mode>-<profile>-<date>.pdf`. |
 | `aegis run --mode code\|apk\|aab\|ipa` | What to audit (see Quick start). `apk`/`aab`/`ipa` select their respective YAML artifact paths. |
 | `aegis run --no-probe` | Audit the APK/AAB without running the resilience probe. |
 | `aegis run --runtime-scenario` | Also execute the `runtime_security` scenario from `aegis.yaml`. Its command and tool paths come from the project, so they never run without this flag. |
 | `aegis run --no-open` | Don't open the HTML report in the browser. |
 | `aegis run --lang ar` / `--profile banking` | Override aegis.yaml for this run. |
-| `aegis run -f console,html,md,json,sarif` | Choose the report formats. |
+| `aegis run -f console,html,pdf,md,json,sarif` | Choose the report formats (`run` defaults to `console,html,pdf`). |
 | `aegis probe` | Only the resilience probe, on `apk:`/`aab:` or a path you pass (`--only root,hooking`, `--project`, `--profile`). |
 | `aegis [path] [options]` | Full control for CI: console only unless `-f`, never runs the probe. |
 | `aegis --apk app-release.apk` | CI: also audit a built APK or AAB. |
