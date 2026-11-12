@@ -185,10 +185,20 @@ void main() {
         () async {
       final device = ObservingDevice();
       final r = await run(device, only: {'hooking'});
+      expect(statusOfId(r, 'hooking'), ProbeStatus.notBlocked);
       expect(device.calls, contains('observe-instrumented'));
       expect(r.platformObserverAttempts, {'control', 'instrumented'});
       // It returned nothing, so the stock launch facts stay as they were.
       expect(r.platformObservations.containsKey('control'), isFalse);
+    });
+    test('an app that blocks Frida is never observed under it', () async {
+      final device = ObservingDevice()
+        ..fridaLog =
+            '11-08 15:29:21.344  1234  1234 I AegisProbe: hooking blocked';
+      final r = await run(device, only: {'hooking'});
+      expect(statusOfId(r, 'hooking'), ProbeStatus.blocked);
+      expect(device.calls, isNot(contains('observe-instrumented')));
+      expect(r.platformObserverAttempts, {'control'});
     });
     test('a dead baseline starts no observer', () async {
       final r = await run(ObservingDevice()..aliveQueue = [false]);

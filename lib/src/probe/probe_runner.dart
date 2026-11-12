@@ -224,7 +224,11 @@ class ProbeRunner {
                   await fridaDevice.startFridaServer() ??
                   await fridaDevice.fridaAttach(package, wait),
               settleAfterApply: false);
-          if (fridaDevice case final PlatformObserver observer) {
+          // Only an app still running under Frida can be observed with it. An
+          // app that exited (its protection worked) or an inconclusive check
+          // never makes this observation possible, so it is not requested.
+          if (fridaDevice case final PlatformObserver observer
+              when observed.status == ProbeStatus.notBlocked) {
             try {
               observerAttempts.add('instrumented');
               final extra =
