@@ -70,7 +70,8 @@ IosProbeSelection resolveIosProbeSelection({
         : null,
     simulatorFlavor: simulator ? config.iosSimulatorFlavor : null,
     simulatorEntryPoint: simulator ? config.iosSimulatorTarget : null,
-    xcodeProject: simulator ? AegisConfig.resolve(project, config.iosXcodeProject) : null,
+    xcodeProject:
+        simulator ? AegisConfig.resolve(project, config.iosXcodeProject) : null,
     xcodeScheme: simulator ? config.iosXcodeScheme : null,
     xcodeConfiguration: simulator ? config.iosXcodeConfiguration : null,
   );

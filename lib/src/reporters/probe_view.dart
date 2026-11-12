@@ -21,7 +21,8 @@ const probeRuleIds = {
 };
 
 class ProbeLine {
-  ProbeLine(this.status, this.mark, this.title, this.evidence, this.tag, this.ruleId,
+  ProbeLine(
+      this.status, this.mark, this.title, this.evidence, this.tag, this.ruleId,
       {this.note});
   final ProbeStatus status;
   final String mark;
@@ -65,15 +66,18 @@ class ProbeView {
 
     final ios = r.binary?.kind == 'IPA';
     final caveats = [
-      L10n(lang).probeViewAutomaticObservationsCoverProcessBehaviorAppEventsDescribe,
+      L10n(lang)
+          .probeViewAutomaticObservationsCoverProcessBehaviorAppEventsDescribe,
       if (!ios) L10n(lang).probeViewThisShowsWhatHappenedOnThisEmulatorWith,
     ];
     final report = o.report;
     if (report?.platform == 'ios-simulator') {
-      caveats.add(L10n(lang).probeViewSimulatorObservationsApplyOnlyToThisSimulatorBuild);
+      caveats.add(L10n(lang)
+          .probeViewSimulatorObservationsApplyOnlyToThisSimulatorBuild);
     }
-    final heading = (ios ? L10n(lang).probeViewIosResilienceProbe :
-        L10n(lang).probeViewResilienceProbeEmulator) +
+    final heading = (ios
+            ? L10n(lang).probeViewIosResilienceProbe
+            : L10n(lang).probeViewResilienceProbeEmulator) +
         (report == null ? '' : ' — ${report.app.split(RegExp(r'[\\/]')).last}');
     if (report == null) {
       return ProbeView(
@@ -88,14 +92,17 @@ class ProbeView {
           lines: const [],
           caveats: const [],
           details: probeApkIdentityLines(report, lang),
-          message: L10n(lang).probeViewCouldNotRun(value1: report.emulatorError));
+          message:
+              L10n(lang).probeViewCouldNotRun(value1: report.emulatorError));
     }
     if (!report.baselineAlive) {
       return ProbeView(
         heading: heading,
         lines: const [],
         caveats: caveats,
-        message: ios ? L10n(lang).probeViewTheIosControlProcessDidNotStayAlive : L10n(lang).probeViewTheAppDidNotStayAliveOnA,
+        message: ios
+            ? L10n(lang).probeViewTheIosControlProcessDidNotStayAlive
+            : L10n(lang).probeViewTheAppDidNotStayAliveOnA,
         details: [
           ...probeApkIdentityLines(report, lang),
           for (final l in (report.baselineNoteOf(lang) ?? '').split('\n'))

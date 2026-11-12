@@ -51,7 +51,9 @@ List<SigningCert> readSigningCerts(ZipReader zip) {
   for (final e in zip.entries.values) {
     final n = e.name.toUpperCase();
     if (!n.startsWith('META-INF/')) continue;
-    if (!(n.endsWith('.RSA') || n.endsWith('.DSA') || n.endsWith('.EC'))) continue;
+    if (!(n.endsWith('.RSA') || n.endsWith('.DSA') || n.endsWith('.EC'))) {
+      continue;
+    }
     try {
       final der = _certFromPkcs7(zip.readEntry(e));
       if (der != null) add(der, 'v1');
@@ -68,7 +70,8 @@ List<(Uint8List, String)> _signingBlockCerts(ZipReader zip) {
   final cd = zip.centralDirectoryOffset;
   final out = <(Uint8List, String)>[];
   if (cd < 32 || cd > b.length) return out;
-  final magic = ascii.decode(Uint8List.sublistView(b, cd - 16, cd), allowInvalid: true);
+  final magic =
+      ascii.decode(Uint8List.sublistView(b, cd - 16, cd), allowInvalid: true);
   if (magic != 'APK Sig Block 42') return out;
   final d = ByteData.sublistView(b);
   final blockSize = d.getUint64(cd - 24, Endian.little);
@@ -198,7 +201,8 @@ String? _subjectCommonName(Uint8List der) {
         der[i + 4] == 0x03) {
       final v = _readTlv(der, i + 5);
       if (v != null) {
-        cn = utf8.decode(der.sublist(v.valueStart, v.end), allowMalformed: true);
+        cn =
+            utf8.decode(der.sublist(v.valueStart, v.end), allowMalformed: true);
       }
     }
   }

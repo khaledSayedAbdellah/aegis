@@ -64,7 +64,8 @@ String redact(String secret) {
 /// offset where it starts, or null.
 ({String body, int offset})? findBlock(String text, String keyword,
     {int from = 0}) {
-  final re = RegExp('(?<![A-Za-z0-9_])${RegExp.escape(keyword)}\\s*(\\([^)]*\\))?\\s*\\{');
+  final re = RegExp(
+      '(?<![A-Za-z0-9_])${RegExp.escape(keyword)}\\s*(\\([^)]*\\))?\\s*\\{');
   for (final m in re.allMatches(text, from)) {
     if (_insideCommentOrString(text, m.start)) continue;
     final open = m.end - 1;

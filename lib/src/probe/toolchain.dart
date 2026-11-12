@@ -134,7 +134,8 @@ class Toolchain {
   String get fridaServerPath =>
       _p.join(toolsDir, pins.fridaServerName(fridaArch));
   String get iosFridaCache => _p.join(toolsDir, 'ios-${pins.fridaVersion}');
-  String get iosGadgetPath => _p.join(iosFridaCache, 'frida', 'gadget-ios.dylib');
+  String get iosGadgetPath =>
+      _p.join(iosFridaCache, 'frida', 'gadget-ios.dylib');
   String get iosSimulatorGadgetPath => _p.join(
       toolsDir, 'ios-simulator-gadget-${pins.iosSimulatorGadgetVersion}.dylib');
   String get bundletoolPath => _p.join(toolsDir, pins.bundletoolName);
@@ -269,8 +270,10 @@ class Toolchain {
     }
     final doctor = await flutterDoctor();
     if (doctor != null) {
-      final m = RegExp(r'Android SDK at (.+)$', multiLine: true).firstMatch(doctor);
-      final path = m == null ? null : longestExisting(m.group(1)!, host.dirExists);
+      final m =
+          RegExp(r'Android SDK at (.+)$', multiLine: true).firstMatch(doctor);
+      final path =
+          m == null ? null : longestExisting(m.group(1)!, host.dirExists);
       if (path != null) return (path: path, source: 'flutter doctor');
     }
     return null;
@@ -292,7 +295,8 @@ class Toolchain {
   Future<ToolCheck> checkAndroidSdk() async {
     final sdk = await findSdkRoot();
     if (sdk == null) {
-      return ToolCheck('android-sdk', ToolState.manual, issue: Issue.sdkMissing);
+      return ToolCheck('android-sdk', ToolState.manual,
+          issue: Issue.sdkMissing);
     }
     return ToolCheck('android-sdk', ToolState.present,
         path: sdk.path, source: sdk.source);
@@ -317,7 +321,8 @@ class Toolchain {
     if (doctor != null) {
       final m =
           RegExp(r'Java binary at: (.+)$', multiLine: true).firstMatch(doctor);
-      final bin = m == null ? null : longestExisting(m.group(1)!, host.fileExists);
+      final bin =
+          m == null ? null : longestExisting(m.group(1)!, host.fileExists);
       if (bin != null) {
         // …/bin/java → the home is two levels up.
         final home = _p.dirname(_p.dirname(bin));
@@ -414,7 +419,8 @@ class Toolchain {
 
   Future<ToolCheck> checkCmdlineTools(String? sdkRoot) async {
     if (sdkRoot == null) {
-      return ToolCheck('cmdline-tools', ToolState.manual, issue: Issue.sdkMissing);
+      return ToolCheck('cmdline-tools', ToolState.manual,
+          issue: Issue.sdkMissing);
     }
     final sm = sdkTool(sdkRoot, 'sdkmanager');
     if (sm != null) {
@@ -433,12 +439,14 @@ class Toolchain {
     if (host.fileExists(adb)) {
       return ToolCheck('platform-tools', ToolState.present, path: adb);
     }
-    return ToolCheck('platform-tools', ToolState.installable, issue: Issue.missing);
+    return ToolCheck('platform-tools', ToolState.installable,
+        issue: Issue.missing);
   }
 
   Future<ToolCheck> checkBuildTools(String? sdkRoot) async {
     if (sdkRoot == null) {
-      return ToolCheck('build-tools', ToolState.installable, issue: Issue.missing);
+      return ToolCheck('build-tools', ToolState.installable,
+          issue: Issue.missing);
     }
     final base = _p.join(sdkRoot, 'build-tools');
     // Newest version first; accept one that has both apksigner and zipalign.
@@ -449,7 +457,10 @@ class Toolchain {
       final major = int.tryParse(name.split('.').first) ?? -1;
       final hasSigner = host.fileExists(_p.join(dir, _bat('apksigner')));
       final hasAlign = host.fileExists(_p.join(dir, _exe('zipalign')));
-      if (hasSigner && hasAlign && major >= pins.minBuildToolsMajor && major > bestMajor) {
+      if (hasSigner &&
+          hasAlign &&
+          major >= pins.minBuildToolsMajor &&
+          major > bestMajor) {
         best = dir;
         bestMajor = major;
       }
@@ -458,7 +469,8 @@ class Toolchain {
       return ToolCheck('build-tools', ToolState.present,
           path: best, version: _p.basename(best));
     }
-    return ToolCheck('build-tools', ToolState.installable, issue: Issue.missing);
+    return ToolCheck('build-tools', ToolState.installable,
+        issue: Issue.missing);
   }
 
   Future<ToolCheck> checkEmulator(String? sdkRoot) async {
@@ -472,10 +484,12 @@ class Toolchain {
     return ToolCheck('emulator', ToolState.installable, issue: Issue.missing);
   }
 
-  Future<ToolCheck> checkSystemImage(String? sdkRoot, {bool control = false}) async {
+  Future<ToolCheck> checkSystemImage(String? sdkRoot,
+      {bool control = false}) async {
     final id = control ? 'control-image' : 'system-image';
     if (sdkRoot != null) {
-      final dir = _p.joinAll([sdkRoot, ..._systemImagePackage(control).split(';')]);
+      final dir =
+          _p.joinAll([sdkRoot, ..._systemImagePackage(control).split(';')]);
       if (host.fileExists(_p.join(dir, 'system.img')) &&
           host.fileExists(_p.join(dir, 'source.properties'))) {
         return ToolCheck(id, ToolState.present, path: dir);
@@ -542,7 +556,8 @@ class Toolchain {
     if (r != null && r.ok && r.text.isNotEmpty) {
       final have = r.text.trim();
       if (have == pins.fridaVersion) {
-        return ToolCheck('frida', ToolState.present, path: frida, version: have);
+        return ToolCheck('frida', ToolState.present,
+            path: frida, version: have);
       }
       return ToolCheck('frida', ToolState.installable,
           issue: Issue.fridaOtherVersion,
@@ -557,7 +572,8 @@ class Toolchain {
       return ToolCheck('frida-server', ToolState.present,
           path: fridaServerPath, version: pins.fridaVersion);
     }
-    return ToolCheck('frida-server', ToolState.installable, issue: Issue.missing);
+    return ToolCheck('frida-server', ToolState.installable,
+        issue: Issue.missing);
   }
 
   Future<ToolCheck> checkBundletool({bool aab = false}) async {
@@ -565,18 +581,18 @@ class Toolchain {
       return ToolCheck('bundletool', ToolState.present,
           path: bundletoolPath, version: pins.bundletoolVersion);
     }
-    return ToolCheck('bundletool',
-        aab ? ToolState.installable : ToolState.optional,
+    return ToolCheck(
+        'bundletool', aab ? ToolState.installable : ToolState.optional,
         issue: aab ? Issue.missing : Issue.optionalAab);
   }
 
   ToolCheck checkIosGadget({bool simulator = false}) {
     final path = simulator ? iosSimulatorGadgetPath : iosGadgetPath;
-    return ToolCheck(
-        simulator ? 'ios-simulator-gadget' : 'ios-gadget',
+    return ToolCheck(simulator ? 'ios-simulator-gadget' : 'ios-gadget',
         host.fileExists(path) ? ToolState.present : ToolState.installable,
         path: path,
-        version: simulator ? pins.iosSimulatorGadgetVersion : pins.fridaVersion);
+        version:
+            simulator ? pins.iosSimulatorGadgetVersion : pins.fridaVersion);
   }
 
   Future<List<ToolCheck>> checkIos() async {

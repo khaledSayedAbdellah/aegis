@@ -98,7 +98,8 @@ Map<String, Object?> reportToJson(AuditReport r) => {
           }
       ],
       'manualChecks': [
-        for (final m in r.manual) {'id': m.id, 'masvs': m.masvs, 'text': m.text.en}
+        for (final m in r.manual)
+          {'id': m.id, 'masvs': m.masvs, 'text': m.text.en}
       ],
     };
 
@@ -141,7 +142,11 @@ String renderSarif(AuditReport r) {
                   'help': {'text': res.meta.fix.en},
                   'defaultConfiguration': {'level': _sarifLevel(res.severity)},
                   'properties': {
-                    'tags': ['security', ...res.meta.masvs, if (res.meta.cwe != null) res.meta.cwe!],
+                    'tags': [
+                      'security',
+                      ...res.meta.masvs,
+                      if (res.meta.cwe != null) res.meta.cwe!
+                    ],
                     'security-severity': _securitySeverity(res.severity),
                   },
                 }
@@ -156,7 +161,8 @@ String renderSarif(AuditReport r) {
                 'level': _sarifLevel(res.severity),
                 'message': {'text': f.message},
                 'partialFingerprints': {'aegis/v1': Baseline.fingerprint(f)},
-                if (r.usesBaseline) 'baselineState': f.baselined ? 'unchanged' : 'new',
+                if (r.usesBaseline)
+                  'baselineState': f.baselined ? 'unchanged' : 'new',
                 'locations': [
                   {
                     'physicalLocation': {
@@ -200,7 +206,13 @@ String _securitySeverity(Severity s) {
 /// it was skipped. The verdicts also appear as rules AEG-R01..R04.
 Map<String, Object?> _probeJson(ProbeOutcome o) {
   final r = o.report;
-  if (r == null) return {'ran': false, 'skipped': o.skipped, if (o.skippedAr != null) 'skippedAr': o.skippedAr};
+  if (r == null) {
+    return {
+      'ran': false,
+      'skipped': o.skipped,
+      if (o.skippedAr != null) 'skippedAr': o.skippedAr
+    };
+  }
   return {
     'ran': true,
     if (r.platform != 'android') 'platform': r.platform,
@@ -215,17 +227,20 @@ Map<String, Object?> _probeJson(ProbeOutcome o) {
         if (identity.expectedSignerSha256 != null)
           'expectedSignerSha256': identity.expectedSignerSha256,
         'buildProvenance': 'userSupplied',
-        if (identity.controlApks.isNotEmpty) 'controlApks': identity.controlApks,
+        if (identity.controlApks.isNotEmpty)
+          'controlApks': identity.controlApks,
         if (identity.rootedApks.isNotEmpty) 'rootedApks': identity.rootedApks,
       },
     'baselineAlive': r.baselineAlive,
-    if (r.baselineNote != null && r.baselineNote!.trim().isNotEmpty) 'baselineNote': r.baselineNote,
+    if (r.baselineNote != null && r.baselineNote!.trim().isNotEmpty)
+      'baselineNote': r.baselineNote,
     if (r.baselineNoteAr != null) 'baselineNoteAr': r.baselineNoteAr,
     'checks': [
       for (final x in r.scored)
         {
           'id': x.check.id,
-          if (probeRuleIds[x.check.id] != null) 'rule': probeRuleIds[x.check.id],
+          if (probeRuleIds[x.check.id] != null)
+            'rule': probeRuleIds[x.check.id],
           'status': x.observedStatus.name,
           if (x.partialStatus != null) ...{
             'coverage': 'partial',

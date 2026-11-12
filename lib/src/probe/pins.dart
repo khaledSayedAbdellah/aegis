@@ -72,9 +72,11 @@ class Pinned {
 
 const _fridaServerPins = <String, Pinned>{
   'arm64': Pinned(
-      '84519c157b76b9050cfcf197b530288040f8dca34d66341f5d5a688f792a3af9', 24687484),
+      '84519c157b76b9050cfcf197b530288040f8dca34d66341f5d5a688f792a3af9',
+      24687484),
   'x86_64': Pinned(
-      '1f03e1bd3800618f6e6b4a978b84a7d093a2bdefd42722eb3f27e4c3bbfd2139', 44915484),
+      '1f03e1bd3800618f6e6b4a978b84a7d093a2bdefd42722eb3f27e4c3bbfd2139',
+      44915484),
 };
 
 /// The pin for the frida-server `.xz` of [arch].
@@ -89,4 +91,5 @@ const iosSimulatorGadgetPin = Pinned(
     13165472);
 
 const bundletoolPin = Pinned(
-    'a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29', 32520401);
+    'a099cfa1543f55593bc2ed16a70a7c67fe54b1747bb7301f37fdfd6d91028e29',
+    32520401);

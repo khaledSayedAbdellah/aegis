@@ -21,9 +21,14 @@ class AtsArbitraryLoadsRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-I01',
-        title: Bilingual(En.iosRulesAppTransportSecurityDisabledIos, Ar.iosRulesAppTransportSecurityDisabledIos),
-        description: Bilingual(En.iosRulesNsallowsarbitraryloadsTurnsOffAtsSoTheAppAccepts, Ar.iosRulesNsallowsarbitraryloadsTurnsOffAtsSoTheAppAccepts),
-        fix: Bilingual(En.iosRulesRemoveNsallowsarbitraryloadsAndNsallowsarbitraryloadsinwebcontentAddANarrowNsexceptiondomains, Ar.iosRulesRemoveNsallowsarbitraryloadsAndNsallowsarbitraryloadsinwebcontentAddANarrowNsexceptiondomains),
+        title: Bilingual(En.iosRulesAppTransportSecurityDisabledIos,
+            Ar.iosRulesAppTransportSecurityDisabledIos),
+        description: Bilingual(
+            En.iosRulesNsallowsarbitraryloadsTurnsOffAtsSoTheAppAccepts,
+            Ar.iosRulesNsallowsarbitraryloadsTurnsOffAtsSoTheAppAccepts),
+        fix: Bilingual(
+            En.iosRulesRemoveNsallowsarbitraryloadsAndNsallowsarbitraryloadsinwebcontentAddANarrowNsexceptiondomains,
+            Ar.iosRulesRemoveNsallowsarbitraryloadsAndNsallowsarbitraryloadsinwebcontentAddANarrowNsexceptiondomains),
         severity: Severity.high,
         masvs: ['MASVS-NETWORK-1'],
         maswe: ['MASWE-0026'],
@@ -40,9 +45,14 @@ class AtsArbitraryLoadsRule extends Rule {
     final ats = _ats(project);
     if (ats == null) return RuleCheck([]);
     final out = <Finding>[];
-    for (final key in const ['NSAllowsArbitraryLoads', 'NSAllowsArbitraryLoadsInWebContent', 'NSAllowsArbitraryLoadsForMedia']) {
+    for (final key in const [
+      'NSAllowsArbitraryLoads',
+      'NSAllowsArbitraryLoadsInWebContent',
+      'NSAllowsArbitraryLoadsForMedia'
+    ]) {
       if (ats[key] == true) {
-        out.add(inFile(f.path, lineOfFirst(f.text, key), En.iosRulesIsTrue(key: key),
+        out.add(inFile(
+            f.path, lineOfFirst(f.text, key), En.iosRulesIsTrue(key: key),
             messageAr: Ar.iosRulesIsTrue(key: key)));
       }
     }
@@ -56,9 +66,12 @@ class AtsExceptionsRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-I02',
-        title: Bilingual(En.iosRulesInsecureAtsExceptionDomain, Ar.iosRulesInsecureAtsExceptionDomain),
-        description: Bilingual(En.iosRulesAnAtsExceptionAllowsHttpOrTlsBelow, Ar.iosRulesAnAtsExceptionAllowsHttpOrTlsBelow),
-        fix: Bilingual(En.iosRulesServeTheDomainOverHttpsWithTls12, Ar.iosRulesServeTheDomainOverHttpsWithTls12),
+        title: Bilingual(En.iosRulesInsecureAtsExceptionDomain,
+            Ar.iosRulesInsecureAtsExceptionDomain),
+        description: Bilingual(En.iosRulesAnAtsExceptionAllowsHttpOrTlsBelow,
+            Ar.iosRulesAnAtsExceptionAllowsHttpOrTlsBelow),
+        fix: Bilingual(En.iosRulesServeTheDomainOverHttpsWithTls12,
+            Ar.iosRulesServeTheDomainOverHttpsWithTls12),
         severity: Severity.medium,
         masvs: ['MASVS-NETWORK-1'],
         maswe: ['MASWE-0026'],
@@ -69,7 +82,9 @@ class AtsExceptionsRule extends Rule {
   @override
   RuleCheck check(Project project, ProfileSet profile) {
     final f = project.infoPlist;
-    if (f == null || project.infoPlistData == null) return RuleCheck.notApplicable();
+    if (f == null || project.infoPlistData == null) {
+      return RuleCheck.notApplicable();
+    }
     final domains = _ats(project)?['NSExceptionDomains'];
     if (domains is! Map<String, Object?>) return RuleCheck([]);
     final out = <Finding>[];
@@ -87,7 +102,8 @@ class AtsExceptionsRule extends Rule {
           ?.toString();
       if (tls == 'TLSv1.0' || tls == 'TLSv1.1') {
         out.add(inFile(f.path, lineOfFirst(f.text, domain),
-            En.iosRulesAllows(domain: domain, tls: tls), messageAr: Ar.iosRulesAllows(domain: domain, tls: tls)));
+            En.iosRulesAllows(domain: domain, tls: tls),
+            messageAr: Ar.iosRulesAllows(domain: domain, tls: tls)));
       }
     });
     return RuleCheck(out);
@@ -100,9 +116,13 @@ class GetTaskAllowRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-I03',
-        title: Bilingual(En.iosRulesDebuggingEntitlementEnabledIos, Ar.iosRulesDebuggingEntitlementEnabledIos),
-        description: Bilingual(En.iosRulesGetTaskAllowLetsDebuggersAttachToTheAppProcess, Ar.iosRulesGetTaskAllowLetsDebuggersAttachToTheAppProcess),
-        fix: Bilingual(En.iosRulesRemoveGetTaskAllowFromTheReleaseEntitlements, Ar.iosRulesRemoveGetTaskAllowFromTheReleaseEntitlements),
+        title: Bilingual(En.iosRulesDebuggingEntitlementEnabledIos,
+            Ar.iosRulesDebuggingEntitlementEnabledIos),
+        description: Bilingual(
+            En.iosRulesGetTaskAllowLetsDebuggersAttachToTheAppProcess,
+            Ar.iosRulesGetTaskAllowLetsDebuggersAttachToTheAppProcess),
+        fix: Bilingual(En.iosRulesRemoveGetTaskAllowFromTheReleaseEntitlements,
+            Ar.iosRulesRemoveGetTaskAllowFromTheReleaseEntitlements),
         severity: Severity.high,
         masvs: ['MASVS-RESILIENCE-4'],
         maswe: ['MASWE-0063'],
@@ -112,11 +132,16 @@ class GetTaskAllowRule extends Rule {
 
   @override
   RuleCheck check(Project project, ProfileSet profile) {
-    if (project.ipa == null && !project.hasIos) return RuleCheck.notApplicable();
-    if (project.ipa != null && project.entitlements.isEmpty) {
-      return RuleCheck.incompleteLocalized(En.ipaEntitlementsUnreadable, Ar.ipaEntitlementsUnreadable);
+    if (project.ipa == null && !project.hasIos) {
+      return RuleCheck.notApplicable();
     }
-    if (project.entitlements.isEmpty) return RuleCheck.notApplicable('No entitlements file');
+    if (project.ipa != null && project.entitlements.isEmpty) {
+      return RuleCheck.incompleteLocalized(
+          En.ipaEntitlementsUnreadable, Ar.ipaEntitlementsUnreadable);
+    }
+    if (project.entitlements.isEmpty) {
+      return RuleCheck.notApplicable('No entitlements file');
+    }
     final out = <Finding>[];
     project.entitlements.forEach((path, data) {
       if (project.ipa == null && path.toLowerCase().contains('debug')) return;
@@ -126,7 +151,8 @@ class GetTaskAllowRule extends Rule {
       }
     });
     if (project.ipa?.machO.any((slice) => slice.entitlements == null) == true) {
-      return RuleCheck.incompleteLocalized(En.ipaEntitlementSlicesUnreadable, Ar.ipaEntitlementSlicesUnreadable, out);
+      return RuleCheck.incompleteLocalized(En.ipaEntitlementSlicesUnreadable,
+          Ar.ipaEntitlementSlicesUnreadable, out);
     }
     return RuleCheck(out);
   }
@@ -138,9 +164,13 @@ class FileSharingRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-I04',
-        title: Bilingual(En.iosRulesDocumentsFolderExposedIos, Ar.iosRulesDocumentsFolderExposedIos),
-        description: Bilingual(En.iosRulesUifilesharingenabledLssupportsopeningdocumentsinplaceExposeTheAppSDocumentsFolder, Ar.iosRulesUifilesharingenabledLssupportsopeningdocumentsinplaceExposeTheAppSDocumentsFolder),
-        fix: Bilingual(En.iosRulesDisableThemUnlessSharingIsAFeatureAnd, Ar.iosRulesDisableThemUnlessSharingIsAFeatureAnd),
+        title: Bilingual(En.iosRulesDocumentsFolderExposedIos,
+            Ar.iosRulesDocumentsFolderExposedIos),
+        description: Bilingual(
+            En.iosRulesUifilesharingenabledLssupportsopeningdocumentsinplaceExposeTheAppSDocumentsFolder,
+            Ar.iosRulesUifilesharingenabledLssupportsopeningdocumentsinplaceExposeTheAppSDocumentsFolder),
+        fix: Bilingual(En.iosRulesDisableThemUnlessSharingIsAFeatureAnd,
+            Ar.iosRulesDisableThemUnlessSharingIsAFeatureAnd),
         severity: Severity.low,
         l2Severity: Severity.medium,
         masvs: ['MASVS-STORAGE-2'],
@@ -155,9 +185,13 @@ class FileSharingRule extends Rule {
     final data = project.infoPlistData;
     if (f == null || data == null) return RuleCheck.notApplicable();
     final out = <Finding>[];
-    for (final key in const ['UIFileSharingEnabled', 'LSSupportsOpeningDocumentsInPlace']) {
+    for (final key in const [
+      'UIFileSharingEnabled',
+      'LSSupportsOpeningDocumentsInPlace'
+    ]) {
       if (data[key] == true) {
-        out.add(inFile(f.path, lineOfFirst(f.text, key), En.iosRulesIsTrue2(key: key),
+        out.add(inFile(
+            f.path, lineOfFirst(f.text, key), En.iosRulesIsTrue2(key: key),
             messageAr: Ar.iosRulesIsTrue2(key: key)));
       }
     }

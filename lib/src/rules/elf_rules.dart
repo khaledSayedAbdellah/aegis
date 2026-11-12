@@ -28,7 +28,8 @@ class ElfHardeningRule extends Rule {
         if (entry.size > 128 * 1024 * 1024 || total > 512 * 1024 * 1024) {
           throw const FormatException('ELF limit');
         }
-        final s = inspectElf(apk.archive.readEntry(entry, maxBytes: 128 * 1024 * 1024));
+        final s = inspectElf(
+            apk.archive.readEntry(entry, maxBytes: 128 * 1024 * 1024));
         p.securityEvidence.add(SecurityEvidence(
             meta.id,
             location,

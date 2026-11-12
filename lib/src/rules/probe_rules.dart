@@ -19,9 +19,12 @@ import 'rule.dart';
 
 const _r = {MasProfile.r};
 
-const _fix = Bilingual(En.probeRulesAddRuntimeProtectionRaspThatReactsToThis, Ar.probeRulesAddRuntimeProtectionRaspThatReactsToThis);
+const _fix = Bilingual(En.probeRulesAddRuntimeProtectionRaspThatReactsToThis,
+    Ar.probeRulesAddRuntimeProtectionRaspThatReactsToThis);
 
-const _processFinding = Bilingual(En.probeRulesNoProcessLevelBlockWasObservedUnderTheVerified, Ar.probeRulesNoProcessLevelBlockWasObservedUnderTheVerified);
+const _processFinding = Bilingual(
+    En.probeRulesNoProcessLevelBlockWasObservedUnderTheVerified,
+    Ar.probeRulesNoProcessLevelBlockWasObservedUnderTheVerified);
 
 /// One probe check as a rule.
 class ProbeRule extends Rule {
@@ -48,14 +51,24 @@ class ProbeRule extends Rule {
     return RuleMeta(
       id: meta.id,
       title: jailbreak
-          ? const Bilingual(En.simulatorJailbreakGapTitle, Ar.simulatorJailbreakGapTitle)
-          : const Bilingual(En.simulatorSigningGapTitle, Ar.simulatorSigningGapTitle),
-      passTitleText: const Bilingual(En.probeReportPartialObservationAppReacted, Ar.probeReportPartialObservationAppReacted),
+          ? const Bilingual(
+              En.simulatorJailbreakGapTitle, Ar.simulatorJailbreakGapTitle)
+          : const Bilingual(
+              En.simulatorSigningGapTitle, Ar.simulatorSigningGapTitle),
+      passTitleText: const Bilingual(En.probeReportPartialObservationAppReacted,
+          Ar.probeReportPartialObservationAppReacted),
       description: jailbreak
-          ? const Bilingual(En.simulatorJailbreakDescription, Ar.simulatorJailbreakDescription)
-          : const Bilingual(En.simulatorSigningDescription, Ar.simulatorSigningDescription),
-      fix: meta.fix, severity: meta.severity, l2Severity: meta.l2Severity,
-      masvs: meta.masvs, maswe: meta.maswe, cwe: meta.cwe, profiles: meta.profiles,
+          ? const Bilingual(En.simulatorJailbreakDescription,
+              Ar.simulatorJailbreakDescription)
+          : const Bilingual(
+              En.simulatorSigningDescription, Ar.simulatorSigningDescription),
+      fix: meta.fix,
+      severity: meta.severity,
+      l2Severity: meta.l2Severity,
+      masvs: meta.masvs,
+      maswe: meta.maswe,
+      cwe: meta.cwe,
+      profiles: meta.profiles,
     );
   }
 
@@ -68,13 +81,19 @@ class ProbeRule extends Rule {
     final report = outcome.report;
     if (report == null) {
       final note = En.probeSkipped(reason: outcome.skipped);
-      return outcome.requested ? RuleCheck.incompleteLocalized(note, Ar.probeSkipped(reason: outcome.skippedOf('ar'))) : RuleCheck.notApplicable(note);
+      return outcome.requested
+          ? RuleCheck.incompleteLocalized(
+              note, Ar.probeSkipped(reason: outcome.skippedOf('ar')))
+          : RuleCheck.notApplicable(note);
     }
     if (report.emulatorError != null) {
-      return RuleCheck.incompleteLocalized(En.probeFailed(reason: report.emulatorError), Ar.probeFailed(reason: report.emulatorError));
+      return RuleCheck.incompleteLocalized(
+          En.probeFailed(reason: report.emulatorError),
+          Ar.probeFailed(reason: report.emulatorError));
     }
     if (!report.baselineAlive) {
-      return RuleCheck.incompleteLocalized(En.probeControlDead, Ar.probeControlDead);
+      return RuleCheck.incompleteLocalized(
+          En.probeControlDead, Ar.probeControlDead);
     }
     ProbeResult? result;
     for (final r in report.results) {
@@ -89,10 +108,17 @@ class ProbeRule extends Rule {
       final findings = <Finding>[];
       if (r.partialStatus == ProbeStatus.notBlocked) {
         final jailbreak = checkId == 'jailbreak';
-        findings.add(inFile('${p.basename(report.app)}!/runtime', null,
-            jailbreak ? En.simulatorJailbreakGapFinding : En.simulatorSigningGapFinding,
-            messageAr: jailbreak ? Ar.simulatorJailbreakGapFinding : Ar.simulatorSigningGapFinding,
-            snippet: r.evidence, snippetAr: r.evidenceAr));
+        findings.add(inFile(
+            '${p.basename(report.app)}!/runtime',
+            null,
+            jailbreak
+                ? En.simulatorJailbreakGapFinding
+                : En.simulatorSigningGapFinding,
+            messageAr: jailbreak
+                ? Ar.simulatorJailbreakGapFinding
+                : Ar.simulatorSigningGapFinding,
+            snippet: r.evidence,
+            snippetAr: r.evidenceAr));
       }
       // A concrete gap in the exercised scenario is a finding. Full condition
       // coverage remains incomplete, and no partial reaction grants a MASVS pass.
@@ -100,21 +126,24 @@ class ProbeRule extends Rule {
       // a limitations-only note. Findings/scoring and strict coverage stay intact.
       return RuleCheck.incompleteLocalized(
           '${probeSimulatorVerdict(r, 'en')} ${r.note ?? ''}'.trim(),
-          '${probeSimulatorVerdict(r, 'ar')} ${r.noteAr ?? r.note ?? ''}'.trim(),
+          '${probeSimulatorVerdict(r, 'ar')} ${r.noteAr ?? r.note ?? ''}'
+              .trim(),
           findings);
     }
     return switch (r.status) {
       ProbeStatus.blocked => RuleCheck(const []),
       ProbeStatus.inconclusive => RuleCheck.incompleteLocalized(
           En.probeInconclusive(detail: r.note == null ? '' : ': ${r.note}'),
-          Ar.probeInconclusive(detail: r.note == null ? '' : ': ${r.noteAr ?? r.note}')),
+          Ar.probeInconclusive(
+              detail: r.note == null ? '' : ': ${r.noteAr ?? r.note}')),
       // "<file>!/runtime": the baseline normalises the APK/AAB file name, so a
       // new build with another version in its name still matches.
       ProbeStatus.notBlocked => RuleCheck([
           inFile('${p.basename(report.app)}!/runtime', null,
               r.processOnly ? _processFinding.en : message.en,
               messageAr: r.processOnly ? _processFinding.ar : message.ar,
-              snippet: r.evidence, snippetAr: r.evidenceAr),
+              snippet: r.evidence,
+              snippetAr: r.evidenceAr),
         ]),
     };
   }
@@ -125,93 +154,154 @@ const probeRules = <Rule>[
     'root',
     RuleMeta(
       id: 'AEG-R01',
-      title: Bilingual(En.probeRulesTheAppContinuesUnderRoot, Ar.probeRulesTheAppContinuesUnderRoot),
-      passTitleText: Bilingual(En.probeRulesTheAppReactedOnARootedDevice, Ar.probeRulesTheAppReactedOnARootedDevice),
-      description: Bilingual(En.probeRulesAegisTestedTheAppUnderVerifiedRootAvailability, Ar.probeRulesAegisTestedTheAppUnderVerifiedRootAvailability),
+      title: Bilingual(En.probeRulesTheAppContinuesUnderRoot,
+          Ar.probeRulesTheAppContinuesUnderRoot),
+      passTitleText: Bilingual(En.probeRulesTheAppReactedOnARootedDevice,
+          Ar.probeRulesTheAppReactedOnARootedDevice),
+      description: Bilingual(
+          En.probeRulesAegisTestedTheAppUnderVerifiedRootAvailability,
+          Ar.probeRulesAegisTestedTheAppUnderVerifiedRootAvailability),
       fix: _fix,
       severity: Severity.high,
       masvs: ['MASVS-RESILIENCE-1'],
       profiles: _r,
     ),
-    Bilingual(En.probeRulesTheAppReportedThatTheTestedOperationProceeded, Ar.probeRulesTheAppReportedThatTheTestedOperationProceeded),
+    Bilingual(En.probeRulesTheAppReportedThatTheTestedOperationProceeded,
+        Ar.probeRulesTheAppReportedThatTheTestedOperationProceeded),
   ),
   ProbeRule(
     'hooking',
     RuleMeta(
       id: 'AEG-R02',
-      title: Bilingual(En.probeRulesTheAppContinuesAfterFridaAttaches, Ar.probeRulesTheAppContinuesAfterFridaAttaches),
-      passTitleText: Bilingual(En.probeRulesTheAppReactedToFrida, Ar.probeRulesTheAppReactedToFrida),
-      description: Bilingual(En.probeRulesAegisAttachedFridaToTheRunningAppAnd, Ar.probeRulesAegisAttachedFridaToTheRunningAppAnd),
+      title: Bilingual(En.probeRulesTheAppContinuesAfterFridaAttaches,
+          Ar.probeRulesTheAppContinuesAfterFridaAttaches),
+      passTitleText: Bilingual(
+          En.probeRulesTheAppReactedToFrida, Ar.probeRulesTheAppReactedToFrida),
+      description: Bilingual(En.probeRulesAegisAttachedFridaToTheRunningAppAnd,
+          Ar.probeRulesAegisAttachedFridaToTheRunningAppAnd),
       fix: _fix,
       severity: Severity.high,
       masvs: ['MASVS-RESILIENCE-4'],
       profiles: _r,
     ),
-    Bilingual(En.probeRulesTheAppReportedThatTheTestedOperationProceeded2, Ar.probeRulesTheAppReportedThatTheTestedOperationProceeded2),
+    Bilingual(En.probeRulesTheAppReportedThatTheTestedOperationProceeded2,
+        Ar.probeRulesTheAppReportedThatTheTestedOperationProceeded2),
   ),
   ProbeRule(
     'debugger',
     RuleMeta(
       id: 'AEG-R03',
-      title: Bilingual(En.probeRulesTheAppContinuesWithADebuggerAttached, Ar.probeRulesTheAppContinuesWithADebuggerAttached),
-      passTitleText: Bilingual(En.probeRulesTheAppReactedToADebugger, Ar.probeRulesTheAppReactedToADebugger),
-      description: Bilingual(En.probeRulesAegisAttachedADebuggerAndObservedContinuedExecution, Ar.probeRulesAegisAttachedADebuggerAndObservedContinuedExecution),
+      title: Bilingual(En.probeRulesTheAppContinuesWithADebuggerAttached,
+          Ar.probeRulesTheAppContinuesWithADebuggerAttached),
+      passTitleText: Bilingual(En.probeRulesTheAppReactedToADebugger,
+          Ar.probeRulesTheAppReactedToADebugger),
+      description: Bilingual(
+          En.probeRulesAegisAttachedADebuggerAndObservedContinuedExecution,
+          Ar.probeRulesAegisAttachedADebuggerAndObservedContinuedExecution),
       fix: _fix,
       severity: Severity.medium,
       masvs: ['MASVS-RESILIENCE-4'],
       profiles: _r,
     ),
-    Bilingual(En.probeRulesTheAppReportedThatTheTestedOperationProceeded3, Ar.probeRulesTheAppReportedThatTheTestedOperationProceeded3),
+    Bilingual(En.probeRulesTheAppReportedThatTheTestedOperationProceeded3,
+        Ar.probeRulesTheAppReportedThatTheTestedOperationProceeded3),
   ),
   ProbeRule(
     'repackage',
     RuleMeta(
       id: 'AEG-R04',
-      title: Bilingual(En.probeRulesAReSignedCopyOfTheAppContinuesRunning, Ar.probeRulesAReSignedCopyOfTheAppContinuesRunning),
-      passTitleText: Bilingual(En.probeRulesAReSignedCopyOfTheAppWasRejected, Ar.probeRulesAReSignedCopyOfTheAppWasRejected),
-      description: Bilingual(En.probeRulesAegisInstalledACopySignedWithADifferent, Ar.probeRulesAegisInstalledACopySignedWithADifferent),
+      title: Bilingual(En.probeRulesAReSignedCopyOfTheAppContinuesRunning,
+          Ar.probeRulesAReSignedCopyOfTheAppContinuesRunning),
+      passTitleText: Bilingual(En.probeRulesAReSignedCopyOfTheAppWasRejected,
+          Ar.probeRulesAReSignedCopyOfTheAppWasRejected),
+      description: Bilingual(
+          En.probeRulesAegisInstalledACopySignedWithADifferent,
+          Ar.probeRulesAegisInstalledACopySignedWithADifferent),
       fix: _fix,
       severity: Severity.high,
       masvs: ['MASVS-RESILIENCE-2'],
       profiles: _r,
     ),
-    Bilingual(En.probeRulesACopyReSignedWithAnotherKeyRanNormally, Ar.probeRulesACopyReSignedWithAnotherKeyRanNormally),
+    Bilingual(En.probeRulesACopyReSignedWithAnotherKeyRanNormally,
+        Ar.probeRulesACopyReSignedWithAnotherKeyRanNormally),
   ),
 ];
 
-const _iosFix = Bilingual(En.probeRulesConfigureTheIosRuntimeProtectionToRestrictThe, Ar.probeRulesConfigureTheIosRuntimeProtectionToRestrictThe);
+const _iosFix = Bilingual(
+    En.probeRulesConfigureTheIosRuntimeProtectionToRestrictThe,
+    Ar.probeRulesConfigureTheIosRuntimeProtectionToRestrictThe);
 
 const iosProbeRules = <Rule>[
   ProbeRule(
     'jailbreak',
-    RuleMeta(id: 'AEG-R05', title: Bilingual(En.probeRulesTheAppContinuesOnJailbrokenIos, Ar.probeRulesTheAppContinuesOnJailbrokenIos),
-      passTitleText: Bilingual(En.probeRulesTheAppReactedOnJailbrokenIos, Ar.probeRulesTheAppReactedOnJailbrokenIos),
-      description: Bilingual(En.probeRulesTheProbeVerifiedRootAccessOnTheSelected, Ar.probeRulesTheProbeVerifiedRootAccessOnTheSelected),
-      fix: _iosFix, severity: Severity.high, masvs: ['MASVS-RESILIENCE-1'], profiles: _r),
-    Bilingual(En.probeRulesTheAppReportedContinuedOperationOnJailbrokenIos, Ar.probeRulesTheAppReportedContinuedOperationOnJailbrokenIos),
+    RuleMeta(
+        id: 'AEG-R05',
+        title: Bilingual(En.probeRulesTheAppContinuesOnJailbrokenIos,
+            Ar.probeRulesTheAppContinuesOnJailbrokenIos),
+        passTitleText: Bilingual(En.probeRulesTheAppReactedOnJailbrokenIos,
+            Ar.probeRulesTheAppReactedOnJailbrokenIos),
+        description: Bilingual(
+            En.probeRulesTheProbeVerifiedRootAccessOnTheSelected,
+            Ar.probeRulesTheProbeVerifiedRootAccessOnTheSelected),
+        fix: _iosFix,
+        severity: Severity.high,
+        masvs: ['MASVS-RESILIENCE-1'],
+        profiles: _r),
+    Bilingual(En.probeRulesTheAppReportedContinuedOperationOnJailbrokenIos,
+        Ar.probeRulesTheAppReportedContinuedOperationOnJailbrokenIos),
   ),
   ProbeRule(
     'ios-hooking',
-    RuleMeta(id: 'AEG-R06', title: Bilingual(En.probeRulesTheIosAppContinuesWithFridaAttached, Ar.probeRulesTheIosAppContinuesWithFridaAttached),
-      passTitleText: Bilingual(En.probeRulesTheIosAppReactedToFrida, Ar.probeRulesTheIosAppReactedToFrida),
-      description: Bilingual(En.probeRulesFridaExecutedAScriptInTheAuditedProcess, Ar.probeRulesFridaExecutedAScriptInTheAuditedProcess),
-      fix: _iosFix, severity: Severity.high, masvs: ['MASVS-RESILIENCE-4'], profiles: _r),
-    Bilingual(En.probeRulesTheIosAppReportedContinuedOperationAfterFrida, Ar.probeRulesTheIosAppReportedContinuedOperationAfterFrida),
+    RuleMeta(
+        id: 'AEG-R06',
+        title: Bilingual(En.probeRulesTheIosAppContinuesWithFridaAttached,
+            Ar.probeRulesTheIosAppContinuesWithFridaAttached),
+        passTitleText: Bilingual(En.probeRulesTheIosAppReactedToFrida,
+            Ar.probeRulesTheIosAppReactedToFrida),
+        description: Bilingual(
+            En.probeRulesFridaExecutedAScriptInTheAuditedProcess,
+            Ar.probeRulesFridaExecutedAScriptInTheAuditedProcess),
+        fix: _iosFix,
+        severity: Severity.high,
+        masvs: ['MASVS-RESILIENCE-4'],
+        profiles: _r),
+    Bilingual(En.probeRulesTheIosAppReportedContinuedOperationAfterFrida,
+        Ar.probeRulesTheIosAppReportedContinuedOperationAfterFrida),
   ),
   ProbeRule(
     'ios-debugger',
-    RuleMeta(id: 'AEG-R07', title: Bilingual(En.probeRulesTheIosAppContinuesWithADebuggerAttached, Ar.probeRulesTheIosAppContinuesWithADebuggerAttached),
-      passTitleText: Bilingual(En.probeRulesTheIosAppReactedToTheDebugger, Ar.probeRulesTheIosAppReactedToTheDebugger),
-      description: Bilingual(En.probeRulesLldbAttachedToTheAuditedProcessAndThe, Ar.probeRulesLldbAttachedToTheAuditedProcessAndThe),
-      fix: _iosFix, severity: Severity.medium, masvs: ['MASVS-RESILIENCE-4'], profiles: _r),
-    Bilingual(En.probeRulesTheIosAppReportedContinuedOperationAfterLldb, Ar.probeRulesTheIosAppReportedContinuedOperationAfterLldb),
+    RuleMeta(
+        id: 'AEG-R07',
+        title: Bilingual(En.probeRulesTheIosAppContinuesWithADebuggerAttached,
+            Ar.probeRulesTheIosAppContinuesWithADebuggerAttached),
+        passTitleText: Bilingual(En.probeRulesTheIosAppReactedToTheDebugger,
+            Ar.probeRulesTheIosAppReactedToTheDebugger),
+        description: Bilingual(
+            En.probeRulesLldbAttachedToTheAuditedProcessAndThe,
+            Ar.probeRulesLldbAttachedToTheAuditedProcessAndThe),
+        fix: _iosFix,
+        severity: Severity.medium,
+        masvs: ['MASVS-RESILIENCE-4'],
+        profiles: _r),
+    Bilingual(En.probeRulesTheIosAppReportedContinuedOperationAfterLldb,
+        Ar.probeRulesTheIosAppReportedContinuedOperationAfterLldb),
   ),
   ProbeRule(
     'ios-repackage',
-    RuleMeta(id: 'AEG-R08', title: Bilingual(En.probeRulesTheIosAppContinuesWithADifferentSigning, Ar.probeRulesTheIosAppContinuesWithADifferentSigning),
-      passTitleText: Bilingual(En.probeRulesTheIosAppReactedToTheSigningChange, Ar.probeRulesTheIosAppReactedToTheSigningChange),
-      description: Bilingual(En.probeRulesTheSameIosPayloadRanWithADifferent, Ar.probeRulesTheSameIosPayloadRanWithADifferent),
-      fix: _iosFix, severity: Severity.high, masvs: ['MASVS-RESILIENCE-2'], profiles: _r),
-    Bilingual(En.probeRulesTheIosAppReportedContinuedOperationAfterReSigning, Ar.probeRulesTheIosAppReportedContinuedOperationAfterReSigning),
+    RuleMeta(
+        id: 'AEG-R08',
+        title: Bilingual(En.probeRulesTheIosAppContinuesWithADifferentSigning,
+            Ar.probeRulesTheIosAppContinuesWithADifferentSigning),
+        passTitleText: Bilingual(
+            En.probeRulesTheIosAppReactedToTheSigningChange,
+            Ar.probeRulesTheIosAppReactedToTheSigningChange),
+        description: Bilingual(En.probeRulesTheSameIosPayloadRanWithADifferent,
+            Ar.probeRulesTheSameIosPayloadRanWithADifferent),
+        fix: _iosFix,
+        severity: Severity.high,
+        masvs: ['MASVS-RESILIENCE-2'],
+        profiles: _r),
+    Bilingual(En.probeRulesTheIosAppReportedContinuedOperationAfterReSigning,
+        Ar.probeRulesTheIosAppReportedContinuedOperationAfterReSigning),
   ),
 ];

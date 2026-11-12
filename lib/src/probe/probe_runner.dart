@@ -56,7 +56,8 @@ class ProbeRunner {
           results: [
             for (final c in probeChecks)
               if (c.id != 'baseline' && (only == null || only.contains(c.id)))
-                ProbeResult(c, ProbeStatus.inconclusive, note: note, noteAr: noteAr),
+                ProbeResult(c, ProbeStatus.inconclusive,
+                    note: note, noteAr: noteAr),
           ],
         );
 
@@ -102,8 +103,8 @@ class ProbeRunner {
       if (pid == null ||
           await dev.pidOf(package) != pid ||
           logcatShowsAppDeath(baselineLog, pid: pid, package: package)) {
-        return allInconclusive(
-            En.androidControlStopped, noteAr: Ar.androidControlStopped,
+        return allInconclusive(En.androidControlStopped,
+            noteAr: Ar.androidControlStopped,
             baselineNote: '${launchOut.trim()}\n${_tail(baselineLog)}');
       }
 
@@ -115,15 +116,18 @@ class ProbeRunner {
         try {
           emit('platform: inspecting the control application launch UI…');
           observerAttempts.add('control');
-          platformObservations = await observer.platformObservation(package, pid);
-        } catch (_) { emit('platform: automatic observation unavailable; coverage remains partial.'); }
+          platformObservations =
+              await observer.platformObservation(package, pid);
+        } catch (_) {
+          emit(
+              'platform: automatic observation unavailable; coverage remains partial.');
+        }
       }
       final results = <ProbeResult>[
         ProbeResult(checkById('baseline'), ProbeStatus.notBlocked,
             evidence: En.androidBaselineAlive(seconds: wait.inSeconds),
             evidenceAr: Ar.androidBaselineAlive(seconds: wait.inSeconds),
-            note: baselineRoot
-                ? En.androidControlRoot : null,
+            note: baselineRoot ? En.androidControlRoot : null,
             noteAr: baselineRoot ? Ar.androidControlRoot : null),
       ];
 
@@ -135,7 +139,8 @@ class ProbeRunner {
         try {
           if (appProbeVerdict(baselineLog, package, id, pid: pid) != null) {
             results.add(ProbeResult(check, ProbeStatus.inconclusive,
-                note: En.androidControlVerdict, noteAr: Ar.androidControlVerdict));
+                note: En.androidControlVerdict,
+                noteAr: Ar.androidControlVerdict));
             return;
           }
           results.add(await run(check));
@@ -152,7 +157,8 @@ class ProbeRunner {
         final rooted = rootDevice;
         if (rooted == null) {
           return ProbeResult(check, ProbeStatus.inconclusive,
-              note: En.androidRootDeviceMissing, noteAr: Ar.androidRootDeviceMissing);
+              note: En.androidRootDeviceMissing,
+              noteAr: Ar.androidRootDeviceMissing);
         }
         final boot = await rooted.bootEmulator(
             log: emit, logPath: '$workDir/root-emulator.log');
@@ -177,7 +183,9 @@ class ProbeRunner {
       await check('debugger', (check) async {
         if (debuggable == false) {
           return ProbeResult(check, ProbeStatus.inconclusive,
-              applicable: false, note: En.androidNotDebuggable, noteAr: Ar.androidNotDebuggable);
+              applicable: false,
+              note: En.androidNotDebuggable,
+              noteAr: Ar.androidNotDebuggable);
         }
         try {
           return await _observe(dev, check, package,
@@ -219,12 +227,18 @@ class ProbeRunner {
           if (fridaDevice case final PlatformObserver observer) {
             try {
               observerAttempts.add('instrumented');
-              final extra = await observer.instrumentedPlatformObservation(package);
+              final extra =
+                  await observer.instrumentedPlatformObservation(package);
               if (extra['verified'] == true) {
                 // Preserve the stock launch facts separately from instrumented facts.
-                platformObservations = {...extra, 'control': platformObservations};
+                platformObservations = {
+                  ...extra,
+                  'control': platformObservations
+                };
               }
-            } catch (_) { emit('platform: instrumented observation unavailable.'); }
+            } catch (_) {
+              emit('platform: instrumented observation unavailable.');
+            }
           }
           return observed;
         } finally {
@@ -247,17 +261,21 @@ class ProbeRunner {
       await check('repackage', (check) async {
         if (!controlRestored) {
           return ProbeResult(check, ProbeStatus.inconclusive,
-              note: En.androidControlRestoreFailed, noteAr: Ar.androidControlRestoreFailed);
+              note: En.androidControlRestoreFailed,
+              noteAr: Ar.androidControlRestoreFailed);
         }
         return _repackage(check, controlApks, package, workDir);
       });
       return ProbeReport(
-          app: appLabel ?? appPath, apkIdentity: apkIdentity,
-          baselineAlive: true, results: results, platformObservations: platformObservations,
+          app: appLabel ?? appPath,
+          apkIdentity: apkIdentity,
+          baselineAlive: true,
+          results: results,
+          platformObservations: platformObservations,
           platformObserverAttempts: observerAttempts);
     } catch (e) {
-      return allInconclusive(En.androidSetupFailed(error: e), noteAr: Ar.androidSetupFailed(error: e),
-          emulatorError: '$e');
+      return allInconclusive(En.androidSetupFailed(error: e),
+          noteAr: Ar.androidSetupFailed(error: e), emulatorError: '$e');
     } finally {
       if (installedOnControl) await dev.uninstall(package);
     }
@@ -279,7 +297,8 @@ class ProbeRunner {
     if (apply != null) {
       if (pid == null) {
         return ProbeResult(check, ProbeStatus.inconclusive,
-            note: En.androidProcessUnavailable(detail: _short(launch)), noteAr: Ar.androidProcessUnavailable(detail: _short(launch)));
+            note: En.androidProcessUnavailable(detail: _short(launch)),
+            noteAr: Ar.androidProcessUnavailable(detail: _short(launch)));
       }
       if (verifyBeforeAttach) {
         await _sleep(wait);
@@ -288,7 +307,8 @@ class ProbeRunner {
             logcatShowsAppDeath(logs, pid: pid, package: package) ||
             appProbeVerdict(logs, package, check.id, pid: pid) != null) {
           return ProbeResult(check, ProbeStatus.inconclusive,
-              note: En.androidFridaBaselineFailed, noteAr: Ar.androidFridaBaselineFailed);
+              note: En.androidFridaBaselineFailed,
+              noteAr: Ar.androidFridaBaselineFailed);
         }
       }
       // A reaction to startup alone cannot prove that an attachment was detected.
@@ -306,7 +326,8 @@ class ProbeRunner {
     final status = appProbeVerdict(logs, package, check.id, pid: pid);
     if (status == ProbeStatus.inconclusive) {
       return ProbeResult(check, ProbeStatus.inconclusive,
-          note: En.androidConflictingOutcomes, noteAr: Ar.androidConflictingOutcomes);
+          note: En.androidConflictingOutcomes,
+          noteAr: Ar.androidConflictingOutcomes);
     }
     if (status != null && (status == ProbeStatus.blocked || alive && !death)) {
       final outcome = status == ProbeStatus.blocked ? 'blocked' : 'not-blocked';
@@ -316,7 +337,8 @@ class ProbeRunner {
     if (status == null && alive && !death) {
       return ProbeResult(check, ProbeStatus.notBlocked,
           processOnly: true,
-          evidence: En.androidProcessAliveVerified, evidenceAr: Ar.androidProcessAliveVerified);
+          evidence: En.androidProcessAliveVerified,
+          evidenceAr: Ar.androidProcessAliveVerified);
     }
 
     String? detail;
@@ -335,12 +357,18 @@ class ProbeRunner {
       }
     }
     final observedPid = pid ?? appPids(logs, package).singleOrNull;
-    if (status == null && currentPid == null && !boundService &&
-        earlierExits != null && observedPid != null) {
+    if (status == null &&
+        currentPid == null &&
+        !boundService &&
+        earlierExits != null &&
+        observedPid != null) {
       final exits = await dev.exitInfo(package);
-      if (exits != null && observedSelfExit(earlierExits, exits, package, observedPid)) {
-        return ProbeResult(check, ProbeStatus.blocked, processOnly: true,
-            evidence: En.androidSelfExitVerified, evidenceAr: Ar.androidSelfExitVerified);
+      if (exits != null &&
+          observedSelfExit(earlierExits, exits, package, observedPid)) {
+        return ProbeResult(check, ProbeStatus.blocked,
+            processOnly: true,
+            evidence: En.androidSelfExitVerified,
+            evidenceAr: Ar.androidSelfExitVerified);
       }
     }
     final started = appStarted(logs, package, pid: pid);
@@ -350,18 +378,26 @@ class ProbeRunner {
             : alive
                 ? En.androidProcessStayedAlive
                 : En.androidProcessMissing,
-        evidenceAr: death ? Ar.androidAppCrashed : alive ? Ar.androidProcessStayedAlive : Ar.androidProcessMissing,
-        noteAr: detailAr ?? (started ? Ar.androidExitUnattributed : Ar.androidProcessNotObserved),
-        note: detail ?? (started
-            ? En.androidExitUnattributed
-            : En.androidProcessNotObserved));
+        evidenceAr: death
+            ? Ar.androidAppCrashed
+            : alive
+                ? Ar.androidProcessStayedAlive
+                : Ar.androidProcessMissing,
+        noteAr: detailAr ??
+            (started
+                ? Ar.androidExitUnattributed
+                : Ar.androidProcessNotObserved),
+        note: detail ??
+            (started
+                ? En.androidExitUnattributed
+                : En.androidProcessNotObserved));
   }
 
   Future<String?> _install(ProbeDevice device, List<String> apks) =>
       apks.length == 1 ? device.install(apks.single) : device.installApks(apks);
 
-  Future<ProbeResult> _repackage(
-      ProbeCheck check, List<String> apks, String package, String workDir) async {
+  Future<ProbeResult> _repackage(ProbeCheck check, List<String> apks,
+      String package, String workDir) async {
     final ks = '$workDir/aegis-probe.jks';
     final resigned = <String>[];
     for (final apk in apks) {
@@ -376,7 +412,8 @@ class ProbeRunner {
     final installErr = await _install(dev, resigned);
     if (installErr != null) {
       return ProbeResult(check, ProbeStatus.inconclusive,
-          note: En.androidResignedInstallFailed(error: installErr), noteAr: Ar.androidResignedInstallFailed(error: installErr));
+          note: En.androidResignedInstallFailed(error: installErr),
+          noteAr: Ar.androidResignedInstallFailed(error: installErr));
     }
     return _observe(dev, check, package);
   }

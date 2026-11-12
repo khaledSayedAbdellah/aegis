@@ -82,7 +82,8 @@ class FakeHost implements Host {
   }
 
   bool _knows(String exe) =>
-      installed.contains(exe) || commands.keys.any((k) => k == exe || k.startsWith('$exe '));
+      installed.contains(exe) ||
+      commands.keys.any((k) => k == exe || k.startsWith('$exe '));
 
   @override
   String? env(String name) => envs[name];
@@ -146,7 +147,9 @@ class FakeHost implements Host {
 
   @override
   Future<Proc?> run(String exe, List<String> args,
-      {Map<String, String>? environment, String? input, Duration? timeout}) async {
+      {Map<String, String>? environment,
+      String? input,
+      Duration? timeout}) async {
     final line = [exe, ...args].join(' ');
     log.add('run: $line');
     envOf[line] = environment;

@@ -5,7 +5,6 @@ import '../l10n/messages.g.dart';
 
 import 'probe_model.dart';
 
-
 List<String> probeApkIdentityLines(ProbeReport report, String lang) {
   final identity = report.apkIdentity;
   if (identity == null) return const [];
@@ -13,7 +12,8 @@ List<String> probeApkIdentityLines(ProbeReport report, String lang) {
   return [
     L10n(lang).probeReportVerifiedApkSignerSha256(signers: signers),
     if (identity.controlApks.isNotEmpty)
-      L10n(lang).probeReportControlApks(value1: identity.controlApks.join(', ')),
+      L10n(lang)
+          .probeReportControlApks(value1: identity.controlApks.join(', ')),
     if (identity.rootedApks.isNotEmpty)
       L10n(lang).probeReportRootedApks(value1: identity.rootedApks.join(', ')),
     if (identity.expectedSignerSha256 != null)
@@ -56,16 +56,18 @@ String probeResultTitle(ProbeResult r, String lang) => r.partialStatus == null
         ? L10n(lang).probeReportJailbreakFileIndicatorsPartialSimulatorTest
         : L10n(lang).probeReportAdHocSigningMetadataChangePartialSimulatorTest;
 
-String? probeNote(ProbeResult r, String lang) => lang == 'ar' ? r.noteAr ?? r.note : r.note;
+String? probeNote(ProbeResult r, String lang) =>
+    lang == 'ar' ? r.noteAr ?? r.note : r.note;
 
 /// Keep the exercised Simulator verdict distinct from full-device coverage.
-String probeSimulatorVerdict(ProbeResult r, String lang) => switch (r.partialStatus) {
-  ProbeStatus.blocked => L10n(lang).probeReportPartialObservationAppReacted,
-  ProbeStatus.notBlocked => r.check.id == 'jailbreak'
-      ? L10n(lang).simulatorJailbreakNotBlocked
-      : L10n(lang).simulatorSigningNotBlocked,
-  _ => L10n(lang).probeReportPartialObservationInconclusive,
-};
+String probeSimulatorVerdict(ProbeResult r, String lang) =>
+    switch (r.partialStatus) {
+      ProbeStatus.blocked => L10n(lang).probeReportPartialObservationAppReacted,
+      ProbeStatus.notBlocked => r.check.id == 'jailbreak'
+          ? L10n(lang).simulatorJailbreakNotBlocked
+          : L10n(lang).simulatorSigningNotBlocked,
+      _ => L10n(lang).probeReportPartialObservationInconclusive,
+    };
 
 /// What was observed, in [lang].
 String probeEvidence(ProbeResult r, String lang) {
@@ -74,7 +76,11 @@ String probeEvidence(ProbeResult r, String lang) {
     return '$label ${lang == 'ar' ? r.evidenceAr ?? r.evidence : r.evidence}';
   }
   if (lang == 'ar' && r.evidenceAr != null) return r.evidenceAr!;
-  if (lang != 'ar' || r.check.id == 'jailbreak' || r.check.id.startsWith('ios-')) return r.evidence;
+  if (lang != 'ar' ||
+      r.check.id == 'jailbreak' ||
+      r.check.id.startsWith('ios-')) {
+    return r.evidence;
+  }
   if (r.processOnly) {
     return r.status == ProbeStatus.blocked
         ? Ar.androidProcessExit
@@ -82,7 +88,8 @@ String probeEvidence(ProbeResult r, String lang) {
   }
   return switch (r.status) {
     ProbeStatus.blocked => Ar.appBlocked,
-    ProbeStatus.notBlocked => r.check.id == 'baseline' ? Ar.appAlive : Ar.appOperationContinued,
+    ProbeStatus.notBlocked =>
+      r.check.id == 'baseline' ? Ar.appAlive : Ar.appOperationContinued,
     ProbeStatus.inconclusive => Ar.appUnknown,
   };
 }
@@ -103,12 +110,14 @@ String renderProbe(ProbeReport r,
     b.writeln('  ⏸️  ${L10n(lang).probeReportTheEmulatorOrToolsCouldNotRun}');
     b.writeln('     ${r.emulatorError}');
     b.writeln('');
-    b.writeln(L10n(lang).probeReportNothingWasProbedCheckThatAegisSetupFinished);
+    b.writeln(
+        L10n(lang).probeReportNothingWasProbedCheckThatAegisSetupFinished);
     return b.toString();
   }
 
   final baseline = r.results.firstWhere((x) => x.check.id == 'baseline',
-      orElse: () => ProbeResult(checkById('baseline'), ProbeStatus.inconclusive));
+      orElse: () =>
+          ProbeResult(checkById('baseline'), ProbeStatus.inconclusive));
   if (ios && !r.baselineAlive) {
     b.writeln(L10n(lang).probeReportTheIosControlProcessDidNotStayAlive);
     if (r.baselineNote != null) b.writeln(r.baselineNoteOf(lang));
@@ -123,40 +132,55 @@ String renderProbe(ProbeReport r,
       }
     }
     for (final x in r.scored) {
-      b.writeln('  ⏸️  ${probeResultTitle(x, lang)} — ${x.note ?? probeEvidence(x, lang)}');
+      b.writeln(
+          '  ⏸️  ${probeResultTitle(x, lang)} — ${x.note ?? probeEvidence(x, lang)}');
     }
     b.writeln('');
     b.writeln(L10n(lang).probeReportInconclusiveARaspThatRefusesToRunOn);
     return b.toString();
   }
 
-  b.writeln('  ✅ ${probeCheckTitle(baseline.check, lang)}  ${probeEvidence(baseline, lang)}');
+  b.writeln(
+      '  ✅ ${probeCheckTitle(baseline.check, lang)}  ${probeEvidence(baseline, lang)}');
   if (baseline.note != null) b.writeln('       ${probeNote(baseline, lang)}');
   final w = r.scored
       .map((x) => probeResultTitle(x, lang).length)
       .fold(0, (a, b) => a > b ? a : b);
   for (final x in r.scored) {
     final tag = [x.check.masvs, x.check.mastg].whereType<String>().join(' · ');
-    b.writeln('  ${probeResultMark(x)} ${probeResultTitle(x, lang).padRight(w)}  ${probeEvidence(x, lang).padRight(26)}  $tag');
+    b.writeln(
+        '  ${probeResultMark(x)} ${probeResultTitle(x, lang).padRight(w)}  ${probeEvidence(x, lang).padRight(26)}  $tag');
     if (probeNote(x, lang) != null) b.writeln('       ${probeNote(x, lang)}');
   }
 
   b.writeln('');
-  final reacted = r.scored.where((x) => x.observedStatus == ProbeStatus.blocked).length;
-  final gaps = r.scored.where((x) => x.observedStatus == ProbeStatus.notBlocked).length;
-  final unknown = r.scored.where((x) => x.observedStatus == ProbeStatus.inconclusive).length;
+  final reacted =
+      r.scored.where((x) => x.observedStatus == ProbeStatus.blocked).length;
+  final gaps =
+      r.scored.where((x) => x.observedStatus == ProbeStatus.notBlocked).length;
+  final unknown = r.scored
+      .where((x) => x.observedStatus == ProbeStatus.inconclusive)
+      .length;
   final partial = r.scored.where((x) => x.partialStatus != null).length;
-  if (partial > 0) { b.writeln(L10n(lang).probeReportPartialSimulatorChecksFullIosConditionsRemain(partial: partial)); }
-  b.writeln(L10n(lang).probeReportReactedNoBlockObservedInconclusive(reacted: reacted, gaps: gaps, unknown: unknown));
+  if (partial > 0) {
+    b.writeln(L10n(lang)
+        .probeReportPartialSimulatorChecksFullIosConditionsRemain(
+            partial: partial));
+  }
+  b.writeln(L10n(lang).probeReportReactedNoBlockObservedInconclusive(
+      reacted: reacted, gaps: gaps, unknown: unknown));
   if (gaps > 0) {
     b.writeln(resilienceProfile
-        ? L10n(lang).probeReportTheProbeObservedContinuedExecutionInConditionS(gaps: gaps)
-        : L10n(lang).probeReportTheProbeObservedContinuedExecutionInConditionS2(gaps: gaps));
+        ? L10n(lang).probeReportTheProbeObservedContinuedExecutionInConditionS(
+            gaps: gaps)
+        : L10n(lang).probeReportTheProbeObservedContinuedExecutionInConditionS2(
+            gaps: gaps));
   }
 
   b.writeln('');
   b.writeln(L10n(lang).probeReportNotes);
-  b.writeln(L10n(lang).probeReportAutomaticObservationsCoverProcessBehaviorAppEvents);
+  b.writeln(
+      L10n(lang).probeReportAutomaticObservationsCoverProcessBehaviorAppEvents);
   if (!ios) {
     b.writeln(L10n(lang).probeReportThisShowsWhatHappenedOnThisEmulator);
   }
@@ -168,7 +192,8 @@ String renderProbe(ProbeReport r,
 int probeExitCode(ProbeReport r, {required bool resilienceProfile}) {
   if (r.emulatorError != null) return 2;
   if (!r.baselineAlive) return 2;
-  if (r.scored.any((x) => x.applicable && x.status == ProbeStatus.inconclusive) ||
+  if (r.scored
+          .any((x) => x.applicable && x.status == ProbeStatus.inconclusive) ||
       r.scored.every((x) => !x.applicable)) {
     return 2;
   }

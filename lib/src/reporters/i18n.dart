@@ -12,7 +12,6 @@ class Strings {
 
   bool get ar => lang == 'ar';
 
-
   String get title => L10n(lang).i18nAegisSecurityAudit;
   String get project => L10n(lang).i18nProject;
   String get profile => L10n(lang).i18nMasProfile;
@@ -24,7 +23,9 @@ class Strings {
   String get probeCheck => L10n(lang).i18nCheck;
   String get probeObserved => L10n(lang).i18nObserved;
   String get coverageLegend => L10n(lang).i18nCheckedAndPassedCheckedHas;
-  String coverageLine(int checked, int total, int pct) => L10n(lang).i18nOfControlsCheckedAutomatically(checked: checked, total: total, pct: pct);
+  String coverageLine(int checked, int total, int pct) =>
+      L10n(lang).i18nOfControlsCheckedAutomatically(
+          checked: checked, total: total, pct: pct);
   String get failed => L10n(lang).i18nNeedsFixing;
   String get passed => L10n(lang).i18nPassed;
   String get notApplicable => L10n(lang).i18nNotApplicable;
@@ -34,6 +35,7 @@ class Strings {
   String get why => L10n(lang).i18nWhy;
   String get categories => L10n(lang).i18nByCategory;
   String get suppressed => L10n(lang).i18nSuppressedByAegisIgnore;
+
   /// Why the score is in its band and what lifts it out, e.g. "40-69 while
   /// a HIGH problem is open (AEG-D01, AEG-P01); fixing them gives 80".
   /// Null when nothing above low is open.
@@ -45,7 +47,8 @@ class Strings {
     final rules = s.blockingRules.join(', ');
     final range = '${b.$1}-${b.$2 - 1}';
     final after = s.afterBlockingFixed;
-    return L10n(lang).scoreBand(range: range, severity: sev, rules: rules, after: after);
+    return L10n(lang)
+        .scoreBand(range: range, severity: sev, rules: rules, after: after);
   }
 
   /// The single fixes worth most points, e.g. "AEG-D01 +4 · AEG-P05 +2".
@@ -60,8 +63,7 @@ class Strings {
   String get problemsCol => L10n(lang).i18nOpenProblems;
   String get packages => L10n(lang).i18nPackagesScanned;
   String get binary => L10n(lang).i18nApk;
-  String binaryKind(String kind) =>
-      switch (kind) {
+  String binaryKind(String kind) => switch (kind) {
         'AAB' => L10n(lang).i18nAppBundleAab,
         'IPA' => L10n(lang).i18nIosApplicationIpa,
         _ => binary,
@@ -72,17 +74,20 @@ class Strings {
       ? L10n(lang).i18nSigningCertificateSha256Base64
       : L10n(lang).i18nCertificateSha256Base64ForFreeraspSigningcerthashes;
   String get baseline => L10n(lang).i18nBaseline;
-  String baselineLine(int known, int fresh, int fixed) => L10n(lang).i18nKnownNewFixedSinceThe(known: known, fresh: fresh, fixed: fixed);
+  String baselineLine(int known, int fresh, int fixed) => L10n(lang)
+      .i18nKnownNewFixedSinceThe(known: known, fresh: fresh, fixed: fixed);
   String get newIssues => L10n(lang).i18nNewIssuesNotInTheBaseline;
   String get noNewIssues => L10n(lang).i18nNoNewIssuesSinceTheBaseline;
   String get known => L10n(lang).i18nKnownIssuesAcceptedInTheBaseline;
   String knownCount(int n) => L10n(lang).i18nKnown(n: n);
   String get knownHint => L10n(lang).i18nKnownIssuesStillCountInTheScoreThey;
   String get resolved => L10n(lang).i18nFixedSinceTheBaseline;
-  String get updateHint => L10n(lang).i18nRunAegisUpdateBaselineToRemoveFixedIssuesFrom;
+  String get updateHint =>
+      L10n(lang).i18nRunAegisUpdateBaselineToRemoveFixedIssuesFrom;
   String get noIssues => L10n(lang).i18nNoIssuesFound;
   String get isKnown => L10n(lang).i18nKnown2;
-  String get disclaimer => L10n(lang).i18nThisScoreMeasuresHowWellKnownProtectionsAre;
+  String get disclaimer =>
+      L10n(lang).i18nThisScoreMeasuresHowWellKnownProtectionsAre;
   String severity(Severity s) {
     switch (s) {
       case Severity.critical:

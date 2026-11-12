@@ -168,7 +168,8 @@ void main() {
     }
   });
 
-  test('probe --lang ar keeps the terminal missing-target reason in English', () async {
+  test('probe --lang ar keeps the terminal missing-target reason in English',
+      () async {
     final work = Directory.systemTemp.createTempSync('aegis-l10n-cli-');
     addTearDown(() => work.deleteSync(recursive: true));
     final ipa = fixture(work);

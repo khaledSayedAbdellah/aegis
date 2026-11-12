@@ -407,8 +407,8 @@ void main() {
       expect(result(networkOnly, 'AEG-R10').note, En.extRuntimeNoMarkers);
       expect(networkOnly.incomplete, isEmpty);
       // A failed baseline still leaves both parts incomplete.
-      final failed = await runtime(const RuntimeSecurityResult(
-          {'baseline': false, 'cleanup': true}));
+      final failed = await runtime(
+          const RuntimeSecurityResult({'baseline': false, 'cleanup': true}));
       expect(failed.incomplete, hasLength(2));
     });
     test('leaks survive incomplete collection and contain labels only',

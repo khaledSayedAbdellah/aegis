@@ -40,22 +40,32 @@ const probeChecks = <ProbeCheck>[
       masvs: 'MASVS-RESILIENCE-4', mastg: 'MASTG-TEST-0353'),
   ProbeCheck('hooking', En.checkHooking,
       masvs: 'MASVS-RESILIENCE-4', mastg: 'MASTG-TEST-0341'),
-  ProbeCheck('repackage', En.checkRepackage,
-      masvs: 'MASVS-RESILIENCE-2'),
+  ProbeCheck('repackage', En.checkRepackage, masvs: 'MASVS-RESILIENCE-2'),
 ];
 
 ProbeCheck checkById(String id) => probeChecks.firstWhere((c) => c.id == id);
 
 /// The result of one check.
 class ProbeResult {
-  ProbeResult(this.check, this.status, {this.evidence = '', this.evidenceAr, this.note, this.noteAr, this.applicable = true,
-      this.processOnly = false}) : partialStatus = null;
+  ProbeResult(this.check, this.status,
+      {this.evidence = '',
+      this.evidenceAr,
+      this.note,
+      this.noteAr,
+      this.applicable = true,
+      this.processOnly = false})
+      : partialStatus = null;
 
   /// The observation is useful but cannot decide the full iOS condition.
-  ProbeResult.partial(this.check, {required ProbeStatus observation,
-      required this.evidence, this.evidenceAr, required this.note, required this.noteAr,
+  ProbeResult.partial(this.check,
+      {required ProbeStatus observation,
+      required this.evidence,
+      this.evidenceAr,
+      required this.note,
+      required this.noteAr,
       this.processOnly = false})
-      : status = ProbeStatus.inconclusive, applicable = true,
+      : status = ProbeStatus.inconclusive,
+        applicable = true,
         partialStatus = observation;
   final ProbeStatus? partialStatus;
 
@@ -131,11 +141,13 @@ class ProbeReport {
   /// A diagnostic (logcat tail) shown when [baselineAlive] is false.
   final String? baselineNote;
   final String? baselineNoteAr;
-  String? baselineNoteOf(String lang) => lang == 'ar' ? baselineNoteAr ?? baselineNote : baselineNote;
+  String? baselineNoteOf(String lang) =>
+      lang == 'ar' ? baselineNoteAr ?? baselineNote : baselineNote;
 
   final List<ProbeResult> results;
 
-  Iterable<ProbeResult> get scored => results.where((r) => r.check.id != 'baseline');
+  Iterable<ProbeResult> get scored =>
+      results.where((r) => r.check.id != 'baseline');
   Iterable<ProbeResult> get notBlocked =>
       scored.where((r) => r.status == ProbeStatus.notBlocked);
   Iterable<ProbeResult> get blocked =>
@@ -147,13 +159,19 @@ class ProbeReport {
 /// What an audit knows about the probe: its report, or why it did not run
 /// (no emulator tools, --no-probe, ...). Rules AEG-R01..R04 read it.
 class ProbeOutcome {
-  const ProbeOutcome.ran(ProbeReport this.report) : skipped = null, skippedAr = null, requested = true;
-  const ProbeOutcome.skipped(String this.skipped, {this.requested = true, this.skippedAr}) : report = null;
+  const ProbeOutcome.ran(ProbeReport this.report)
+      : skipped = null,
+        skippedAr = null,
+        requested = true;
+  const ProbeOutcome.skipped(String this.skipped,
+      {this.requested = true, this.skippedAr})
+      : report = null;
 
   final ProbeReport? report;
   final String? skipped;
   final String? skippedAr;
-  String? skippedOf(String lang) => lang == 'ar' ? skippedAr ?? skipped : skipped;
+  String? skippedOf(String lang) =>
+      lang == 'ar' ? skippedAr ?? skipped : skipped;
   final bool requested;
 
   /// Whether a requested probe was skipped or left an applicable check undecided.

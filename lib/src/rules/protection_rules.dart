@@ -155,9 +155,13 @@ class RaspPresenceRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P01',
-        title: Bilingual(En.protectionRulesNoRuntimeProtectionRasp, Ar.protectionRulesNoRuntimeProtectionRasp),
-        description: Bilingual(En.protectionRulesWithoutRaspTheAppCannotTellWhenIt, Ar.protectionRulesWithoutRaspTheAppCannotTellWhenIt),
-        fix: Bilingual(En.protectionRulesAddARaspSdkSuchAsFreeraspStart, Ar.protectionRulesAddARaspSdkSuchAsFreeraspStart),
+        title: Bilingual(En.protectionRulesNoRuntimeProtectionRasp,
+            Ar.protectionRulesNoRuntimeProtectionRasp),
+        description: Bilingual(
+            En.protectionRulesWithoutRaspTheAppCannotTellWhenIt,
+            Ar.protectionRulesWithoutRaspTheAppCannotTellWhenIt),
+        fix: Bilingual(En.protectionRulesAddARaspSdkSuchAsFreeraspStart,
+            Ar.protectionRulesAddARaspSdkSuchAsFreeraspStart),
         severity: Severity.high,
         masvs: ['MASVS-RESILIENCE-1', 'MASVS-RESILIENCE-4'],
         maswe: ['MASWE-0051', 'MASWE-0064', 'MASWE-0065'],
@@ -171,7 +175,8 @@ class RaspPresenceRule extends Rule {
     final has = raspPackages.any(project.usesPackage);
     if (has) return RuleCheck([]);
     return RuleCheck([
-      inFile('pubspec.yaml', null, En.protectionRulesNoRaspPackageFoundInDependencies,
+      inFile('pubspec.yaml', null,
+          En.protectionRulesNoRaspPackageFoundInDependencies,
           messageAr: Ar.protectionRulesNoRaspPackageFoundInDependencies)
     ]);
   }
@@ -183,9 +188,14 @@ class FreeRaspWiringRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P02',
-        title: Bilingual(En.protectionRulesMissingFreeraspStartupWiring, Ar.protectionRulesMissingFreeraspStartupWiring),
-        description: Bilingual(En.protectionRulesFreeraspOnlyProtectsTheAppAfterTalsecInstanceStartConfigRuns, Ar.protectionRulesFreeraspOnlyProtectsTheAppAfterTalsecInstanceStartConfigRuns),
-        fix: Bilingual(En.protectionRulesInMainWidgetsflutterbindingEnsureinitializedTalsecInstanceAttachlistenerCallbackAwaitTalsecInstanceStartConfig, Ar.protectionRulesInMainWidgetsflutterbindingEnsureinitializedTalsecInstanceAttachlistenerCallbackAwaitTalsecInstanceStartConfig),
+        title: Bilingual(En.protectionRulesMissingFreeraspStartupWiring,
+            Ar.protectionRulesMissingFreeraspStartupWiring),
+        description: Bilingual(
+            En.protectionRulesFreeraspOnlyProtectsTheAppAfterTalsecInstanceStartConfigRuns,
+            Ar.protectionRulesFreeraspOnlyProtectsTheAppAfterTalsecInstanceStartConfigRuns),
+        fix: Bilingual(
+            En.protectionRulesInMainWidgetsflutterbindingEnsureinitializedTalsecInstanceAttachlistenerCallbackAwaitTalsecInstanceStartConfig,
+            Ar.protectionRulesInMainWidgetsflutterbindingEnsureinitializedTalsecInstanceAttachlistenerCallbackAwaitTalsecInstanceStartConfig),
         severity: Severity.critical,
         masvs: ['MASVS-RESILIENCE-1'],
         maswe: ['MASWE-0051'],
@@ -199,8 +209,10 @@ class FreeRaspWiringRule extends Rule {
       return RuleCheck.notApplicable('freerasp not used');
     }
     const methods = {'start', 'attachListener'};
-    final candidates = findCalls(project, methods, receivers: ['instance', 'Talsec']);
-    final entry = project.dartFiles.where((f) => f.path == 'lib/main.dart').firstOrNull;
+    final candidates =
+        findCalls(project, methods, receivers: ['instance', 'Talsec']);
+    final entry =
+        project.dartFiles.where((f) => f.path == 'lib/main.dart').firstOrNull;
     final body = entry?.functionBody('main', topLevel: true);
     final direct = <String, int>{};
     if (entry != null && body != null) {
@@ -226,7 +238,16 @@ class FreeRaspWiringRule extends Rule {
           if (tokens[i].text != identifier) continue;
           final previous = tokens[i - 1];
           final next = tokens[i + 1];
-          if ({'class', 'enum', 'mixin', 'typedef', 'type', 'final', 'var', 'const'}.contains(previous.text) ||
+          if ({
+                'class',
+                'enum',
+                'mixin',
+                'typedef',
+                'type',
+                'final',
+                'var',
+                'const'
+              }.contains(previous.text) ||
               previous.isIdent && next.isPunct('=')) {
             return true;
           }
@@ -240,11 +261,19 @@ class FreeRaspWiringRule extends Rule {
           statementStart = i + 1;
           continue;
         }
-        if (tokens[i].isPunct('{') || tokens[i].text == 'return' || tokens[i].text == 'throw') break;
+        if (tokens[i].isPunct('{') ||
+            tokens[i].text == 'return' ||
+            tokens[i].text == 'throw') {
+          break;
+        }
         final c = calls[i];
-        if (c != null && c.close + 1 < tokens.length && tokens[c.close + 1].isPunct(';') &&
+        if (c != null &&
+            c.close + 1 < tokens.length &&
+            tokens[c.close + 1].isPunct(';') &&
             entry.args(c.open).isNotEmpty) {
-          final first = tokens[statementStart].text == 'await' ? statementStart + 1 : statementStart;
+          final first = tokens[statementStart].text == 'await'
+              ? statementStart + 1
+              : statementStart;
           final receiver = tokens.sublist(first, i).map((t) => t.text).join();
           if (imports.any((name) => receiver == '$name.instance.')) {
             direct.putIfAbsent(c.name, () => i);
@@ -254,25 +283,32 @@ class FreeRaspWiringRule extends Rule {
         if (end != null && end > i) i = end;
       }
     }
-    if (direct.length == methods.length && direct['attachListener']! < direct['start']!) {
+    if (direct.length == methods.length &&
+        direct['attachListener']! < direct['start']!) {
       return RuleCheck([]);
     }
     final found = candidates.map((c) => c.$2.name).toSet();
     final findings = [
       if (!found.contains('start'))
-        inFile('pubspec.yaml', null, En.protectionRulesNoFreeraspStartCallWasFoundInThe,
+        inFile('pubspec.yaml', null,
+            En.protectionRulesNoFreeraspStartCallWasFoundInThe,
             messageAr: Ar.protectionRulesNoFreeraspStartCallWasFoundInThe),
       if (!found.contains('attachListener'))
-        inFile('pubspec.yaml', null, En.protectionRulesNoFreeraspListenerRegistrationWasFoundInThe,
-            messageAr: Ar.protectionRulesNoFreeraspListenerRegistrationWasFoundInThe),
+        inFile('pubspec.yaml', null,
+            En.protectionRulesNoFreeraspListenerRegistrationWasFoundInThe,
+            messageAr:
+                Ar.protectionRulesNoFreeraspListenerRegistrationWasFoundInThe),
     ];
     final indirect = candidates.isEmpty &&
-        project.dartFiles.any((f) => f.tokens.any((t) => t.isIdent && t.text == 'Talsec'));
+        project.dartFiles
+            .any((f) => f.tokens.any((t) => t.isIdent && t.text == 'Talsec'));
     if (indirect) {
-      return RuleCheck.incompleteLocalized(En.raspIndirectUnresolved, Ar.raspIndirectUnresolved);
+      return RuleCheck.incompleteLocalized(
+          En.raspIndirectUnresolved, Ar.raspIndirectUnresolved);
     }
     if (body == null || direct.length != found.length || findings.isEmpty) {
-      return RuleCheck.incompleteLocalized(En.raspOrderUnverified, Ar.raspOrderUnverified, findings);
+      return RuleCheck.incompleteLocalized(
+          En.raspOrderUnverified, Ar.raspOrderUnverified, findings);
     }
     return RuleCheck(findings);
   }
@@ -284,9 +320,13 @@ class FreeRaspConfigRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P03',
-        title: Bilingual(En.protectionRulesFreeraspIsMisconfigured, Ar.protectionRulesFreeraspIsMisconfigured),
-        description: Bilingual(En.protectionRulesFreeraspChecksTheAppAgainstThePackageName, Ar.protectionRulesFreeraspChecksTheAppAgainstThePackageName),
-        fix: Bilingual(En.protectionRulesUseYourRealApplicationidBundleIdsThe, Ar.protectionRulesUseYourRealApplicationidBundleIdsThe),
+        title: Bilingual(En.protectionRulesFreeraspIsMisconfigured,
+            Ar.protectionRulesFreeraspIsMisconfigured),
+        description: Bilingual(
+            En.protectionRulesFreeraspChecksTheAppAgainstThePackageName,
+            Ar.protectionRulesFreeraspChecksTheAppAgainstThePackageName),
+        fix: Bilingual(En.protectionRulesUseYourRealApplicationidBundleIdsThe,
+            Ar.protectionRulesUseYourRealApplicationidBundleIdsThe),
         severity: Severity.high,
         masvs: ['MASVS-RESILIENCE-2'],
         maswe: ['MASWE-0057'],
@@ -295,7 +335,11 @@ class FreeRaspConfigRule extends Rule {
       );
 
   /// Values copied from the freeRASP documentation/example.
-  static const _docValues = ['aheaditec', 'freeraspExample', 'AKoRuyLMM91E7lX/Zqp3u4jMmd0A7hH/Iqozu0TMVd0='];
+  static const _docValues = [
+    'aheaditec',
+    'freeraspExample',
+    'AKoRuyLMM91E7lX/Zqp3u4jMmd0A7hH/Iqozu0TMVd0='
+  ];
 
   bool _placeholder(String v) {
     final l = v.toLowerCase();
@@ -314,14 +358,20 @@ class FreeRaspConfigRule extends Rule {
     if (!project.usesPackage('freerasp')) return RuleCheck.notApplicable();
     final out = <Finding>[];
     final configs = findCalls(project, {'TalsecConfig'});
-    if (configs.isEmpty) return RuleCheck.notApplicable('No TalsecConfig found');
+    if (configs.isEmpty) {
+      return RuleCheck.notApplicable('No TalsecConfig found');
+    }
     for (final (f, c) in configs) {
       final args = f.args(c.open);
       final isProd = f.namedArg(args, 'isProd');
       if (isProd != null) {
         final v = f.text(isProd.start, isProd.end).replaceAll(' ', '');
-        if (v == 'false' || v == 'kDebugMode' || v == '!kReleaseMode' || v == 'kProfileMode') {
-          out.add(at(f, isProd.start, En.protectionRulesIsprodIsSoReleaseBuildsRun(v: v),
+        if (v == 'false' ||
+            v == 'kDebugMode' ||
+            v == '!kReleaseMode' ||
+            v == 'kProfileMode') {
+          out.add(at(f, isProd.start,
+              En.protectionRulesIsprodIsSoReleaseBuildsRun(v: v),
               messageAr: Ar.protectionRulesIsprodIsSoReleaseBuildsRun(v: v)));
         }
       }
@@ -335,40 +385,54 @@ class FreeRaspConfigRule extends Rule {
         final values = _stringList(f, pkg);
         final v = values.isEmpty ? '' : values.first;
         if (values.isNotEmpty && _placeholder(v)) {
-          out.add(at(f, pkg.start, En.protectionRulesPackagenameLooksLikeAPlaceholderOr(v: v),
-              messageAr: Ar.protectionRulesPackagenameLooksLikeAPlaceholderOr(v: v)));
+          out.add(at(f, pkg.start,
+              En.protectionRulesPackagenameLooksLikeAPlaceholderOr(v: v),
+              messageAr:
+                  Ar.protectionRulesPackagenameLooksLikeAPlaceholderOr(v: v)));
         } else if (values.isNotEmpty && appId != null && v != appId) {
-          out.add(at(f, pkg.start, En.protectionRulesPackagenameDoesNotMatchApplicationid(v: v, appId: appId),
-              messageAr: Ar.protectionRulesPackagenameDoesNotMatchApplicationid(v: v, appId: appId)));
+          out.add(at(
+              f,
+              pkg.start,
+              En.protectionRulesPackagenameDoesNotMatchApplicationid(
+                  v: v, appId: appId),
+              messageAr: Ar.protectionRulesPackagenameDoesNotMatchApplicationid(
+                  v: v, appId: appId)));
         }
       }
       final hashes = f.namedArg(args, 'signingCertHashes');
       if (hashes == null) {
-        out.add(at(f, c.nameIndex, En.protectionRulesAndroidconfigHasNoSigningcerthashes,
+        out.add(at(f, c.nameIndex,
+            En.protectionRulesAndroidconfigHasNoSigningcerthashes,
             messageAr: Ar.protectionRulesAndroidconfigHasNoSigningcerthashes));
       } else {
         final hs = _stringList(f, hashes);
         final isLiteralList = f.tokens[hashes.start].isPunct('[');
         if (isLiteralList && hs.isEmpty) {
-          out.add(at(f, hashes.start, En.protectionRulesSigningcerthashesIsEmpty,
+          out.add(at(
+              f, hashes.start, En.protectionRulesSigningcerthashesIsEmpty,
               messageAr: Ar.protectionRulesSigningcerthashesIsEmpty));
         }
         for (final h in hs) {
           if (_placeholder(h)) {
-            out.add(at(f, hashes.start, En.protectionRulesSigningcerthashesContainsAPlaceholderOrTheDocumentationExample,
-                messageAr: Ar.protectionRulesSigningcerthashesContainsAPlaceholderOrTheDocumentationExample));
+            out.add(at(f, hashes.start,
+                En.protectionRulesSigningcerthashesContainsAPlaceholderOrTheDocumentationExample,
+                messageAr: Ar
+                    .protectionRulesSigningcerthashesContainsAPlaceholderOrTheDocumentationExample));
             break;
           }
           if (RegExp(r'^[0-9A-Fa-f:]{40,}$').hasMatch(h)) {
-            out.add(at(f, hashes.start, En.protectionRulesASigningHashIsInHexFreeraspExpects,
-                messageAr: Ar.protectionRulesASigningHashIsInHexFreeraspExpects));
+            out.add(at(f, hashes.start,
+                En.protectionRulesASigningHashIsInHexFreeraspExpects,
+                messageAr:
+                    Ar.protectionRulesASigningHashIsInHexFreeraspExpects));
             break;
           }
         }
         if (isLiteralList && hs.length == 1 && profile.resilience) {
           out.add(at(f, hashes.start,
               En.protectionRulesOnlyOneSigningHashIsConfiguredAppsOn,
-              messageAr: Ar.protectionRulesOnlyOneSigningHashIsConfiguredAppsOn));
+              messageAr:
+                  Ar.protectionRulesOnlyOneSigningHashIsConfiguredAppsOn));
         }
       }
     }
@@ -381,20 +445,33 @@ class FreeRaspConfigRule extends Rule {
         final values = _stringList(f, ids);
         for (final v in values) {
           if (_placeholder(v)) {
-            out.add(at(f, ids.start, En.protectionRulesBundleidsContainsPlaceholder(v: v),
-                messageAr: Ar.protectionRulesBundleidsContainsPlaceholder(v: v)));
+            out.add(at(f, ids.start,
+                En.protectionRulesBundleidsContainsPlaceholder(v: v),
+                messageAr:
+                    Ar.protectionRulesBundleidsContainsPlaceholder(v: v)));
           } else if (bundleIds.isNotEmpty && !bundleIds.contains(v)) {
-            out.add(at(f, ids.start, En.protectionRulesBundleIdIsNotOneOf(v: v, value2: bundleIds.join(', ')),
-                messageAr: Ar.protectionRulesBundleIdIsNotOneOf(v: v, value2: bundleIds.join(', '))));
+            out.add(at(
+                f,
+                ids.start,
+                En.protectionRulesBundleIdIsNotOneOf(
+                    v: v, value2: bundleIds.join(', ')),
+                messageAr: Ar.protectionRulesBundleIdIsNotOneOf(
+                    v: v, value2: bundleIds.join(', '))));
           }
         }
       }
       final team = f.namedArg(args, 'teamId');
       if (team != null) {
         final values = _stringList(f, team);
-        if (values.isNotEmpty && (_placeholder(values.first) || values.first.length != 10)) {
-          out.add(at(f, team.start, En.protectionRulesTeamidIsNotAValid10Character(value1: values.first),
-              messageAr: Ar.protectionRulesTeamidIsNotAValid10Character(value1: values.first)));
+        if (values.isNotEmpty &&
+            (_placeholder(values.first) || values.first.length != 10)) {
+          out.add(at(
+              f,
+              team.start,
+              En.protectionRulesTeamidIsNotAValid10Character(
+                  value1: values.first),
+              messageAr: Ar.protectionRulesTeamidIsNotAValid10Character(
+                  value1: values.first)));
         }
       }
     }
@@ -408,19 +485,38 @@ class FreeRaspReactionRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P04',
-        title: Bilingual(En.protectionRulesThreatsAreDetectedButNothingHappens, Ar.protectionRulesThreatsAreDetectedButNothingHappens),
-        description: Bilingual(En.protectionRulesDetectionWithoutReactionIsNotProtectionCallbacksThat, Ar.protectionRulesDetectionWithoutReactionIsNotProtectionCallbacksThat),
-        fix: Bilingual(En.protectionRulesForOnprivilegedaccessOnhooksOnappintegrityAndOndebugBlockSensitive, Ar.protectionRulesForOnprivilegedaccessOnhooksOnappintegrityAndOndebugBlockSensitive),
+        title: Bilingual(En.protectionRulesThreatsAreDetectedButNothingHappens,
+            Ar.protectionRulesThreatsAreDetectedButNothingHappens),
+        description: Bilingual(
+            En.protectionRulesDetectionWithoutReactionIsNotProtectionCallbacksThat,
+            Ar.protectionRulesDetectionWithoutReactionIsNotProtectionCallbacksThat),
+        fix: Bilingual(
+            En.protectionRulesForOnprivilegedaccessOnhooksOnappintegrityAndOndebugBlockSensitive,
+            Ar.protectionRulesForOnprivilegedaccessOnhooksOnappintegrityAndOndebugBlockSensitive),
         severity: Severity.medium,
         l2Severity: Severity.high,
-        masvs: ['MASVS-RESILIENCE-1', 'MASVS-RESILIENCE-2', 'MASVS-RESILIENCE-4'],
+        masvs: [
+          'MASVS-RESILIENCE-1',
+          'MASVS-RESILIENCE-2',
+          'MASVS-RESILIENCE-4'
+        ],
         maswe: ['MASWE-0051', 'MASWE-0058', 'MASWE-0064', 'MASWE-0065'],
         cwe: 'CWE-693',
         profiles: _all,
       );
 
-  static const critical = ['onPrivilegedAccess', 'onHooks', 'onAppIntegrity', 'onDebug'];
-  static const recommended = ['onSimulator', 'onUnofficialStore', 'onObfuscationIssues', 'onDeviceBinding'];
+  static const critical = [
+    'onPrivilegedAccess',
+    'onHooks',
+    'onAppIntegrity',
+    'onDebug'
+  ];
+  static const recommended = [
+    'onSimulator',
+    'onUnofficialStore',
+    'onObfuscationIssues',
+    'onDeviceBinding'
+  ];
 
   @override
   RuleCheck check(Project project, ProfileSet profile) {
@@ -438,8 +534,13 @@ class FreeRaspReactionRule extends Rule {
           : critical;
       final missing = wanted.where((n) => !names.contains(n)).toList();
       if (missing.isNotEmpty) {
-        out.add(at(f, c.nameIndex, En.protectionRulesThreatcallbackDoesNotHandle(value1: missing.join(', ')),
-            messageAr: Ar.protectionRulesThreatcallbackDoesNotHandle(value1: missing.join(', '))));
+        out.add(at(
+            f,
+            c.nameIndex,
+            En.protectionRulesThreatcallbackDoesNotHandle(
+                value1: missing.join(', ')),
+            messageAr: Ar.protectionRulesThreatcallbackDoesNotHandle(
+                value1: missing.join(', '))));
       }
       final trivial = <String>[];
       for (final a in args) {
@@ -447,9 +548,13 @@ class FreeRaspReactionRule extends Rule {
         if (isTrivialReaction(project, f, a) == true) trivial.add(a.name!);
       }
       if (trivial.isNotEmpty) {
-        out.add(at(f, c.nameIndex,
-            En.protectionRulesTheseCallbacksOnlyLogOrDoNothing(value1: trivial.join(', ')),
-            messageAr: Ar.protectionRulesTheseCallbacksOnlyLogOrDoNothing(value1: trivial.join(', '))));
+        out.add(at(
+            f,
+            c.nameIndex,
+            En.protectionRulesTheseCallbacksOnlyLogOrDoNothing(
+                value1: trivial.join(', ')),
+            messageAr: Ar.protectionRulesTheseCallbacksOnlyLogOrDoNothing(
+                value1: trivial.join(', '))));
       }
     }
     return RuleCheck(out);
@@ -462,9 +567,14 @@ class AppCheckMissingRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P05',
-        title: Bilingual(En.protectionRulesFirebaseUsedWithoutAppCheck, Ar.protectionRulesFirebaseUsedWithoutAppCheck),
-        description: Bilingual(En.protectionRulesWithoutAppCheckScriptsAndModifiedAppsCan, Ar.protectionRulesWithoutAppCheckScriptsAndModifiedAppsCan),
-        fix: Bilingual(En.protectionRulesAddFirebaseAppCheckWithPlayIntegrityAndroidAndApp, Ar.protectionRulesAddFirebaseAppCheckWithPlayIntegrityAndroidAndApp),
+        title: Bilingual(En.protectionRulesFirebaseUsedWithoutAppCheck,
+            Ar.protectionRulesFirebaseUsedWithoutAppCheck),
+        description: Bilingual(
+            En.protectionRulesWithoutAppCheckScriptsAndModifiedAppsCan,
+            Ar.protectionRulesWithoutAppCheckScriptsAndModifiedAppsCan),
+        fix: Bilingual(
+            En.protectionRulesAddFirebaseAppCheckWithPlayIntegrityAndroidAndApp,
+            Ar.protectionRulesAddFirebaseAppCheckWithPlayIntegrityAndroidAndApp),
         severity: Severity.medium,
         masvs: ['MASVS-RESILIENCE-2'],
         maswe: ['MASWE-0056', 'MASWE-0054'],
@@ -479,8 +589,10 @@ class AppCheckMissingRule extends Rule {
     }
     if (project.usesPackage('firebase_app_check')) return RuleCheck([]);
     return RuleCheck([
-      inFile('pubspec.yaml', null, En.protectionRulesFirebaseCoreIsUsedButFirebaseAppCheckIsNot,
-          messageAr: Ar.protectionRulesFirebaseCoreIsUsedButFirebaseAppCheckIsNot)
+      inFile('pubspec.yaml', null,
+          En.protectionRulesFirebaseCoreIsUsedButFirebaseAppCheckIsNot,
+          messageAr:
+              Ar.protectionRulesFirebaseCoreIsUsedButFirebaseAppCheckIsNot)
     ]);
   }
 }
@@ -491,9 +603,14 @@ class AppCheckDebugProviderRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P06',
-        title: Bilingual(En.protectionRulesAppCheckDebugProviderCanReachRelease, Ar.protectionRulesAppCheckDebugProviderCanReachRelease),
-        description: Bilingual(En.protectionRulesTheDebugProviderSkipsDeviceAttestationIfIt, Ar.protectionRulesTheDebugProviderSkipsDeviceAttestationIfIt),
-        fix: Bilingual(En.protectionRulesSelectTheProviderWithKdebugmodeEGAndroidproviderKdebugmode, Ar.protectionRulesSelectTheProviderWithKdebugmodeEGAndroidproviderKdebugmode),
+        title: Bilingual(En.protectionRulesAppCheckDebugProviderCanReachRelease,
+            Ar.protectionRulesAppCheckDebugProviderCanReachRelease),
+        description: Bilingual(
+            En.protectionRulesTheDebugProviderSkipsDeviceAttestationIfIt,
+            Ar.protectionRulesTheDebugProviderSkipsDeviceAttestationIfIt),
+        fix: Bilingual(
+            En.protectionRulesSelectTheProviderWithKdebugmodeEGAndroidproviderKdebugmode,
+            Ar.protectionRulesSelectTheProviderWithKdebugmodeEGAndroidproviderKdebugmode),
         severity: Severity.high,
         masvs: ['MASVS-RESILIENCE-2'],
         maswe: ['MASWE-0056'],
@@ -511,18 +628,27 @@ class AppCheckDebugProviderRule extends Rule {
       for (var i = 0; i + 2 < f.tokens.length; i++) {
         final t = f.tokens[i];
         if (!t.isIdent) continue;
-        final isEnumDebug = (t.text == 'AndroidProvider' || t.text == 'AppleProvider') &&
-            f.tokens[i + 1].isPunct('.') &&
-            f.tokens[i + 2].text == 'debug';
-        final isClassDebug = (t.text == 'AndroidDebugProvider' || t.text == 'AppleDebugProvider') &&
+        final isEnumDebug =
+            (t.text == 'AndroidProvider' || t.text == 'AppleProvider') &&
+                f.tokens[i + 1].isPunct('.') &&
+                f.tokens[i + 2].text == 'debug';
+        final isClassDebug = (t.text == 'AndroidDebugProvider' ||
+                t.text == 'AppleDebugProvider') &&
             f.tokens[i + 1].isPunct('(');
         if (!isEnumDebug && !isClassDebug) continue;
         final line = f.lineOfToken(i);
-        final window = [for (var l = line - 2; l <= line + 2; l++) f.lineText(l)].join(' ');
+        final window = [
+          for (var l = line - 2; l <= line + 2; l++) f.lineText(l)
+        ].join(' ');
         if (RegExp(r'k(Debug|Release|Profile)Mode').hasMatch(window)) continue;
         if (guardedByDebug(f, i)) continue;
-        out.add(at(f, i, En.protectionRulesIsUsedWithoutAKdebugmodeGuard(value1: t.text, value2: isEnumDebug ? '.debug' : '()'),
-            messageAr: Ar.protectionRulesIsUsedWithoutAKdebugmodeGuard(value1: t.text, value2: isEnumDebug ? '.debug' : '()')));
+        out.add(at(
+            f,
+            i,
+            En.protectionRulesIsUsedWithoutAKdebugmodeGuard(
+                value1: t.text, value2: isEnumDebug ? '.debug' : '()'),
+            messageAr: Ar.protectionRulesIsUsedWithoutAKdebugmodeGuard(
+                value1: t.text, value2: isEnumDebug ? '.debug' : '()')));
       }
     }
     return RuleCheck(out);
@@ -535,9 +661,14 @@ class PinningRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P07',
-        title: Bilingual(En.protectionRulesNoEffectiveCertificatePinning, Ar.protectionRulesNoEffectiveCertificatePinning),
-        description: Bilingual(En.protectionRulesWithoutPinningAUserInstalledOrCompromisedCaLets, Ar.protectionRulesWithoutPinningAUserInstalledOrCompromisedCaLets),
-        fix: Bilingual(En.protectionRulesPinYourApiHostsAPinSetInNetworkSecurityConfigXml, Ar.protectionRulesPinYourApiHostsAPinSetInNetworkSecurityConfigXml),
+        title: Bilingual(En.protectionRulesNoEffectiveCertificatePinning,
+            Ar.protectionRulesNoEffectiveCertificatePinning),
+        description: Bilingual(
+            En.protectionRulesWithoutPinningAUserInstalledOrCompromisedCaLets,
+            Ar.protectionRulesWithoutPinningAUserInstalledOrCompromisedCaLets),
+        fix: Bilingual(
+            En.protectionRulesPinYourApiHostsAPinSetInNetworkSecurityConfigXml,
+            Ar.protectionRulesPinYourApiHostsAPinSetInNetworkSecurityConfigXml),
         severity: Severity.medium,
         masvs: ['MASVS-NETWORK-2'],
         maswe: ['MASWE-0028'],
@@ -552,7 +683,16 @@ class PinningRule extends Rule {
     'dio_certificate_pinning',
     'flutter_ssl_pinning',
   ];
-  static const _networkPackages = ['http', 'dio', 'chopper', 'retrofit', 'graphql', 'graphql_flutter', 'web_socket_channel', 'grpc'];
+  static const _networkPackages = [
+    'http',
+    'dio',
+    'chopper',
+    'retrofit',
+    'graphql',
+    'graphql_flutter',
+    'web_socket_channel',
+    'grpc'
+  ];
 
   @override
   RuleCheck check(Project project, ProfileSet profile) {
@@ -580,28 +720,36 @@ class PinningRule extends Rule {
       for (final c in f.calls({'SecurityContext'})) {
         final args = f.args(c.open);
         final roots = f.namedArg(args, 'withTrustedRoots');
-        final rootsOff = roots != null && f.text(roots.start, roots.end).trim() == 'false';
+        final rootsOff =
+            roots != null && f.text(roots.start, roots.end).trim() == 'false';
         final loadsCert = f.source.contains('setTrustedCertificates');
         if (loadsCert && rootsOff) {
           evidence = true;
         } else if (loadsCert && !rootsOff) {
           out.add(at(f, c.nameIndex,
               En.protectionRulesSecuritycontextLoadsYourCertificateButKeepsTrustingSystem,
-              messageAr: Ar.protectionRulesSecuritycontextLoadsYourCertificateButKeepsTrustingSystem));
+              messageAr: Ar
+                  .protectionRulesSecuritycontextLoadsYourCertificateButKeepsTrustingSystem));
           evidence = true;
         }
       }
       for (var i = 0; i + 2 < f.tokens.length; i++) {
         final t = f.tokens[i];
-        if (!t.isIdent || !(t.text == 'badCertificateCallback' || t.text == 'validateCertificate')) continue;
+        if (!t.isIdent ||
+            !(t.text == 'badCertificateCallback' ||
+                t.text == 'validateCertificate')) {
+          continue;
+        }
         final body = f.text(i, (i + 60).clamp(0, f.tokens.length - 1).toInt());
-        if (RegExp(r'(sha256|sha1|fingerprint|\.der|pem)', caseSensitive: false).hasMatch(body)) {
+        if (RegExp(r'(sha256|sha1|fingerprint|\.der|pem)', caseSensitive: false)
+            .hasMatch(body)) {
           evidence = true;
         }
       }
     }
     if (!evidence) {
-      out.add(inFile(null, null, En.protectionRulesNoCertificatePinningFoundForAnAppThat,
+      out.add(inFile(
+          null, null, En.protectionRulesNoCertificatePinningFoundForAnAppThat,
           messageAr: Ar.protectionRulesNoCertificatePinningFoundForAnAppThat));
     }
     return RuleCheck(out);
@@ -614,9 +762,14 @@ class LocalAuthRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P08',
-        title: Bilingual(En.protectionRulesBiometricCheckIsOnlyABoolean, Ar.protectionRulesBiometricCheckIsOnlyABoolean),
-        description: Bilingual(En.protectionRulesLocalAuthReturnsTrueFalseWithFridaThatResultIs, Ar.protectionRulesLocalAuthReturnsTrueFalseWithFridaThatResultIs),
-        fix: Bilingual(En.protectionRulesBindBiometricsToAKeyUseBiometricStorageOr, Ar.protectionRulesBindBiometricsToAKeyUseBiometricStorageOr),
+        title: Bilingual(En.protectionRulesBiometricCheckIsOnlyABoolean,
+            Ar.protectionRulesBiometricCheckIsOnlyABoolean),
+        description: Bilingual(
+            En.protectionRulesLocalAuthReturnsTrueFalseWithFridaThatResultIs,
+            Ar.protectionRulesLocalAuthReturnsTrueFalseWithFridaThatResultIs),
+        fix: Bilingual(
+            En.protectionRulesBindBiometricsToAKeyUseBiometricStorageOr,
+            Ar.protectionRulesBindBiometricsToAKeyUseBiometricStorageOr),
         severity: Severity.medium,
         masvs: ['MASVS-AUTH-2'],
         maswe: ['MASWE-0020', 'MASWE-0021'],
@@ -624,11 +777,18 @@ class LocalAuthRule extends Rule {
         profiles: _l2,
       );
 
-  static const _cryptoBound = ['biometric_storage', 'flutter_locker', 'biometric_signature', 'flutter_biometric_storage'];
+  static const _cryptoBound = [
+    'biometric_storage',
+    'flutter_locker',
+    'biometric_signature',
+    'flutter_biometric_storage'
+  ];
 
   @override
   RuleCheck check(Project project, ProfileSet profile) {
-    if (!project.usesPackage('local_auth')) return RuleCheck.notApplicable('local_auth not used');
+    if (!project.usesPackage('local_auth')) {
+      return RuleCheck.notApplicable('local_auth not used');
+    }
     final out = <Finding>[];
     final calls = <(DartFile, CallSite)>[];
     for (final f in filesImporting(project, 'local_auth')) {
@@ -641,7 +801,8 @@ class LocalAuthRule extends Rule {
     final bound = _cryptoBound.any(project.usesPackage);
     if (!bound) {
       final (f, c) = calls.first;
-      out.add(at(f, c.nameIndex, En.protectionRulesBiometricResultIsUsedAsAPlainBoolean,
+      out.add(at(f, c.nameIndex,
+          En.protectionRulesBiometricResultIsUsedAsAPlainBoolean,
           messageAr: Ar.protectionRulesBiometricResultIsUsedAsAPlainBoolean));
     }
     for (final (f, c) in calls) {
@@ -649,7 +810,8 @@ class LocalAuthRule extends Rule {
       if (!txt.contains('biometricOnly:true')) {
         out.add(at(f, c.nameIndex,
             En.protectionRulesAuthenticateAllowsFallingBackToDevicePinPasscodeBiometriconly,
-            messageAr: Ar.protectionRulesAuthenticateAllowsFallingBackToDevicePinPasscodeBiometriconly));
+            messageAr: Ar
+                .protectionRulesAuthenticateAllowsFallingBackToDevicePinPasscodeBiometriconly));
       }
     }
     return RuleCheck(out);
@@ -662,9 +824,14 @@ class ScreenProtectionRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P09',
-        title: Bilingual(En.protectionRulesNoScreenshotRecordingProtection, Ar.protectionRulesNoScreenshotRecordingProtection),
-        description: Bilingual(En.protectionRulesSensitiveScreensBalancesOtpsCardsCanBeCaptured, Ar.protectionRulesSensitiveScreensBalancesOtpsCardsCanBeCaptured),
-        fix: Bilingual(En.protectionRulesSetFlagSecureOnAndroidEGScreenProtectorOrFreerasp, Ar.protectionRulesSetFlagSecureOnAndroidEGScreenProtectorOrFreerasp),
+        title: Bilingual(En.protectionRulesNoScreenshotRecordingProtection,
+            Ar.protectionRulesNoScreenshotRecordingProtection),
+        description: Bilingual(
+            En.protectionRulesSensitiveScreensBalancesOtpsCardsCanBeCaptured,
+            Ar.protectionRulesSensitiveScreensBalancesOtpsCardsCanBeCaptured),
+        fix: Bilingual(
+            En.protectionRulesSetFlagSecureOnAndroidEGScreenProtectorOrFreerasp,
+            Ar.protectionRulesSetFlagSecureOnAndroidEGScreenProtectorOrFreerasp),
         severity: Severity.low,
         masvs: ['MASVS-PLATFORM-3'],
         maswe: ['MASWE-0038'],
@@ -686,7 +853,8 @@ class ScreenProtectionRule extends Rule {
   RuleCheck check(Project project, ProfileSet profile) {
     if (!project.isFlutterApp) return RuleCheck.notApplicable();
     if (_packages.any(project.usesPackage)) return RuleCheck([]);
-    if (project.androidNativeSources.any((s) => s.text.contains('FLAG_SECURE'))) {
+    if (project.androidNativeSources
+        .any((s) => s.text.contains('FLAG_SECURE'))) {
       return RuleCheck([]);
     }
     for (final f in project.dartFiles) {
@@ -709,9 +877,14 @@ class ObfuscationBuildRule extends Rule {
   @override
   RuleMeta get meta => const RuleMeta(
         id: 'AEG-P10',
-        title: Bilingual(En.protectionRulesReleaseBuildsWithoutObfuscate, Ar.protectionRulesReleaseBuildsWithoutObfuscate),
-        description: Bilingual(En.protectionRulesWithoutObfuscateClassAndMethodNamesInLibappSo, Ar.protectionRulesWithoutObfuscateClassAndMethodNamesInLibappSo),
-        fix: Bilingual(En.protectionRulesBuildReleasesWithObfuscateSplitDebugInfoBuildSymbolsAndKeepThe, Ar.protectionRulesBuildReleasesWithObfuscateSplitDebugInfoBuildSymbolsAndKeepThe),
+        title: Bilingual(En.protectionRulesReleaseBuildsWithoutObfuscate,
+            Ar.protectionRulesReleaseBuildsWithoutObfuscate),
+        description: Bilingual(
+            En.protectionRulesWithoutObfuscateClassAndMethodNamesInLibappSo,
+            Ar.protectionRulesWithoutObfuscateClassAndMethodNamesInLibappSo),
+        fix: Bilingual(
+            En.protectionRulesBuildReleasesWithObfuscateSplitDebugInfoBuildSymbolsAndKeepThe,
+            Ar.protectionRulesBuildReleasesWithObfuscateSplitDebugInfoBuildSymbolsAndKeepThe),
         severity: Severity.medium,
         masvs: ['MASVS-RESILIENCE-3'],
         maswe: ['MASWE-0059'],
@@ -733,13 +906,19 @@ class ObfuscationBuildRule extends Rule {
           final head = m.group(0)!;
           final key = head.length > 18 ? head.substring(0, 18) : head;
           final line = lineOfFirst(s.text, key) ?? lineAt(text, m.start);
-          out.add(inFile(s.path, line, En.protectionRulesHasNoObfuscate(value1: shorten(m.group(0)!.trim(), 70)),
-              messageAr: Ar.protectionRulesHasNoObfuscate(value1: shorten(m.group(0)!.trim(), 70))));
+          out.add(inFile(
+              s.path,
+              line,
+              En.protectionRulesHasNoObfuscate(
+                  value1: shorten(m.group(0)!.trim(), 70)),
+              messageAr: Ar.protectionRulesHasNoObfuscate(
+                  value1: shorten(m.group(0)!.trim(), 70))));
         }
       }
     }
     if (!found) {
-      return RuleCheck.notApplicable('No release build command found in CI files (see manual check AEG-M05)');
+      return RuleCheck.notApplicable(
+          'No release build command found in CI files (see manual check AEG-M05)');
     }
     return RuleCheck(out);
   }

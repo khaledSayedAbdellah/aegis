@@ -29,7 +29,8 @@ line""";
     });
 
     test('handles strings inside interpolation', () {
-      final f = DartFile('a.dart', r'''final a = "${map['key']} done"; foo();''');
+      final f =
+          DartFile('a.dart', r'''final a = "${map['key']} done"; foo();''');
       expect(f.calls({'foo'}), hasLength(1));
     });
   });

@@ -8,10 +8,8 @@ import '../model.dart';
 /// How many findings are annotated before the rest are summarized in one line.
 const azureAnnotationLimit = 50;
 
-String _escapeData(String s) => s
-    .replaceAll('%', '%AZP25')
-    .replaceAll('\r', '%0D')
-    .replaceAll('\n', '%0A');
+String _escapeData(String s) =>
+    s.replaceAll('%', '%AZP25').replaceAll('\r', '%0D').replaceAll('\n', '%0A');
 
 String _escapeProperty(String s) =>
     _escapeData(s).replaceAll(']', '%5D').replaceAll(';', '%3B');
@@ -46,23 +44,25 @@ String renderAzure(AuditReport r, {Severity? failOn, bool failing = false}) {
         props.add('sourcepath=${_escapeProperty(f.file!)}');
         if (f.line != null) props.add('linenumber=${f.line}');
       }
-      final where = f.location.isEmpty || _linkable(f.file) ? '' : ' (${f.location})';
-      final text = 'aegis ${res.meta.id} [${res.severity.name}] ${res.meta.title.en}: ${f.message}$where';
+      final where =
+          f.location.isEmpty || _linkable(f.file) ? '' : ' (${f.location})';
+      final text =
+          'aegis ${res.meta.id} [${res.severity.name}] ${res.meta.title.en}: ${f.message}$where';
       b.writeln('##vso[task.logissue ${props.join(';')};]${_escapeData(text)}');
     }
   }
   if (skipped > 0) {
-    b.writeln('##vso[task.logissue type=warning;]${_escapeData('aegis: $skipped more findings, see the report artifact.')}');
+    b.writeln(
+        '##vso[task.logissue type=warning;]${_escapeData('aegis: $skipped more findings, see the report artifact.')}');
   }
   if (!r.complete) {
     final ids = r.incomplete.map((r) => r.meta.id).join(', ');
-    b.writeln('##vso[task.logissue type=warning;]${_escapeData(
-        ids.isNotEmpty ? 'aegis: incomplete checks ($ids)'
-            : r.probe?.incomplete == true ? 'aegis: resilience probe incomplete'
-            : 'aegis: no checks completed')}');
+    b.writeln(
+        '##vso[task.logissue type=warning;]${_escapeData(ids.isNotEmpty ? 'aegis: incomplete checks ($ids)' : r.probe?.incomplete == true ? 'aegis: resilience probe incomplete' : 'aegis: no checks completed')}');
   }
   if ((r.newFindingCount > 0 || !r.complete) && !failing) {
-    b.writeln('##vso[task.complete result=SucceededWithIssues;]aegis reported findings or an incomplete audit');
+    b.writeln(
+        '##vso[task.complete result=SucceededWithIssues;]aegis reported findings or an incomplete audit');
   }
   return b.toString();
 }

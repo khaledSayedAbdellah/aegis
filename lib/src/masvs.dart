@@ -20,80 +20,105 @@ class MasvsControl {
 const List<MasvsControl> masvsControls = [
   MasvsControl(
       'MASVS-STORAGE-1',
-      Bilingual(En.masvsTheAppSecurelyStoresSensitiveData, Ar.masvsTheAppSecurelyStoresSensitiveData)),
+      Bilingual(En.masvsTheAppSecurelyStoresSensitiveData,
+          Ar.masvsTheAppSecurelyStoresSensitiveData)),
   MasvsControl(
       'MASVS-STORAGE-2',
-      Bilingual(En.masvsTheAppPreventsLeakageOfSensitiveData, Ar.masvsTheAppPreventsLeakageOfSensitiveData)),
+      Bilingual(En.masvsTheAppPreventsLeakageOfSensitiveData,
+          Ar.masvsTheAppPreventsLeakageOfSensitiveData)),
   MasvsControl(
       'MASVS-CRYPTO-1',
-      Bilingual(En.masvsTheAppEmploysCurrentStrongCryptography, Ar.masvsTheAppEmploysCurrentStrongCryptography)),
+      Bilingual(En.masvsTheAppEmploysCurrentStrongCryptography,
+          Ar.masvsTheAppEmploysCurrentStrongCryptography)),
   MasvsControl(
       'MASVS-CRYPTO-2',
-      Bilingual(En.masvsTheAppPerformsKeyManagementAccordingToBest, Ar.masvsTheAppPerformsKeyManagementAccordingToBest)),
+      Bilingual(En.masvsTheAppPerformsKeyManagementAccordingToBest,
+          Ar.masvsTheAppPerformsKeyManagementAccordingToBest)),
   MasvsControl(
       'MASVS-AUTH-1',
-      Bilingual(En.masvsTheAppUsesSecureAuthenticationAndAuthorizationProtocols, Ar.masvsTheAppUsesSecureAuthenticationAndAuthorizationProtocols)),
+      Bilingual(En.masvsTheAppUsesSecureAuthenticationAndAuthorizationProtocols,
+          Ar.masvsTheAppUsesSecureAuthenticationAndAuthorizationProtocols)),
   MasvsControl(
       'MASVS-AUTH-2',
-      Bilingual(En.masvsTheAppPerformsLocalAuthenticationSecurely, Ar.masvsTheAppPerformsLocalAuthenticationSecurely)),
+      Bilingual(En.masvsTheAppPerformsLocalAuthenticationSecurely,
+          Ar.masvsTheAppPerformsLocalAuthenticationSecurely)),
   MasvsControl(
       'MASVS-AUTH-3',
-      Bilingual(En.masvsTheAppSecuresSensitiveOperationsWithAdditionalAuthentication, Ar.masvsTheAppSecuresSensitiveOperationsWithAdditionalAuthentication)),
+      Bilingual(
+          En.masvsTheAppSecuresSensitiveOperationsWithAdditionalAuthentication,
+          Ar.masvsTheAppSecuresSensitiveOperationsWithAdditionalAuthentication)),
   MasvsControl(
       'MASVS-NETWORK-1',
-      Bilingual(En.masvsTheAppSecuresAllNetworkTraffic, Ar.masvsTheAppSecuresAllNetworkTraffic)),
+      Bilingual(En.masvsTheAppSecuresAllNetworkTraffic,
+          Ar.masvsTheAppSecuresAllNetworkTraffic)),
   MasvsControl(
       'MASVS-NETWORK-2',
-      Bilingual(En.masvsTheAppPerformsIdentityPinningForEndpointsUnder, Ar.masvsTheAppPerformsIdentityPinningForEndpointsUnder)),
+      Bilingual(En.masvsTheAppPerformsIdentityPinningForEndpointsUnder,
+          Ar.masvsTheAppPerformsIdentityPinningForEndpointsUnder)),
   MasvsControl(
       'MASVS-PLATFORM-1',
-      Bilingual(En.masvsTheAppUsesIpcMechanismsSecurely, Ar.masvsTheAppUsesIpcMechanismsSecurely)),
+      Bilingual(En.masvsTheAppUsesIpcMechanismsSecurely,
+          Ar.masvsTheAppUsesIpcMechanismsSecurely)),
   MasvsControl(
       'MASVS-PLATFORM-2',
-      Bilingual(En.masvsTheAppUsesWebviewsSecurely, Ar.masvsTheAppUsesWebviewsSecurely)),
+      Bilingual(En.masvsTheAppUsesWebviewsSecurely,
+          Ar.masvsTheAppUsesWebviewsSecurely)),
   MasvsControl(
       'MASVS-PLATFORM-3',
-      Bilingual(En.masvsTheAppUsesTheUserInterfaceSecurely, Ar.masvsTheAppUsesTheUserInterfaceSecurely)),
+      Bilingual(En.masvsTheAppUsesTheUserInterfaceSecurely,
+          Ar.masvsTheAppUsesTheUserInterfaceSecurely)),
   MasvsControl(
       'MASVS-CODE-1',
-      Bilingual(En.masvsTheAppRequiresAnUpToDatePlatformVersion, Ar.masvsTheAppRequiresAnUpToDatePlatformVersion)),
+      Bilingual(En.masvsTheAppRequiresAnUpToDatePlatformVersion,
+          Ar.masvsTheAppRequiresAnUpToDatePlatformVersion)),
   MasvsControl(
       'MASVS-CODE-2',
-      Bilingual(En.masvsTheAppHasAMechanismForEnforcingApp, Ar.masvsTheAppHasAMechanismForEnforcingApp)),
+      Bilingual(En.masvsTheAppHasAMechanismForEnforcingApp,
+          Ar.masvsTheAppHasAMechanismForEnforcingApp)),
   MasvsControl(
       'MASVS-CODE-3',
-      Bilingual(En.masvsTheAppOnlyUsesSoftwareComponentsWithoutKnown, Ar.masvsTheAppOnlyUsesSoftwareComponentsWithoutKnown)),
+      Bilingual(En.masvsTheAppOnlyUsesSoftwareComponentsWithoutKnown,
+          Ar.masvsTheAppOnlyUsesSoftwareComponentsWithoutKnown)),
   MasvsControl(
       'MASVS-CODE-4',
-      Bilingual(En.masvsTheAppValidatesAndSanitizesAllUntrustedInputs, Ar.masvsTheAppValidatesAndSanitizesAllUntrustedInputs)),
+      Bilingual(En.masvsTheAppValidatesAndSanitizesAllUntrustedInputs,
+          Ar.masvsTheAppValidatesAndSanitizesAllUntrustedInputs)),
   MasvsControl(
       'MASVS-RESILIENCE-1',
-      Bilingual(En.masvsTheAppValidatesTheIntegrityOfThePlatform, Ar.masvsTheAppValidatesTheIntegrityOfThePlatform),
+      Bilingual(En.masvsTheAppValidatesTheIntegrityOfThePlatform,
+          Ar.masvsTheAppValidatesTheIntegrityOfThePlatform),
       resilienceOnly: true),
   MasvsControl(
       'MASVS-RESILIENCE-2',
-      Bilingual(En.masvsTheAppImplementsAntiTamperingMechanisms, Ar.masvsTheAppImplementsAntiTamperingMechanisms),
+      Bilingual(En.masvsTheAppImplementsAntiTamperingMechanisms,
+          Ar.masvsTheAppImplementsAntiTamperingMechanisms),
       resilienceOnly: true),
   MasvsControl(
       'MASVS-RESILIENCE-3',
-      Bilingual(En.masvsTheAppImplementsAntiStaticAnalysisMechanisms, Ar.masvsTheAppImplementsAntiStaticAnalysisMechanisms),
+      Bilingual(En.masvsTheAppImplementsAntiStaticAnalysisMechanisms,
+          Ar.masvsTheAppImplementsAntiStaticAnalysisMechanisms),
       resilienceOnly: true),
   MasvsControl(
       'MASVS-RESILIENCE-4',
-      Bilingual(En.masvsTheAppImplementsAntiDynamicAnalysisTechniques, Ar.masvsTheAppImplementsAntiDynamicAnalysisTechniques),
+      Bilingual(En.masvsTheAppImplementsAntiDynamicAnalysisTechniques,
+          Ar.masvsTheAppImplementsAntiDynamicAnalysisTechniques),
       resilienceOnly: true),
   MasvsControl(
       'MASVS-PRIVACY-1',
-      Bilingual(En.masvsTheAppMinimizesAccessToSensitiveDataAnd, Ar.masvsTheAppMinimizesAccessToSensitiveDataAnd)),
+      Bilingual(En.masvsTheAppMinimizesAccessToSensitiveDataAnd,
+          Ar.masvsTheAppMinimizesAccessToSensitiveDataAnd)),
   MasvsControl(
       'MASVS-PRIVACY-2',
-      Bilingual(En.masvsTheAppPreventsIdentificationOfTheUser, Ar.masvsTheAppPreventsIdentificationOfTheUser)),
+      Bilingual(En.masvsTheAppPreventsIdentificationOfTheUser,
+          Ar.masvsTheAppPreventsIdentificationOfTheUser)),
   MasvsControl(
       'MASVS-PRIVACY-3',
-      Bilingual(En.masvsTheAppIsTransparentAboutDataCollectionAnd, Ar.masvsTheAppIsTransparentAboutDataCollectionAnd)),
+      Bilingual(En.masvsTheAppIsTransparentAboutDataCollectionAnd,
+          Ar.masvsTheAppIsTransparentAboutDataCollectionAnd)),
   MasvsControl(
       'MASVS-PRIVACY-4',
-      Bilingual(En.masvsTheAppOffersUserControlOverTheirData, Ar.masvsTheAppOffersUserControlOverTheirData)),
+      Bilingual(En.masvsTheAppOffersUserControlOverTheirData,
+          Ar.masvsTheAppOffersUserControlOverTheirData)),
 ];
 
 /// Category display names.
@@ -123,37 +148,45 @@ const List<ManualCheck> manualChecks = [
   ManualCheck(
       'AEG-M01',
       'MASVS-AUTH-1',
-      Bilingual(En.masvsTheBackendEnforcesAuthorizationOnEveryEndpointNever, Ar.masvsTheBackendEnforcesAuthorizationOnEveryEndpointNever)),
+      Bilingual(En.masvsTheBackendEnforcesAuthorizationOnEveryEndpointNever,
+          Ar.masvsTheBackendEnforcesAuthorizationOnEveryEndpointNever)),
   ManualCheck(
       'AEG-M02',
       'MASVS-AUTH-1',
-      Bilingual(En.masvsSessionsTokensExpireAndAreRevokedOnLogoutOn, Ar.masvsSessionsTokensExpireAndAreRevokedOnLogoutOn)),
+      Bilingual(En.masvsSessionsTokensExpireAndAreRevokedOnLogoutOn,
+          Ar.masvsSessionsTokensExpireAndAreRevokedOnLogoutOn)),
   ManualCheck(
       'AEG-M03',
       'MASVS-RESILIENCE-2',
-      Bilingual(En.masvsAttestationVerdictsPlayIntegrityAppAttest, Ar.masvsAttestationVerdictsPlayIntegrityAppAttest),
+      Bilingual(En.masvsAttestationVerdictsPlayIntegrityAppAttest,
+          Ar.masvsAttestationVerdictsPlayIntegrityAppAttest),
       profiles: {MasProfile.l2, MasProfile.r}),
   ManualCheck(
       'AEG-M04',
       'MASVS-RESILIENCE-2',
-      Bilingual(En.masvsThePlayAppSigningCertificateHashFromPlay, Ar.masvsThePlayAppSigningCertificateHashFromPlay),
+      Bilingual(En.masvsThePlayAppSigningCertificateHashFromPlay,
+          Ar.masvsThePlayAppSigningCertificateHashFromPlay),
       profiles: {MasProfile.r}),
   ManualCheck(
       'AEG-M05',
       'MASVS-RESILIENCE-3',
-      Bilingual(En.masvsTheShippedBinaryIsReallyObfuscatedVerifyThe, Ar.masvsTheShippedBinaryIsReallyObfuscatedVerifyThe),
+      Bilingual(En.masvsTheShippedBinaryIsReallyObfuscatedVerifyThe,
+          Ar.masvsTheShippedBinaryIsReallyObfuscatedVerifyThe),
       profiles: {MasProfile.r}),
   ManualCheck(
       'AEG-M06',
       'MASVS-PRIVACY-3',
-      Bilingual(En.masvsStorePrivacyLabelsDataSafetyFormMatch, Ar.masvsStorePrivacyLabelsDataSafetyFormMatch)),
+      Bilingual(En.masvsStorePrivacyLabelsDataSafetyFormMatch,
+          Ar.masvsStorePrivacyLabelsDataSafetyFormMatch)),
   ManualCheck(
       'AEG-M07',
       'MASVS-CODE-2',
-      Bilingual(En.masvsAForcedUpdateMechanismExistsForCriticalSecurityFixes, Ar.masvsAForcedUpdateMechanismExistsForCriticalSecurityFixes),
+      Bilingual(En.masvsAForcedUpdateMechanismExistsForCriticalSecurityFixes,
+          Ar.masvsAForcedUpdateMechanismExistsForCriticalSecurityFixes),
       profiles: {MasProfile.l2}),
   ManualCheck(
       'AEG-M08',
       'MASVS-CODE-4',
-      Bilingual(En.masvsDeepLinksAndPushPayloadsAreValidatedBefore, Ar.masvsDeepLinksAndPushPayloadsAreValidatedBefore)),
+      Bilingual(En.masvsDeepLinksAndPushPayloadsAreValidatedBefore,
+          Ar.masvsDeepLinksAndPushPayloadsAreValidatedBefore)),
 ];

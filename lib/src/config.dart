@@ -186,7 +186,9 @@ class AegisConfig {
 
   static Map<String, Object?> _runtime(Object? value) {
     if (value == null) return const {};
-    if (value is! Map) throw const FormatException('runtime_security must be a map');
+    if (value is! Map) {
+      throw const FormatException('runtime_security must be a map');
+    }
     return value.map((k, v) => MapEntry(k.toString(), v));
   }
 

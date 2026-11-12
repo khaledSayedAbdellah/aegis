@@ -17,7 +17,8 @@ const avdmanager = '$sdk/cmdline-tools/latest/bin/avdmanager';
 void main() {
   test('the SDK packages go in one sdkmanager call, with JAVA_HOME', () async {
     final h = studioMac()..installed.add(sm);
-    final err = await Setup(Toolchain(h)).installSdk(['build-tools;36.0.0', 'emulator']);
+    final err = await Setup(Toolchain(h))
+        .installSdk(['build-tools;36.0.0', 'emulator']);
     expect(err, isNull);
     final line = h.ran.singleWhere((c) => c.contains('sdkmanager'));
     expect(line, '$sm --sdk_root=$sdk build-tools;36.0.0 emulator');
@@ -37,21 +38,30 @@ void main() {
     expect(h.inputOf[line], 'no\n');
   });
 
-  test('setup plans both image downloads and creates the control with Google Play', () async {
-    final h = studioMac()..addFile(avdmanager)..installed.add(avdmanager);
+  test(
+      'setup plans both image downloads and creates the control with Google Play',
+      () async {
+    final h = studioMac()
+      ..addFile(avdmanager)
+      ..installed.add(avdmanager);
     final toolchain = Toolchain(h);
     final setup = Setup(toolchain);
     final plan = setup.buildPlan(await toolchain.checkAll());
-    expect(setup.sdkmanagerPackages(plan), containsAllInOrder([
-      'system-images;android-34;google_apis;arm64-v8a',
-      'system-images;android-34;google_apis_playstore;arm64-v8a',
-    ]));
+    expect(
+        setup.sdkmanagerPackages(plan),
+        containsAllInOrder([
+          'system-images;android-34;google_apis;arm64-v8a',
+          'system-images;android-34;google_apis_playstore;arm64-v8a',
+        ]));
     expect(await setup.install('control-avd'), isNull);
-    expect(h.ran, contains('$avdmanager create avd -n aegis-probe-control '
-        '-k system-images;android-34;google_apis_playstore;arm64-v8a -d pixel_6'));
+    expect(
+        h.ran,
+        contains('$avdmanager create avd -n aegis-probe-control '
+            '-k system-images;android-34;google_apis_playstore;arm64-v8a -d pixel_6'));
   });
 
-  test('iOS setup plans Gadget without Android and rejects a corrupt download', () async {
+  test('iOS setup plans Gadget without Android and rejects a corrupt download',
+      () async {
     final h = FakeHost()
       ..answer('xcrun', ['--find', 'devicectl'], stdout: '/usr/bin/devicectl')
       ..answer('python3', ['--version'], stdout: 'Python 3.9.6')
@@ -63,20 +73,23 @@ void main() {
     final setup = Setup(tools);
     final plan = setup.buildPlan(await tools.checkIos());
     expect(plan.coversEverything, isTrue);
-    expect(plan.steps.map((step) => step.id), ['ios-gadget', 'ios-simulator-gadget']);
+    expect(plan.steps.map((step) => step.id),
+        ['ios-gadget', 'ios-simulator-gadget']);
     expect(setup.sdkmanagerPackages(plan), isEmpty);
     final outcomes = await setup.execute(plan);
-    expect(outcomes.map((o) => o.error), everyElement(contains('checksum mismatch')));
+    expect(outcomes.map((o) => o.error),
+        everyElement(contains('checksum mismatch')));
     expect(tools.checkIosGadget().ok, isFalse);
     expect(tools.checkIosGadget(simulator: true).ok, isFalse);
     expect(h.files, isEmpty);
   });
 
-  test('verifiedDownload accepts a file whose SHA-256 matches the pin', () async {
+  test('verifiedDownload accepts a file whose SHA-256 matches the pin',
+      () async {
     final h = studioMac();
     h.downloads['https://x/f.xz'] = xzBytes;
-    final err = await Setup(Toolchain(h))
-        .verifiedDownload('https://x/f.xz', '/tmp/f.xz', pins.Pinned(xzSha, xzBytes.length), (_) {});
+    final err = await Setup(Toolchain(h)).verifiedDownload('https://x/f.xz',
+        '/tmp/f.xz', pins.Pinned(xzSha, xzBytes.length), (_) {});
     expect(err, isNull);
     expect(h.fileExists('/tmp/f.xz'), isTrue);
   });
@@ -84,8 +97,8 @@ void main() {
   test('a checksum mismatch deletes the file and fails', () async {
     final h = studioMac();
     h.downloads['https://x/f.xz'] = xzBytes;
-    final err = await Setup(Toolchain(h)).verifiedDownload(
-        'https://x/f.xz', '/tmp/f.xz', const pins.Pinned('deadbeef', 1), (_) {});
+    final err = await Setup(Toolchain(h)).verifiedDownload('https://x/f.xz',
+        '/tmp/f.xz', const pins.Pinned('deadbeef', 1), (_) {});
     expect(err, contains('checksum mismatch'));
     expect(h.fileExists('/tmp/f.xz'), isFalse);
   });
@@ -105,23 +118,31 @@ void main() {
     expect(h.log, contains('download: ${pins.fridaServerUrl('arm64')}'));
   });
 
-  test('frida: creates the venv and pip-installs the pinned versions', () async {
+  test('frida: creates the venv and pip-installs the pinned versions',
+      () async {
     final h = studioMac();
     final t = Toolchain(h);
     h.installed.add(t.venvExe('python')); // venv python runs after creation
     final err = await Setup(t).install('frida');
     expect(err, isNull);
     expect(h.ran.any((c) => c.contains('-m venv')), isTrue);
-    final pipUpgrade = h.ran.indexWhere((c) => c.endsWith('-m pip install --upgrade pip'));
+    final pipUpgrade =
+        h.ran.indexWhere((c) => c.endsWith('-m pip install --upgrade pip'));
     final fridaInstall = h.ran.indexWhere((c) => c.contains('frida=='));
     expect(pipUpgrade, greaterThanOrEqualTo(0));
     expect(pipUpgrade, lessThan(fridaInstall), reason: 'pip is upgraded first');
-    expect(h.ran.any((c) => c.contains('pip install') && c.contains('frida==${pins.fridaVersion}')), isTrue);
+    expect(
+        h.ran.any((c) =>
+            c.contains('pip install') &&
+            c.contains('frida==${pins.fridaVersion}')),
+        isTrue);
   });
 
-  test('execute skips a step whose dependency failed, continues the rest', () async {
+  test('execute skips a step whose dependency failed, continues the rest',
+      () async {
     final h = FakeHost()
-      ..answer('flutter', ['config', '--machine'], stdout: '{"android-sdk":"$sdk"}')
+      ..answer('flutter', ['config', '--machine'],
+          stdout: '{"android-sdk":"$sdk"}')
       ..addDir(sdk)
       ..addFile(sm); // present as a file, but not runnable → sdkmanager fails
     h.downloads[pins.fridaServerUrl('arm64')] = xzBytes;
@@ -135,7 +156,8 @@ void main() {
       ToolCheck('avd', ToolState.installable),
       ToolCheck('frida-server', ToolState.installable),
     ]);
-    expect(plan.steps.map((s) => s.id), ['system-image', 'avd', 'frida-server']);
+    expect(
+        plan.steps.map((s) => s.id), ['system-image', 'avd', 'frida-server']);
     final outcomes = await setup.execute(plan);
     final by = {for (final o in outcomes) o.id: o};
     expect(by['system-image']!.error, isNotNull);
@@ -166,14 +188,18 @@ void main() {
       h.addFile(t.toolsJsonPath, '{}');
       h.addDir('/Users/dev/.android/avd/aegis-probe.avd');
       h.addFile('/Users/dev/.android/avd/aegis-probe.ini', 'x');
-      h..addFile(avdmanager)..installed.add(avdmanager);
+      h
+        ..addFile(avdmanager)
+        ..installed.add(avdmanager);
 
       final removed = await Setup(t).remove();
       expect(h.dirExists(t.venvDir), isFalse);
       expect(h.fileExists('${t.toolsDir}/frida-server-x'), isFalse);
       expect(h.fileExists(t.toolsJsonPath), isFalse);
       expect(removed.any((r) => r.contains('AVD')), isTrue);
-      expect(h.ran.any((c) => c.contains('avdmanager delete avd -n aegis-probe')), isTrue);
+      expect(
+          h.ran.any((c) => c.contains('avdmanager delete avd -n aegis-probe')),
+          isTrue);
       expect(h.dirExists(sdk), isTrue);
     });
 
