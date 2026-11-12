@@ -103,7 +103,9 @@ class IndicatorSession {
   }
 }
 
-typedef SimulatorSignature = ({String identifier, String hash});
+// Not `hash`: Dart 3.0 rejects record fields named like any `Object` member,
+// including the static `Object.hash`.
+typedef SimulatorSignature = ({String identifier, String cdHash});
 
 Future<SimulatorSignature> simulatorSignature(
     IosDevice device, String app) async {
@@ -121,7 +123,7 @@ Future<SimulatorSignature> simulatorSignature(
     throw StateError(
         'Could not verify the Simulator CodeDirectory signature: ${verify?.text}');
   }
-  return (identifier: id.trim(), hash: hash.toLowerCase());
+  return (identifier: id.trim(), cdHash: hash.toLowerCase());
 }
 
 Future<({String app, SimulatorSignature before, SimulatorSignature after})>
@@ -152,7 +154,7 @@ Future<({String app, SimulatorSignature before, SimulatorSignature after})>
         'Could not re-sign the temporary Simulator app: ${sign?.text}');
   }
   final after = await simulatorSignature(device, alternate);
-  if (after.identifier != identifier || after.hash == before.hash) {
+  if (after.identifier != identifier || after.cdHash == before.cdHash) {
     throw StateError('The Simulator signature change was not verified.');
   }
   final scratch = Directory(p.join(folder.path, 'unsigned'))..createSync();
