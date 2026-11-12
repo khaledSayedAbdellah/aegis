@@ -28,6 +28,38 @@ MASVS coverage: 17 of 24 controls checked automatically (71%)
 ...
 ```
 
+## Contents
+
+* [Why aegis](#why-aegis)
+* [Install](#install)
+* [Quick start](#quick-start)
+  * [Selecting the setup platform](#selecting-the-setup-platform)
+* [The resilience probe](#the-resilience-probe)
+* [Full control (CI)](#full-control-ci)
+* [Commands](#commands)
+* [Scan the release APK or App Bundle](#scan-the-release-apk-or-app-bundle)
+* [iOS IPA audit and resilience probe](#ios-ipa-audit-and-resilience-probe)
+  * [Device-independent iOS binary checks](#device-independent-ios-binary-checks)
+  * [Automatic platform protection checks](#automatic-platform-protection-checks)
+  * [iOS Simulator](#ios-simulator)
+* [MAS profiles](#mas-profiles)
+* [Cross-platform source projects](#cross-platform-source-projects)
+* [Native Android and iOS projects](#native-android-and-ios-projects)
+* [Score](#score)
+* [Configuration — `aegis.yaml`](#configuration--aegisyaml)
+* [Baselines](#baselines)
+* [CI](#ci)
+  * [Azure Pipelines](#azure-pipelines)
+* [Rules](#rules)
+* [Development: run from source and run the tests](#development-run-from-source-and-run-the-tests)
+* [Use from Dart](#use-from-dart)
+* [Demo](#demo)
+* [What aegis cannot see](#what-aegis-cannot-see)
+* [Roadmap](#roadmap)
+* [Translation catalogs](#translation-catalogs)
+* [Extended MASVS analysis and runtime scenarios](#extended-masvs-analysis-and-runtime-scenarios)
+* [License](#license)
+
 ## Why aegis
 
 | | Typical scanner | aegis |
@@ -692,13 +724,7 @@ Without `--apk` it reads source and configuration only, so build-time values, me
 * `--fix` for configuration findings.
 * Optional AI-assisted triage (opt-in, local model support, secrets redacted before sending).
 
----
-
-## License
-
-MIT
-
-### Translation catalogs
+## Translation catalogs
 
 Human-facing report text, rule descriptions and findings, and setup/doctor messages
 are maintained in [`app_en.arb`](lib/src/l10n/app_en.arb) and
@@ -729,7 +755,7 @@ Keep separate keys for wording variants. Commit `messages.g.dart` with the ARB
 changes. Translations are compiled into the CLI, so global installations work
 from any directory without Flutter or runtime access to the ARB files.
 
-### Extended MASVS analysis and runtime scenarios
+## Extended MASVS analysis and runtime scenarios
 
 `run` now includes Android App Link/permission checks, native TLS/WebView/crypto/
 storage patterns, iOS entitlement/ATS checks, ELF hardening and tracker inventory.
@@ -742,3 +768,9 @@ scenario, and run only when `aegis run --runtime-scenario` is passed: enabling
 Missing setup/traffic/channels remains incomplete, never an assumed
 protection pass. `--no-probe` disables runtime tests; no host security settings
 are changed. See [scope, prerequisites and scenario contract](doc/runtime-security.md).
+
+---
+
+## License
+
+MIT
