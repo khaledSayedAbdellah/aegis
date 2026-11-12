@@ -82,6 +82,22 @@ void main() {
       expect(await d.bootEmulator(timeoutSeconds: 0), isNull);
     });
 
+    test('the emulator uses the AVD folder setup created them in', () async {
+      final host = FakeHost(env: {'XDG_CONFIG_HOME': '/Users/dev/.config'})
+        ..installed.addAll(['/adb', '/emu']);
+      host.answer('/adb', ['devices'], stdout: 'List of devices attached\n');
+      host.answer('/emu', ['-list-avds'], stdout: 'aegis-probe\n');
+      final device = Device(host, fakeTools());
+      await device.bootEmulator(timeoutSeconds: 0);
+      expect(host.envOf['/emu -list-avds']?['ANDROID_AVD_HOME'],
+          '/Users/dev/.android/avd');
+      final boot =
+          host.spawnEnvOf.keys.singleWhere((c) => c.startsWith('/emu'));
+      expect(boot, startsWith('/emu -avd aegis-probe '));
+      expect(host.spawnEnvOf[boot]?['ANDROID_AVD_HOME'],
+          '/Users/dev/.android/avd');
+    });
+
     test('install, launch, pidOf', () async {
       h.answer('/adb', ['-s', 'emulator-5556', 'shell', 'pidof', 'com.x'],
           stdout: '9123\n');

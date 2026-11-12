@@ -269,12 +269,19 @@ class Setup {
     if (avdmanager == null) return 'avdmanager not found';
     // "no" declines the custom-hardware-profile question. No --force, so an
     // existing AVD of this name is never overwritten.
+    // avdmanager requires an existing ANDROID_AVD_HOME folder.
+    final home = toolchain.avdHome;
+    if (home != null) host.mkdirs(home);
     final r = await host.run(avdmanager,
         ['create', 'avd', '-n', name, '-k', image, '-d', pins.avdDevice],
-        environment: await _javaEnv(), input: 'no\n');
+        environment: await _avdToolEnv(), input: 'no\n');
     if (r == null) return 'could not run avdmanager';
     if (!r.ok) return 'avdmanager exited ${r.exitCode}: ${r.text.trim()}';
-    final home = toolchain.avdHome;
+    // Fail here, not at the next check, if it still went somewhere else.
+    if ((await toolchain.checkAvd(control: control)).state !=
+        ToolState.present) {
+      return 'avdmanager reported success but $name is not in $home';
+    }
     if (control && home != null) {
       host.writeText(p.join(home, '$name.avd', '.aegis-created'), '');
     }
@@ -388,7 +395,7 @@ class Setup {
           root == null ? null : toolchain.sdkTool(root, 'avdmanager');
       if (avdmanager != null) {
         final result = await host.run(avdmanager, ['delete', 'avd', '-n', name],
-            environment: await _javaEnv());
+            environment: await _avdToolEnv());
         if (result?.ok != true) continue;
       } else {
         host.deletePath(avdDir);
@@ -404,5 +411,11 @@ class Setup {
   Future<Map<String, String>?> _javaEnv() async {
     final jdk = await toolchain.findJavaHome();
     return jdk == null ? null : {'JAVA_HOME': jdk.home};
+  }
+
+  /// JAVA_HOME plus the AVD folder aegis checks, for avdmanager.
+  Future<Map<String, String>?> _avdToolEnv() async {
+    final env = {...?await _javaEnv(), ...?toolchain.avdEnvironment};
+    return env.isEmpty ? null : env;
   }
 }
