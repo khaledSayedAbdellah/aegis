@@ -1,0 +1,64 @@
+name: Rule accuracy
+description: A finding that is wrong (false positive) or a problem aegis misses (false negative).
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Remove secrets, keys and private code from everything you paste. A small snippet that reproduces the problem is enough.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind
+      options:
+        - False positive (aegis reports a problem that isn't there)
+        - False negative (aegis misses a real problem)
+        - Wrong severity, status or MASVS mapping
+    validations:
+      required: true
+  - type: input
+    id: rule
+    attributes:
+      label: Rule id
+      description: For example AEG-P04. Leave empty for a false negative with no matching rule.
+  - type: input
+    id: version
+    attributes:
+      label: aegis version
+      description: Output of `aegis --version`.
+      placeholder: aegis 0.10.2
+    validations:
+      required: true
+  - type: dropdown
+    id: mode
+    attributes:
+      label: Mode
+      options:
+        - code
+        - apk
+        - aab
+        - ipa
+    validations:
+      required: true
+  - type: textarea
+    id: finding
+    attributes:
+      label: The finding
+      description: Paste the finding from the report, or describe what aegis missed.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: code
+    attributes:
+      label: Code or configuration
+      description: The code, manifest, plist or config the finding is about, cut down to what matters.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it is wrong
+      description: For a false positive, what protects the app. For a false negative, what the problem is and how it can be exploited.
+    validations:
+      required: true

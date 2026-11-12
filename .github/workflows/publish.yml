@@ -2,6 +2,8 @@
 #   git tag vX.Y.Z && git push origin vX.Y.Z
 # The tag must match `version:` in pubspec.yaml. pub.dev accepts only runs
 # from this repository started by a tag matching its pattern `v{{version}}`.
+# After publishing, a GitHub Release is created from the tag's CHANGELOG.md
+# section.
 name: Publish to pub.dev
 
 on:
@@ -14,3 +16,35 @@ jobs:
     permissions:
       id-token: write # pub.dev authenticates the run with GitHub's OIDC token
     uses: dart-lang/setup-dart/.github/workflows/publish.yml@v1
+
+  release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the GitHub Release
+    steps:
+      - uses: actions/checkout@v7
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          # The CHANGELOG section for this version: from "## X.Y.Z" up to the
+          # next "## " heading ("### " subsections stay in).
+          awk -v v="$version" '$0 == "## " v {f=1; next} f && /^## / {exit} f' \
+            CHANGELOG.md > section.md
+          if ! grep -q '[^[:space:]]' section.md; then
+            echo "::error::CHANGELOG.md has no '## $version' section"
+            exit 1
+          fi
+          {
+            printf 'Install from [pub.dev](https://pub.dev/packages/aegis/versions/%s):\n\n' "$version"
+            printf '```bash\ndart pub global activate aegis %s\n```\n\n' "$version"
+            cat section.md
+          } > notes.md
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            echo "Release $TAG already exists"
+          else
+            gh release create "$TAG" --verify-tag --title "aegis $version" --notes-file notes.md
+          fi
