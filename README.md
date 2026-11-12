@@ -5,7 +5,7 @@
 Most scanners ask *"do you have RASP?"*. aegis also asks *"is it started, configured for your app, and does a detected threat trigger a real reaction?"* Every rule is mapped to **OWASP MASVS v2**, **MASWE** and **CWE**, and the score adapts to the **OWASP MAS profile** your app needs (L1, L2, R).
 
 ```text
-🛡  Aegis security audit  ·  aegis 0.1.0
+🛡  Aegis security audit  ·  aegis 0.10.0
 ────────────────────────────────────────────────────────────────
 Project: my_bank
 MAS profile: L2+R
