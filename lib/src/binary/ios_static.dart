@@ -146,10 +146,13 @@ Iterable<IosStaticEvidence> _matches(
       }
     }
   }
-  for (final (source, values) in [
+  // A named list, not an inline literal: Dart 3.0.0's compiler crashes on a
+  // pattern `for` over a list literal that contains a collection `if`.
+  final sources = [
     ('symbol', slice.symbols),
-    if (!symbolsOnly) ('string', slice.strings)
-  ]) {
+    if (!symbolsOnly) ('string', slice.strings),
+  ];
+  for (final (source, values) in sources) {
     for (final value in values) {
       for (final match in pattern.allMatches(value)) {
         final token = match.group(0)!;

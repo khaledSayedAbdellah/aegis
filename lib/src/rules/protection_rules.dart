@@ -378,7 +378,10 @@ class FreeRaspConfigRule extends Rule {
     }
 
     final appId = androidApplicationId(project);
-    for (final (f, c) in findCalls(project, {'AndroidConfig'})) {
+    // Named first: Dart 3.0.0's compiler crashes on a pattern `for` whose
+    // iterable contains a set literal.
+    final androidConfigs = findCalls(project, {'AndroidConfig'});
+    for (final (f, c) in androidConfigs) {
       final args = f.args(c.open);
       final pkg = f.namedArg(args, 'packageName');
       if (pkg != null) {
@@ -438,7 +441,10 @@ class FreeRaspConfigRule extends Rule {
     }
 
     final bundleIds = iosBundleIds(project);
-    for (final (f, c) in findCalls(project, {'IOSConfig', 'IosConfig'})) {
+    // Named first: Dart 3.0.0's compiler crashes on a pattern `for` whose
+    // iterable contains a set literal.
+    final iosConfigs = findCalls(project, {'IOSConfig', 'IosConfig'});
+    for (final (f, c) in iosConfigs) {
       final args = f.args(c.open);
       final ids = f.namedArg(args, 'bundleIds') ?? f.namedArg(args, 'bundleId');
       if (ids != null) {

@@ -805,7 +805,10 @@ class RaspSigningHashRule extends Rule {
     String? packageName;
     var loc = '';
     int? line;
-    for (final (f, c) in findCalls(project, {'AndroidConfig'})) {
+    // Named first: Dart 3.0.0's compiler crashes on a pattern `for` whose
+    // iterable contains a set literal.
+    final androidConfigs = findCalls(project, {'AndroidConfig'});
+    for (final (f, c) in androidConfigs) {
       final args = f.args(c.open);
       final hashes = f.namedArg(args, 'signingCertHashes');
       if (hashes != null) {
