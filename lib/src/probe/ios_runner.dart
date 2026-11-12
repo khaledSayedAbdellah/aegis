@@ -229,14 +229,14 @@ class IosProbeRunner {
                 final observed = await _observe(control, original, check,
                     condition: En.iosSignatureChanged(
                         beforeId: modified.before.identifier,
-                        beforeHash: modified.before.hash,
+                        beforeHash: modified.before.cdHash,
                         afterId: modified.after.identifier,
-                        afterHash: modified.after.hash),
+                        afterHash: modified.after.cdHash),
                     conditionAr: Ar.iosSignatureChanged(
                         beforeId: modified.before.identifier,
-                        beforeHash: modified.before.hash,
+                        beforeHash: modified.before.cdHash,
                         afterId: modified.after.identifier,
-                        afterHash: modified.after.hash));
+                        afterHash: modified.after.cdHash));
                 results.add(_partial(observed));
               } else if (check.id == 'ios-hooking' && root == null) {
                 if (!debuggable) {
