@@ -17,6 +17,12 @@ topics:
 environment:
   sdk: '>=3.0.0 <4.0.0'
 
+# A command-line tool for desktop and CI hosts; it does not run on devices.
+platforms:
+  linux:
+  macos:
+  windows:
+
 dependencies:
   archive: ^4.0.0
   args: ^2.4.0

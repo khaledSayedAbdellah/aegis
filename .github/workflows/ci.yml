@@ -26,6 +26,19 @@ jobs:
       - run: dart test
       - run: PYTHONDONTWRITEBYTECODE=1 python3 test/runtime_driver_test.py -v
 
+  # pubspec.yaml promises every Dart 3 SDK: keep the lowest one working.
+  min-sdk:
+    name: Test (lowest Dart SDK)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: 3.0.0
+      - run: dart pub get
+      - run: dart analyze lib bin
+      - run: dart test
+
   # aegis audits its own intentionally vulnerable example app. The example's
   # aegis.yaml fails on high findings, so exit code 1 is the expected result.
   smoke:
