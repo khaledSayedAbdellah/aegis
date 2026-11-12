@@ -94,9 +94,6 @@ Other sources, when you need them:
 # A specific released version
 dart pub global activate aegis 0.11.0
 
-# Unreleased changes from GitHub
-dart pub global activate --source git https://github.com/khaledSayedAbdellah/aegis.git --git-ref main
-
 # Your local clone: every change in the clone is used right away, no reinstall
 dart pub global activate --source path ~/path/to/aegis
 ```
@@ -127,7 +124,7 @@ dart pub global list       # shows where it was activated from
 | `aegis --version` shows an older version than `dart pub global list` | An old compiled copy is cached. Run `dart pub global deactivate aegis`, delete `.dart_tool/pub/bin` in the aegis clone (for a path activation), activate again and `hash -r`. |
 | Errors like `No such file or directory` for packages | The pub cache was cleaned. Run `dart pub get` in the aegis clone, then activate again. |
 
-Update: run `dart pub global activate aegis` again (for a git activation, pass the new `--git-ref`; a path activation needs nothing). Uninstall: `dart pub global deactivate aegis`, and `aegis setup --remove` first if you installed the probe tools.
+Update: run `dart pub global activate aegis` again (a path activation needs nothing). Uninstall: `dart pub global deactivate aegis`, and `aegis setup --remove` first if you installed the probe tools.
 
 ## Quick start
 
@@ -615,9 +612,7 @@ resources:
 steps:
 - template: ci/azure-pipelines/aegis-steps.yml@aegis
   parameters:
-    aegisSource: git
-    aegisGitUrl: https://github.com/khaledSayedAbdellah/aegis.git
-    aegisGitRef: v0.11.0
+    aegisVersion: 0.11.0   # installed from pub.dev; keep it equal to the ref above
     failOn: high
 ```
 
@@ -691,7 +686,7 @@ dart test -N "apk mode"                                 # tests whose name conta
 
 The tests need no network, emulator or Android tools: the CLI tests run `bin/aegis.dart` on temporary projects with `--offline` and `--no-probe`, and the probe tests use a fake host and a fake device (`test/support/fake_host.dart`, `test/probe_runner_test.dart`). To try your change as the real `aegis` command, activate the clone with `--source path` (see Install).
 
-**Releasing.** Set the new version in `pubspec.yaml` and `lib/src/version.dart`, add its section to `CHANGELOG.md`, merge to `main`, then push a tag with the same version:
+**Releasing.** Set the new version in `pubspec.yaml` and `lib/src/version.dart`, and where it is pinned in this README, the issue templates and `ci/azure-pipelines/`; add its section to `CHANGELOG.md`, merge to `main`, then push a tag with the same version:
 
 ```bash
 git tag vX.Y.Z && git push origin vX.Y.Z   # X.Y.Z: the version in pubspec.yaml

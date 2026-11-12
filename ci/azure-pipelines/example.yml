@@ -1,8 +1,8 @@
 # Example: aegis on every pull request, plus an APK audit on main.
 #
 # Copy into your app repository, set the GitHub service connection and the
-# Flutter version. aegis is installed from GitHub; once it is on pub.dev use
-# `aegisSource: hosted` and drop the git settings.
+# Flutter version. aegis is installed from pub.dev; keep AEGIS_VERSION equal to
+# the template's ref below.
 trigger:
   branches:
     include: [ main ]
@@ -16,11 +16,11 @@ resources:
     type: github
     endpoint: <your GitHub service connection>
     name: khaledSayedAbdellah/aegis
-    ref: refs/tags/v0.6.0
+    ref: refs/tags/v0.11.0
 
 variables:
   FLUTTER_VERSION: '3.35.0'
-  AEGIS_GIT_URL: https://github.com/khaledSayedAbdellah/aegis.git
+  AEGIS_VERSION: '0.11.0'
 
 stages:
 # Source audit: fast, runs on every PR. Fails only on findings that are not in
@@ -43,9 +43,7 @@ stages:
       displayName: flutter pub get
     - template: ci/azure-pipelines/aegis-steps.yml@aegis
       parameters:
-        aegisSource: git
-        aegisGitUrl: $(AEGIS_GIT_URL)
-        aegisGitRef: v0.6.0
+        aegisVersion: $(AEGIS_VERSION)
         failOn: high
         lang: en
 
@@ -75,9 +73,7 @@ stages:
       displayName: Build release APK
     - template: ci/azure-pipelines/aegis-steps.yml@aegis
       parameters:
-        aegisSource: git
-        aegisGitUrl: $(AEGIS_GIT_URL)
-        aegisGitRef: v0.6.0
+        aegisVersion: $(AEGIS_VERSION)
         apk: $(Build.SourcesDirectory)/build/app/outputs/flutter-apk/app-release.apk
         artifactName: aegis-apk-report
         continueOnError: true
