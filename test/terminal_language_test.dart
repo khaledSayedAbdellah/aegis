@@ -70,7 +70,9 @@ void main() {
     }
     expect(File(p.join(dir.path, 'aegis.yaml')).readAsStringSync(),
         contains('lang: ar'));
-  });
+    // Seven CLI processes in a row: about 12s locally, over the default 30s
+    // on a busy CI runner.
+  }, timeout: const Timeout(Duration(minutes: 2)));
 
   test('skipped Android probe prints English but keeps Arabic in report',
       () async {
