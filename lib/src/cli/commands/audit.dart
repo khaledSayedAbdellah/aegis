@@ -332,6 +332,7 @@ Future<void> auditCommand(ArgResults root, ArgParser parser) async {
     report = await runAudit(path,
         config: config,
         offline: args['offline'] as bool,
+        pubGet: args['pub-get'] as bool,
         apkPath: apkPath,
         ipaPath: ipaPath,
         baseline: baseline,

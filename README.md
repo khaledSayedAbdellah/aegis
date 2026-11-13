@@ -9,7 +9,7 @@
 Most scanners ask *"do you have RASP?"*. aegis also asks *"is it started, configured for your app, and does a detected threat trigger a real reaction?"* Every rule is mapped to **OWASP MASVS v2**, **MASWE** and **CWE**, and the score adapts to the **OWASP MAS profile** your app needs (L1, L2, R).
 
 ```text
-🛡  Aegis security audit  ·  aegis 0.11.0
+🛡  Aegis security audit  ·  aegis 0.12.0
 ────────────────────────────────────────────────────────────────
 Project: my_bank
 MAS profile: L2+R
@@ -92,7 +92,7 @@ Other sources, when you need them:
 
 ```bash
 # A specific released version
-dart pub global activate aegis 0.11.0
+dart pub global activate aegis 0.12.0
 
 # Your local clone: every change in the clone is used right away, no reinstall
 dart pub global activate --source path ~/path/to/aegis
@@ -607,12 +607,12 @@ resources:
     type: github
     endpoint: <your GitHub service connection>
     name: khaledSayedAbdellah/aegis
-    ref: refs/tags/v0.11.0
+    ref: refs/tags/v0.12.0
 
 steps:
 - template: ci/azure-pipelines/aegis-steps.yml@aegis
   parameters:
-    aegisVersion: 0.11.0   # installed from pub.dev; keep it equal to the ref above
+    aegisVersion: 0.12.0   # installed from pub.dev; keep it equal to the ref above
     failOn: high
 ```
 
@@ -624,9 +624,31 @@ See [ci/azure-pipelines/README.md](ci/azure-pipelines/README.md) for all paramet
 
 Run `aegis --list-rules` for the full list.
 
+**Where `AEG-P01` looks for runtime protection.** Separately for Android and iOS, any of these counts:
+
+* a Dart package that the code imports: a known RASP package (freerasp, safe_device, flutter_jailbreak_detection and others), a package whose name says it (`root`, `jailbreak`, `rasp`, `integrity`, `anti_debug`...), or any package whose own Android or iOS code checks for root or jailbreak;
+* a native SDK declared in Gradle, CocoaPods, Swift Package Manager or `package.json` and used by the native code: freeRASP (Talsec), RootBeer, IOSSecuritySuite, DTTJailbreakDetection, Approov, Zimperium, or the build-time protectors DexGuard and DexProtector;
+* the app's own checks in Dart, Kotlin/Java or Swift/Objective-C, recognized by what they look for (su binaries and root apps, jailbreak files and URL schemes, `TracerPid`/`isDebuggerConnected`/`PT_DENY_ATTACH`, Frida/Xposed/Substrate). Comments don't count, and neither do names alone such as `isRooted()`. Own checks must cover root or jailbreak, debuggers and hooking; with only some of them the rule says which are missing.
+
+A package or SDK that is declared but never used does not count, and the report says so. Everything found is listed in the report's evidence section.
+
+To read a package's code, aegis finds its files in `.dart_tool/package_config.json`, or in the pub cache at the version in `pubspec.lock`. When neither has them it runs `flutter pub get` (`dart pub get` for a Dart-only project) in the project, with `--enforce-lockfile` when a `pubspec.lock` exists so the lock file never changes, and with `--offline` when the audit is offline. The evidence section says when this happened. `--no-pub-get` turns it off; packages that are not resolved are then recognized by name only, and the evidence lists them.
+
+**Crash and analytics libraries are not runtime protection.** Sentry, Firebase Crashlytics, Bugsnag, Instabug, Datadog, AppsFlyer, Adjust, New Relic, App Center and Embrace check for root or jailbreak to label their own reports and never react to a threat. Their checks are listed as evidence and don't count. If they are the only checks, the finding says so.
+
+**With only an APK, AAB or IPA** (no source), `AEG-P01` reads the compiled app and attributes every check to the code that holds it:
+
+* a RASP SDK in the app passes: by its classes in the DEX files (freeRASP, RootBeer, Approov, Zimperium, DexProtector, DexGuard, safe_device, flutter_jailbreak_detection) or by its iOS framework or class names (freeRASP, IOSSecuritySuite, DTTJailbreakDetection, Approov, Zimperium);
+* checks in a crash or analytics library's classes, framework or `.so` file don't count, as above;
+* checks in the app's own classes, in the compiled Dart code (`libapp.so`, `App.framework`) or in the iOS executable count like own checks in source: root or jailbreak, debugger and hooking together pass, some of them are reported with what is missing;
+* when the code that holds the checks cannot be identified (R8 renamed the classes, or the library is linked into the iOS executable) and one of those libraries is in the same app, the checks may be the library's. The rule then gives no verdict and lists them for review, instead of reporting the app as protected;
+* an IPA downloaded from the App Store is encrypted, so the rule is incomplete unless a RASP framework is in it.
+
+A release build shrunk by R8 only keeps code that is called, so an SDK found in the artifact is in use. Protection added after the build (Appdome and similar) or that encrypts its own strings may not be visible this way.
+
 | Id | Rule | MASVS |
 |---|---|---|
-| AEG-P01 | No runtime protection (RASP) *(R)* | RESILIENCE-1/4 |
+| AEG-P01 | No runtime protection (RASP) on Android or iOS *(R)* | RESILIENCE-1/4 |
 | AEG-P02 | freeRASP installed but not running | RESILIENCE-1 |
 | AEG-P03 | freeRASP misconfigured (package name, hashes, bundle ids, team id, isProd) | RESILIENCE-2 |
 | AEG-P04 | Threats detected but no reaction | RESILIENCE-1/2/4 |

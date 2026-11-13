@@ -13,6 +13,8 @@ class SecurityView {
         'facts' => t.extFacts,
         _ => t.extObserved,
       };
+  String title(String id) =>
+      id == 'AEG-P01' ? t.raspEvidenceTitle : extendedMeta(id).title.of(lang);
   String safe(String s) => s.replaceAll(RegExp(r'[\x00-\x1f\x7f-\x9f]'), ' ');
   String console() => evidence.isEmpty
       ? ''
@@ -36,7 +38,7 @@ class SecurityView {
     for (final group in _groups.entries) {
       out.write('<details class="card evidence-group"><summary>'
           '<bdi dir="ltr">${esc(group.key)}</bdi> · '
-          '${esc(extendedMeta(group.key).title.of(lang))} · '
+          '${esc(title(group.key))} · '
           '${esc(t.extEvidenceCount(count: group.value.length))}'
           '</summary><ul class="evidence-items">');
       for (final item in group.value) {
@@ -59,7 +61,7 @@ class SecurityView {
         StringBuffer('\n## ${t.extEvidenceHeading}\n\n${t.extEvidenceScope}\n');
     for (final group in _groups.entries) {
       out.writeln(
-          '\n### ${esc(group.key)} · ${esc(extendedMeta(group.key).title.of(lang))} · ${esc(t.extEvidenceCount(count: group.value.length))}\n');
+          '\n### ${esc(group.key)} · ${esc(title(group.key))} · ${esc(t.extEvidenceCount(count: group.value.length))}\n');
       for (final item in group.value) {
         out.writeln(
             '- ${status(item)} · ${esc(item.file)}: ${esc(item.detail.of(lang))}');

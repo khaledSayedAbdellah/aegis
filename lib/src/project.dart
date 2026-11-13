@@ -49,6 +49,9 @@ class Project {
 
   /// When true, rules must not use the network (OSV lookups are skipped).
   bool offline = false;
+
+  /// When true, a rule may run `pub get` to locate the dependencies' files.
+  bool pubGet = false;
   final List<SecurityEvidence> securityEvidence = [];
 
   /// False when only a compiled binary is audited (no pubspec.yaml).

@@ -24,6 +24,7 @@ import 'rules/platform_protection_rules.dart';
 import 'rules/native_security_rules.dart';
 import 'rules/native_source_rules.dart';
 import 'rules/probe_rules.dart';
+import 'rules/protection_rules.dart' show RaspPresenceRule;
 import 'rules/ios_rules.dart';
 import 'rules/ipa_rules.dart';
 import 'rules/registry.dart';
@@ -323,10 +324,14 @@ Future<RuleCheck> _safeCheck(
 ///
 /// With [apkPath], the release APK is audited too. When [path] has no
 /// pubspec.yaml and an APK is given, only the APK is audited.
+///
+/// With [pubGet], `flutter pub get` or `dart pub get` runs in the project
+/// when AEG-P01 needs the code of packages that are not resolved yet.
 Future<AuditReport> runAudit(
   String path, {
   AegisConfig? config,
   bool offline = false,
+  bool pubGet = false,
   List<Rule>? rules,
   String? apkPath,
   String? ipaPath,
@@ -372,6 +377,7 @@ Future<AuditReport> runAudit(
   }
   if (ipa != null) project.useIpa(ipa, signature!);
   project.offline = offline;
+  project.pubGet = pubGet;
   project.probe = probe;
   project.runtimeSecurity = runtimeSecurity;
   final cfg = project.config;
@@ -407,7 +413,14 @@ Future<AuditReport> runAudit(
   final ruleSet = rules ??
       [
         if (project.hasSource && !project.nativeOnly) ...allRules,
-        if (project.nativeOnly) ...[...androidRules, ...iosRules],
+        if (project.nativeOnly) ...[
+          ...androidRules,
+          ...iosRules,
+          const RaspPresenceRule(),
+        ],
+        // Without source, runtime protection is read from the artifact.
+        if (!project.hasSource && (project.apk != null || ipa != null))
+          const RaspPresenceRule(),
         ...extendedRules,
         if (runtimeSecurity != null) ...runtimeSecurityRules,
         if (project.apk != null) ...apkRules,

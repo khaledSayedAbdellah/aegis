@@ -26,7 +26,7 @@ body:
     attributes:
       label: aegis version
       description: Output of `aegis --version`.
-      placeholder: aegis 0.11.0
+      placeholder: aegis 0.12.0
     validations:
       required: true
   - type: dropdown

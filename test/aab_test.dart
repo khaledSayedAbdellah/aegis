@@ -178,7 +178,10 @@ void main() {
               reason: '${res.meta.id}: ${res.findings.map((f) => f.message)}');
         }
       }
-      expect(r.score.value, 100);
+      // The fixture is hardened at build level only: it has no RASP.
+      expect(r.failed.map((x) => x.meta.id), ['AEG-P01']);
+      expect(result(r, 'AEG-P01').findings.single.message,
+          'Android: no RASP SDK and no root detection was found in the AAB.');
       final b09 = result(r, 'AEG-B09').meta;
       expect(b09.passTitle.en, 'The AAB is signed with a release certificate');
       expect(b09.passTitle.ar, 'الـ AAB متوقع بشهادة release');

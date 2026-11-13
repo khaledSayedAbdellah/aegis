@@ -1414,7 +1414,7 @@
   "@protectionRulesWithoutRaspTheAppCannotTellWhenIt": {
     "description": "rules/protection_rules.dart: localized message."
   },
-  "protectionRulesAddARaspSdkSuchAsFreeraspStart": "Add a RASP SDK such as freerasp, start it in main(), and react to threats (block sensitive features, wipe secrets, notify the backend).",
+  "protectionRulesAddARaspSdkSuchAsFreeraspStart": "Use a RASP package or SDK such as freerasp and start it in main(), or check for root/jailbreak, debuggers and hooking (Frida/Xposed) in Dart or native code; then react to threats (block sensitive features, wipe secrets, notify the backend).",
   "@protectionRulesAddARaspSdkSuchAsFreeraspStart": {
     "description": "rules/protection_rules.dart: localized message."
   },
@@ -2634,10 +2634,6 @@
   "dartRulesWebviewSetwebcontentsdebuggingenabledTrueInNativeCode": "WebView.setWebContentsDebuggingEnabled(true) in native code.",
   "@dartRulesWebviewSetwebcontentsdebuggingenabledTrueInNativeCode": {
     "description": "rules/dart_rules.dart: localized message."
-  },
-  "protectionRulesNoRaspPackageFoundInDependencies": "No RASP package found in dependencies.",
-  "@protectionRulesNoRaspPackageFoundInDependencies": {
-    "description": "rules/protection_rules.dart: localized message."
   },
   "protectionRulesNoFreeraspStartCallWasFoundInThe": "No freeRASP start call was found in the scanned source.",
   "@protectionRulesNoFreeraspStartCallWasFoundInThe": {
@@ -4335,5 +4331,262 @@
         "type": "String"
       }
     }
+  },
+  "raspNone": "{platform}: no RASP package or SDK is used, and no {check} detection was found in the Dart or native code.",
+  "@raspNone": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "platform": {
+        "type": "String"
+      },
+      "check": {
+        "type": "String"
+      }
+    }
+  },
+  "raspPartial": "{platform}: the app's own checks detect {found} but not {missing}. Add the missing checks or use a RASP SDK that covers all of them.",
+  "@raspPartial": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "platform": {
+        "type": "String"
+      },
+      "found": {
+        "type": "String"
+      },
+      "missing": {
+        "type": "String"
+      }
+    }
+  },
+  "raspUnused": "{name} is declared as a dependency, but nothing in the code uses it, so it does not protect the app.",
+  "@raspUnused": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "raspFoundPackage": "Runtime protection on {platforms}: the {name} package, imported in {file}.",
+  "@raspFoundPackage": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "platforms": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "raspFoundPackageName": "Runtime protection on {platforms}: the {name} package (recognized by its name), imported in {file}.",
+  "@raspFoundPackageName": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "platforms": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "raspFoundPackageCode": "Runtime protection on {platforms}: the {name} package, whose own code checks for {checks}, imported in {file}.",
+  "@raspFoundPackageCode": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "platforms": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "checks": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "raspFoundSdk": "Runtime protection on {platforms}: the {name} SDK, used in {file}.",
+  "@raspFoundSdk": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "platforms": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "raspFoundCustom": "The app's own runtime checks on {platform}: {checks}, in {files}.",
+  "@raspFoundCustom": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "platform": {
+        "type": "String"
+      },
+      "checks": {
+        "type": "String"
+      },
+      "files": {
+        "type": "String"
+      }
+    }
+  },
+  "raspNoneBinary": "{platform}: no RASP SDK and no {check} detection was found in the {artifact}.",
+  "@raspNoneBinary": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "platform": {
+        "type": "String"
+      },
+      "check": {
+        "type": "String"
+      },
+      "artifact": {
+        "type": "String"
+      }
+    }
+  },
+  "raspLibraryOnly": "{platform}: the only {check} detection belongs to {libraries}. It labels that library's own reports and never reacts to a threat, so it does not protect the app. No RASP package or SDK and no check of the app's own was found.",
+  "@raspLibraryOnly": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "platform": {
+        "type": "String"
+      },
+      "check": {
+        "type": "String"
+      },
+      "libraries": {
+        "type": "String"
+      }
+    }
+  },
+  "raspLibraryChecks": "{name} checks for {checks} on {platforms} ({file}). It does this for its own reports, so it is not counted as protection.",
+  "@raspLibraryChecks": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "checks": {
+        "type": "String"
+      },
+      "platforms": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "raspFoundBinary": "Runtime protection on {platforms}: {name}, found in {file}.",
+  "@raspFoundBinary": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "platforms": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
+  },
+  "raspUncertain": "{platform}: checks for {checks} are in the {artifact} ({files}), but the code that holds them cannot be identified, and {libraries} is in the same {artifact} with the same kind of check for its own reports. They may not be the app's protection, so they are not counted: audit the source, or confirm them by hand.",
+  "@raspUncertain": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "platform": {
+        "type": "String"
+      },
+      "checks": {
+        "type": "String"
+      },
+      "artifact": {
+        "type": "String"
+      },
+      "files": {
+        "type": "String"
+      },
+      "libraries": {
+        "type": "String"
+      }
+    }
+  },
+  "raspBinaryEncrypted": "The IPA's code is encrypted (an App Store download), so its runtime protection cannot be read. Audit the IPA exported from Xcode, or the source.",
+  "@raspBinaryEncrypted": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection."
+  },
+  "raspPubGetRan": "Ran `{command}` to read the native code of the app's packages.",
+  "@raspPubGetRan": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "command": {
+        "type": "String"
+      }
+    }
+  },
+  "raspPubGetRanCreated": "Ran `{command}` to read the native code of the app's packages. It created pubspec.lock.",
+  "@raspPubGetRanCreated": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "command": {
+        "type": "String"
+      }
+    }
+  },
+  "raspPackagesNotResolved": "The native code of {packages} was not read because the dependencies are not resolved. Run `flutter pub get`, or drop --no-pub-get; until then only packages recognized by name count.",
+  "@raspPackagesNotResolved": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "packages": {
+        "type": "String"
+      }
+    }
+  },
+  "raspPubGetUnavailable": "The native code of {packages} was not read: `{command}` could not be started. Only packages recognized by name count.",
+  "@raspPubGetUnavailable": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "packages": {
+        "type": "String"
+      },
+      "command": {
+        "type": "String"
+      }
+    }
+  },
+  "raspPubGetFailed": "The native code of {packages} was not read: `{command}` failed. Only packages recognized by name count.",
+  "@raspPubGetFailed": {
+    "description": "rules/protection_rules.dart: AEG-P01 runtime protection detection.",
+    "placeholders": {
+      "packages": {
+        "type": "String"
+      },
+      "command": {
+        "type": "String"
+      }
+    }
+  },
+  "raspEvidenceTitle": "Runtime protection (RASP)",
+  "@raspEvidenceTitle": {
+    "description": "Security evidence group title for AEG-P01."
   }
 }

@@ -2197,9 +2197,6 @@ class L10n {
   String get protectionRulesNoFreeraspStartCallWasFoundInThe => isArabic
       ? Ar.protectionRulesNoFreeraspStartCallWasFoundInThe
       : En.protectionRulesNoFreeraspStartCallWasFoundInThe;
-  String get protectionRulesNoRaspPackageFoundInDependencies => isArabic
-      ? Ar.protectionRulesNoRaspPackageFoundInDependencies
-      : En.protectionRulesNoRaspPackageFoundInDependencies;
   String get protectionRulesNoRuntimeProtectionRasp => isArabic
       ? Ar.protectionRulesNoRuntimeProtectionRasp
       : En.protectionRulesNoRuntimeProtectionRasp;
@@ -2293,10 +2290,141 @@ class L10n {
   String get protectionRulesWithoutRaspTheAppCannotTellWhenIt => isArabic
       ? Ar.protectionRulesWithoutRaspTheAppCannotTellWhenIt
       : En.protectionRulesWithoutRaspTheAppCannotTellWhenIt;
+  String get raspBinaryEncrypted =>
+      isArabic ? Ar.raspBinaryEncrypted : En.raspBinaryEncrypted;
+  String get raspEvidenceTitle =>
+      isArabic ? Ar.raspEvidenceTitle : En.raspEvidenceTitle;
+  String raspFoundBinary(
+          {required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      isArabic
+          ? Ar.raspFoundBinary(file: file, name: name, platforms: platforms)
+          : En.raspFoundBinary(file: file, name: name, platforms: platforms);
+  String raspFoundCustom(
+          {required Object? checks,
+          required Object? files,
+          required Object? platform}) =>
+      isArabic
+          ? Ar.raspFoundCustom(checks: checks, files: files, platform: platform)
+          : En.raspFoundCustom(
+              checks: checks, files: files, platform: platform);
+  String raspFoundPackage(
+          {required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      isArabic
+          ? Ar.raspFoundPackage(file: file, name: name, platforms: platforms)
+          : En.raspFoundPackage(file: file, name: name, platforms: platforms);
+  String raspFoundPackageCode(
+          {required Object? checks,
+          required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      isArabic
+          ? Ar.raspFoundPackageCode(
+              checks: checks, file: file, name: name, platforms: platforms)
+          : En.raspFoundPackageCode(
+              checks: checks, file: file, name: name, platforms: platforms);
+  String raspFoundPackageName(
+          {required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      isArabic
+          ? Ar.raspFoundPackageName(
+              file: file, name: name, platforms: platforms)
+          : En.raspFoundPackageName(
+              file: file, name: name, platforms: platforms);
+  String raspFoundSdk(
+          {required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      isArabic
+          ? Ar.raspFoundSdk(file: file, name: name, platforms: platforms)
+          : En.raspFoundSdk(file: file, name: name, platforms: platforms);
   String get raspIndirectUnresolved =>
       isArabic ? Ar.raspIndirectUnresolved : En.raspIndirectUnresolved;
+  String raspLibraryChecks(
+          {required Object? checks,
+          required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      isArabic
+          ? Ar.raspLibraryChecks(
+              checks: checks, file: file, name: name, platforms: platforms)
+          : En.raspLibraryChecks(
+              checks: checks, file: file, name: name, platforms: platforms);
+  String raspLibraryOnly(
+          {required Object? check,
+          required Object? libraries,
+          required Object? platform}) =>
+      isArabic
+          ? Ar.raspLibraryOnly(
+              check: check, libraries: libraries, platform: platform)
+          : En.raspLibraryOnly(
+              check: check, libraries: libraries, platform: platform);
+  String raspNone({required Object? check, required Object? platform}) =>
+      isArabic
+          ? Ar.raspNone(check: check, platform: platform)
+          : En.raspNone(check: check, platform: platform);
+  String raspNoneBinary(
+          {required Object? artifact,
+          required Object? check,
+          required Object? platform}) =>
+      isArabic
+          ? Ar.raspNoneBinary(
+              artifact: artifact, check: check, platform: platform)
+          : En.raspNoneBinary(
+              artifact: artifact, check: check, platform: platform);
   String get raspOrderUnverified =>
       isArabic ? Ar.raspOrderUnverified : En.raspOrderUnverified;
+  String raspPackagesNotResolved({required Object? packages}) => isArabic
+      ? Ar.raspPackagesNotResolved(packages: packages)
+      : En.raspPackagesNotResolved(packages: packages);
+  String raspPartial(
+          {required Object? found,
+          required Object? missing,
+          required Object? platform}) =>
+      isArabic
+          ? Ar.raspPartial(found: found, missing: missing, platform: platform)
+          : En.raspPartial(found: found, missing: missing, platform: platform);
+  String raspPubGetFailed(
+          {required Object? command, required Object? packages}) =>
+      isArabic
+          ? Ar.raspPubGetFailed(command: command, packages: packages)
+          : En.raspPubGetFailed(command: command, packages: packages);
+  String raspPubGetRan({required Object? command}) => isArabic
+      ? Ar.raspPubGetRan(command: command)
+      : En.raspPubGetRan(command: command);
+  String raspPubGetRanCreated({required Object? command}) => isArabic
+      ? Ar.raspPubGetRanCreated(command: command)
+      : En.raspPubGetRanCreated(command: command);
+  String raspPubGetUnavailable(
+          {required Object? command, required Object? packages}) =>
+      isArabic
+          ? Ar.raspPubGetUnavailable(command: command, packages: packages)
+          : En.raspPubGetUnavailable(command: command, packages: packages);
+  String raspUncertain(
+          {required Object? artifact,
+          required Object? checks,
+          required Object? files,
+          required Object? libraries,
+          required Object? platform}) =>
+      isArabic
+          ? Ar.raspUncertain(
+              artifact: artifact,
+              checks: checks,
+              files: files,
+              libraries: libraries,
+              platform: platform)
+          : En.raspUncertain(
+              artifact: artifact,
+              checks: checks,
+              files: files,
+              libraries: libraries,
+              platform: platform);
+  String raspUnused({required Object? name}) =>
+      isArabic ? Ar.raspUnused(name: name) : En.raspUnused(name: name);
   String ruleError({required Object? error}) =>
       isArabic ? Ar.ruleError(error: error) : En.ruleError(error: error);
   String get runChooseMode => isArabic ? Ar.runChooseMode : En.runChooseMode;
@@ -4087,7 +4215,7 @@ abstract final class En {
   static const protectionRulesASigningHashIsInHexFreeraspExpects =
       "A signing hash is in hex; freeRASP expects Base64 of the SHA-256.";
   static const protectionRulesAddARaspSdkSuchAsFreeraspStart =
-      "Add a RASP SDK such as freerasp, start it in main(), and react to threats (block sensitive features, wipe secrets, notify the backend).";
+      "Use a RASP package or SDK such as freerasp and start it in main(), or check for root/jailbreak, debuggers and hooking (Frida/Xposed) in Dart or native code; then react to threats (block sensitive features, wipe secrets, notify the backend).";
   static const protectionRulesAddFirebaseAppCheckWithPlayIntegrityAndroidAndApp =
       "Add firebase_app_check with Play Integrity (Android) and App Attest with DeviceCheck fallback (iOS), monitor metrics, then enable enforcement.";
   static const protectionRulesAndroidconfigHasNoSigningcerthashes =
@@ -4156,8 +4284,6 @@ abstract final class En {
       "No freeRASP listener registration was found in the scanned source.";
   static const protectionRulesNoFreeraspStartCallWasFoundInThe =
       "No freeRASP start call was found in the scanned source.";
-  static const protectionRulesNoRaspPackageFoundInDependencies =
-      "No RASP package found in dependencies.";
   static const protectionRulesNoRuntimeProtectionRasp =
       "No runtime protection (RASP)";
   static const protectionRulesNoScreenCaptureProtectionFound =
@@ -4219,10 +4345,184 @@ abstract final class En {
       "Without pinning, a user-installed or compromised CA lets an attacker read and modify API traffic. Pinning that still trusts system roots can be bypassed the same way.";
   static const protectionRulesWithoutRaspTheAppCannotTellWhenIt =
       "Without RASP the app cannot tell when it runs on a rooted/jailbroken device, under a debugger, with Frida hooks, or after being repackaged.";
+  static const raspBinaryEncrypted =
+      "The IPA's code is encrypted (an App Store download), so its runtime protection cannot be read. Audit the IPA exported from Xcode, or the source.";
+  static const raspEvidenceTitle = "Runtime protection (RASP)";
+  static String raspFoundBinary(
+          {required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      "Runtime protection on " +
+      platforms.toString() +
+      ": " +
+      name.toString() +
+      ", found in " +
+      file.toString() +
+      ".";
+  static String raspFoundCustom(
+          {required Object? checks,
+          required Object? files,
+          required Object? platform}) =>
+      "The app's own runtime checks on " +
+      platform.toString() +
+      ": " +
+      checks.toString() +
+      ", in " +
+      files.toString() +
+      ".";
+  static String raspFoundPackage(
+          {required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      "Runtime protection on " +
+      platforms.toString() +
+      ": the " +
+      name.toString() +
+      " package, imported in " +
+      file.toString() +
+      ".";
+  static String raspFoundPackageCode(
+          {required Object? checks,
+          required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      "Runtime protection on " +
+      platforms.toString() +
+      ": the " +
+      name.toString() +
+      " package, whose own code checks for " +
+      checks.toString() +
+      ", imported in " +
+      file.toString() +
+      ".";
+  static String raspFoundPackageName(
+          {required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      "Runtime protection on " +
+      platforms.toString() +
+      ": the " +
+      name.toString() +
+      " package (recognized by its name), imported in " +
+      file.toString() +
+      ".";
+  static String raspFoundSdk(
+          {required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      "Runtime protection on " +
+      platforms.toString() +
+      ": the " +
+      name.toString() +
+      " SDK, used in " +
+      file.toString() +
+      ".";
   static const raspIndirectUnresolved =
       "Could not resolve the indirect freeRASP startup calls.";
+  static String raspLibraryChecks(
+          {required Object? checks,
+          required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      "" +
+      name.toString() +
+      " checks for " +
+      checks.toString() +
+      " on " +
+      platforms.toString() +
+      " (" +
+      file.toString() +
+      "). It does this for its own reports, so it is not counted as protection.";
+  static String raspLibraryOnly(
+          {required Object? check,
+          required Object? libraries,
+          required Object? platform}) =>
+      "" +
+      platform.toString() +
+      ": the only " +
+      check.toString() +
+      " detection belongs to " +
+      libraries.toString() +
+      ". It labels that library's own reports and never reacts to a threat, so it does not protect the app. No RASP package or SDK and no check of the app's own was found.";
+  static String raspNone({required Object? check, required Object? platform}) =>
+      "" +
+      platform.toString() +
+      ": no RASP package or SDK is used, and no " +
+      check.toString() +
+      " detection was found in the Dart or native code.";
+  static String raspNoneBinary(
+          {required Object? artifact,
+          required Object? check,
+          required Object? platform}) =>
+      "" +
+      platform.toString() +
+      ": no RASP SDK and no " +
+      check.toString() +
+      " detection was found in the " +
+      artifact.toString() +
+      ".";
   static const raspOrderUnverified =
       "Could not verify the freeRASP listener and startup order in lib/main.dart.";
+  static String raspPackagesNotResolved({required Object? packages}) =>
+      "The native code of " +
+      packages.toString() +
+      " was not read because the dependencies are not resolved. Run `flutter pub get`, or drop --no-pub-get; until then only packages recognized by name count.";
+  static String raspPartial(
+          {required Object? found,
+          required Object? missing,
+          required Object? platform}) =>
+      "" +
+      platform.toString() +
+      ": the app's own checks detect " +
+      found.toString() +
+      " but not " +
+      missing.toString() +
+      ". Add the missing checks or use a RASP SDK that covers all of them.";
+  static String raspPubGetFailed(
+          {required Object? command, required Object? packages}) =>
+      "The native code of " +
+      packages.toString() +
+      " was not read: `" +
+      command.toString() +
+      "` failed. Only packages recognized by name count.";
+  static String raspPubGetRan({required Object? command}) =>
+      "Ran `" +
+      command.toString() +
+      "` to read the native code of the app's packages.";
+  static String raspPubGetRanCreated({required Object? command}) =>
+      "Ran `" +
+      command.toString() +
+      "` to read the native code of the app's packages. It created pubspec.lock.";
+  static String raspPubGetUnavailable(
+          {required Object? command, required Object? packages}) =>
+      "The native code of " +
+      packages.toString() +
+      " was not read: `" +
+      command.toString() +
+      "` could not be started. Only packages recognized by name count.";
+  static String raspUncertain(
+          {required Object? artifact,
+          required Object? checks,
+          required Object? files,
+          required Object? libraries,
+          required Object? platform}) =>
+      "" +
+      platform.toString() +
+      ": checks for " +
+      checks.toString() +
+      " are in the " +
+      artifact.toString() +
+      " (" +
+      files.toString() +
+      "), but the code that holds them cannot be identified, and " +
+      libraries.toString() +
+      " is in the same " +
+      artifact.toString() +
+      " with the same kind of check for its own reports. They may not be the app's protection, so they are not counted: audit the source, or confirm them by hand.";
+  static String raspUnused({required Object? name}) =>
+      "" +
+      name.toString() +
+      " is declared as a dependency, but nothing in the code uses it, so it does not protect the app.";
   static String ruleError({required Object? error}) =>
       "Rule error: " + error.toString() + "";
   static const runChooseMode = "Which mode do you want to audit?";
@@ -5985,7 +6285,7 @@ abstract final class Ar {
   static const protectionRulesASigningHashIsInHexFreeraspExpects =
       "فيه hash مكتوب hex، و freeRASP محتاج SHA-256 بصيغة Base64.";
   static const protectionRulesAddARaspSdkSuchAsFreeraspStart =
-      "ضيف RASP SDK زي freerasp، وشغّله في main()، واعمل رد فعل حقيقي (اقفل الخصائص الحساسة، امسح الأسرار، بلّغ السيرفر).";
+      "استخدم مكتبة أو SDK للـ RASP زي freerasp وشغّلها في main()، أو افحص الـ root/jailbreak والـ debugger والـ hooking (Frida/Xposed) في كود Dart أو الكود الـ native، وبعدين اعمل رد فعل حقيقي (اقفل الخصائص الحساسة، امسح الأسرار، بلّغ السيرفر).";
   static const protectionRulesAddFirebaseAppCheckWithPlayIntegrityAndroidAndApp =
       "ضيف firebase_app_check بـ Play Integrity على Android و App Attest مع DeviceCheck على iOS، راقب الأرقام، وبعدين فعّل الـ enforcement.";
   static const protectionRulesAndroidconfigHasNoSigningcerthashes =
@@ -6053,8 +6353,6 @@ abstract final class Ar {
       "ملقيناش تسجيل للـ listener في الكود اللي اتفحص.";
   static const protectionRulesNoFreeraspStartCallWasFoundInThe =
       "ملقيناش استدعاء لتشغيل freeRASP في الكود اللي اتفحص.";
-  static const protectionRulesNoRaspPackageFoundInDependencies =
-      "مفيش أي مكتبة RASP في الـ dependencies.";
   static const protectionRulesNoRuntimeProtectionRasp =
       "مفيش حماية وقت التشغيل (RASP)";
   static const protectionRulesNoScreenCaptureProtectionFound =
@@ -6116,10 +6414,182 @@ abstract final class Ar {
       "من غير pinning، أي CA متثبتة أو مخترقة تسمح للمهاجم يقرا ويعدّل الـ API traffic. والـ pinning اللي لسه بيثق في شهادات النظام ممكن يتخطى بنفس الطريقة.";
   static const protectionRulesWithoutRaspTheAppCannotTellWhenIt =
       "من غير RASP التطبيق مش هيعرف لو شغال على جهاز rooted أو jailbroken، أو عليه debugger أو Frida، أو لو حد عدّل عليه وأعاد توقيعه.";
+  static const raspBinaryEncrypted =
+      "كود الـ IPA متشفّر (نسخة من الـ App Store)، فمش ممكن نقرا منه حماية وقت التشغيل. افحص الـ IPA اللي طالع من Xcode أو الـ source.";
+  static const raspEvidenceTitle = "حماية وقت التشغيل (RASP)";
+  static String raspFoundBinary(
+          {required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      "حماية وقت التشغيل على " +
+      platforms.toString() +
+      ": " +
+      name.toString() +
+      "، موجود في " +
+      file.toString() +
+      ".";
+  static String raspFoundCustom(
+          {required Object? checks,
+          required Object? files,
+          required Object? platform}) =>
+      "فحوصات وقت التشغيل اللي في كود التطبيق على " +
+      platform.toString() +
+      ": " +
+      checks.toString() +
+      "، في " +
+      files.toString() +
+      ".";
+  static String raspFoundPackage(
+          {required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      "حماية وقت التشغيل على " +
+      platforms.toString() +
+      ": مكتبة " +
+      name.toString() +
+      "، مستخدمة في " +
+      file.toString() +
+      ".";
+  static String raspFoundPackageCode(
+          {required Object? checks,
+          required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      "حماية وقت التشغيل على " +
+      platforms.toString() +
+      ": مكتبة " +
+      name.toString() +
+      "، والكود بتاعها بيفحص " +
+      checks.toString() +
+      "، مستخدمة في " +
+      file.toString() +
+      ".";
+  static String raspFoundPackageName(
+          {required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      "حماية وقت التشغيل على " +
+      platforms.toString() +
+      ": مكتبة " +
+      name.toString() +
+      " (اتعرفت من اسمها)، مستخدمة في " +
+      file.toString() +
+      ".";
+  static String raspFoundSdk(
+          {required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      "حماية وقت التشغيل على " +
+      platforms.toString() +
+      ": الـ SDK " +
+      name.toString() +
+      "، مستخدم في " +
+      file.toString() +
+      ".";
   static const raspIndirectUnresolved =
       "تعذّر تتبّع استدعاءات تشغيل freeRASP غير المباشرة.";
+  static String raspLibraryChecks(
+          {required Object? checks,
+          required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      "" +
+      name.toString() +
+      " بتفحص " +
+      checks.toString() +
+      " على " +
+      platforms.toString() +
+      " (" +
+      file.toString() +
+      "). ده للتقارير بتاعتها هي، فمش محسوب حماية للتطبيق.";
+  static String raspLibraryOnly(
+          {required Object? check,
+          required Object? libraries,
+          required Object? platform}) =>
+      "" +
+      platform.toString() +
+      ": الكود الوحيد اللي بيكشف الـ " +
+      check.toString() +
+      " تبع " +
+      libraries.toString() +
+      ". المكتبة دي بتستخدمه في التقارير بتاعتها بس ومش بتتصرف لما تلاقي تهديد، فهو مش حماية للتطبيق. مفيش أي مكتبة أو SDK للـ RASP ومفيش فحص تبع التطبيق نفسه.";
+  static String raspNone({required Object? check, required Object? platform}) =>
+      "" +
+      platform.toString() +
+      ": مفيش أي مكتبة أو SDK للـ RASP مستخدمة، ومفيش كود بيكشف الـ " +
+      check.toString() +
+      " لا في Dart ولا في الكود الـ native.";
+  static String raspNoneBinary(
+          {required Object? artifact,
+          required Object? check,
+          required Object? platform}) =>
+      "" +
+      platform.toString() +
+      ": مفيش أي RASP SDK ومفيش كود بيكشف الـ " +
+      check.toString() +
+      " في ملف الـ " +
+      artifact.toString() +
+      ".";
   static const raspOrderUnverified =
       "تعذّر التحقق من ترتيب listener وتشغيل freeRASP في lib/main.dart.";
+  static String raspPackagesNotResolved({required Object? packages}) =>
+      "الكود الـ native بتاع " +
+      packages.toString() +
+      " ماتقراش لأن الـ dependencies مش متحمّلة. شغّل `flutter pub get` أو شيل --no-pub-get؛ لحد ما ده يحصل المكتبات المعروفة بالاسم بس هي اللي بتتحسب.";
+  static String raspPartial(
+          {required Object? found,
+          required Object? missing,
+          required Object? platform}) =>
+      "" +
+      platform.toString() +
+      ": الفحوصات اللي في كود التطبيق بتكشف " +
+      found.toString() +
+      " لكن مش بتكشف " +
+      missing.toString() +
+      ". ضيف الفحوصات الناقصة أو استخدم RASP SDK بيغطيهم كلهم.";
+  static String raspPubGetFailed(
+          {required Object? command, required Object? packages}) =>
+      "الكود الـ native بتاع " +
+      packages.toString() +
+      " ماتقراش: `" +
+      command.toString() +
+      "` فشل. المكتبات المعروفة بالاسم بس هي اللي بتتحسب.";
+  static String raspPubGetRan({required Object? command}) =>
+      "اتشغّل `" +
+      command.toString() +
+      "` علشان نقرا الكود الـ native بتاع مكتبات التطبيق.";
+  static String raspPubGetRanCreated({required Object? command}) =>
+      "اتشغّل `" +
+      command.toString() +
+      "` علشان نقرا الكود الـ native بتاع مكتبات التطبيق، وده عمل ملف pubspec.lock.";
+  static String raspPubGetUnavailable(
+          {required Object? command, required Object? packages}) =>
+      "الكود الـ native بتاع " +
+      packages.toString() +
+      " ماتقراش: `" +
+      command.toString() +
+      "` ماشتغلش. المكتبات المعروفة بالاسم بس هي اللي بتتحسب.";
+  static String raspUncertain(
+          {required Object? artifact,
+          required Object? checks,
+          required Object? files,
+          required Object? libraries,
+          required Object? platform}) =>
+      "" +
+      platform.toString() +
+      ": فيه فحوصات لـ " +
+      checks.toString() +
+      " في ملف الـ " +
+      artifact.toString() +
+      " (" +
+      files.toString() +
+      ")، بس مش معروف الكود ده تبع مين، و" +
+      libraries.toString() +
+      " موجودة في نفس الملف وعندها نفس نوع الفحص للتقارير بتاعتها. ممكن متكونش حماية تبع التطبيق، فمش محسوبة: افحص الـ source أو اتأكد منها بنفسك.";
+  static String raspUnused({required Object? name}) =>
+      "" +
+      name.toString() +
+      " موجودة في الـ dependencies بس مفيش كود بيستخدمها، فهي مش بتحمي التطبيق.";
   static String ruleError({required Object? error}) =>
       "حدث خطأ أثناء الفحص: " + error.toString() + "";
   static const runChooseMode = "عاوز تعمل الفحص بأي مود؟";

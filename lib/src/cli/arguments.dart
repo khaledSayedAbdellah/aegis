@@ -66,6 +66,12 @@ ArgParser auditParser({bool run = false}) => _iosOptions(
       ..addFlag('offline',
           negatable: false,
           help: 'Skip the OSV vulnerability lookup (no network).')
+      ..addFlag('pub-get',
+          defaultsTo: true,
+          help:
+              'Run "flutter pub get" (or "dart pub get") when the dependencies are not resolved, '
+              'so AEG-P01 can read the native code of the packages. With a pubspec.lock it runs '
+              'with --enforce-lockfile and never changes it.')
       ..addFlag('verbose',
           abbr: 'v',
           negatable: false,

@@ -80,10 +80,10 @@ void main() {
       expect(result(r, 'AEG-B01').status, RuleStatus.passed);
       expect(result(r, 'AEG-B10').status, RuleStatus.notApplicable);
       // Original source-only rules still do not run for a standalone APK.
-      expect(
-          r.results
-              .any((x) => x.meta.id == 'AEG-D01' || x.meta.id == 'AEG-P01'),
-          isFalse);
+      expect(r.results.any((x) => x.meta.id == 'AEG-D01'), isFalse);
+      // Runtime protection is read from the APK itself.
+      expect(messages(r, 'AEG-P01'),
+          'Android: no RASP SDK and no root detection was found in the APK.');
       expect(r.results.any((x) => x.meta.id == 'AEG-B12'), isTrue);
 
       final secrets = messages(r, 'AEG-B06');
@@ -131,7 +131,8 @@ void main() {
               reason: '${res.meta.id}: ${res.findings.map((f) => f.message)}');
         }
       }
-      expect(r.score.value, 100);
+      // The fixture is hardened at build level only: it has no RASP.
+      expect(failedIds(r), {'AEG-P01'});
     });
 
     test('debug build is detected', () async {

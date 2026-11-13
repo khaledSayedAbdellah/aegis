@@ -16,11 +16,11 @@ resources:
     type: github
     endpoint: <your GitHub service connection>
     name: khaledSayedAbdellah/aegis
-    ref: refs/tags/v0.11.0
+    ref: refs/tags/v0.12.0
 
 variables:
   FLUTTER_VERSION: '3.35.0'
-  AEGIS_VERSION: '0.11.0'
+  AEGIS_VERSION: '0.12.0'
 
 stages:
 # Source audit: fast, runs on every PR. Fails only on findings that are not in

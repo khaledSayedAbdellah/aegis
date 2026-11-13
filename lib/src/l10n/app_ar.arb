@@ -314,7 +314,7 @@
   "dartRulesRestrictNavigationWithNavigationdelegateOnnavigationrequestOrShouldoverrideurlloadingToYour": "اقفل التنقل على السيرفرات بتاعتك بـ onNavigationRequest أو shouldOverrideUrlLoading، وفعّل الـ debugging في الـ debug بس.",
   "protectionRulesNoRuntimeProtectionRasp": "مفيش حماية وقت التشغيل (RASP)",
   "protectionRulesWithoutRaspTheAppCannotTellWhenIt": "من غير RASP التطبيق مش هيعرف لو شغال على جهاز rooted أو jailbroken، أو عليه debugger أو Frida، أو لو حد عدّل عليه وأعاد توقيعه.",
-  "protectionRulesAddARaspSdkSuchAsFreeraspStart": "ضيف RASP SDK زي freerasp، وشغّله في main()، واعمل رد فعل حقيقي (اقفل الخصائص الحساسة، امسح الأسرار، بلّغ السيرفر).",
+  "protectionRulesAddARaspSdkSuchAsFreeraspStart": "استخدم مكتبة أو SDK للـ RASP زي freerasp وشغّلها في main()، أو افحص الـ root/jailbreak والـ debugger والـ hooking (Frida/Xposed) في كود Dart أو الكود الـ native، وبعدين اعمل رد فعل حقيقي (اقفل الخصائص الحساسة، امسح الأسرار، بلّغ السيرفر).",
   "protectionRulesMissingFreeraspStartupWiring": "استدعاءات تشغيل freeRASP ناقصة",
   "protectionRulesFreeraspOnlyProtectsTheAppAfterTalsecInstanceStartConfigRuns": "freeRASP مش بيحمي غير بعد ما Talsec.instance.start(config) يتنادى ويتربط ThreatCallback. غير كده هو مجرد مكتبة زيادة بتدي إحساس كاذب بالأمان.",
   "protectionRulesInMainWidgetsflutterbindingEnsureinitializedTalsecInstanceAttachlistenerCallbackAwaitTalsecInstanceStartConfig": "في main(): نادي WidgetsFlutterBinding.ensureInitialized()، وبعدين Talsec.instance.attachListener(callback)، وبعدين await Talsec.instance.start(config).",
@@ -530,7 +530,6 @@
   "dartRulesJavascriptBridgeWithoutNavigationRestrictions": "JavaScript bridge ({value1}) من غير قيود على التنقل.",
   "dartRulesWebviewDebuggingIsEnabled": "الـ debugging بتاع الـ WebView مفعّل ({value1}).",
   "dartRulesWebviewSetwebcontentsdebuggingenabledTrueInNativeCode": "WebView.setWebContentsDebuggingEnabled(true) في الكود الـ native.",
-  "protectionRulesNoRaspPackageFoundInDependencies": "مفيش أي مكتبة RASP في الـ dependencies.",
   "protectionRulesNoFreeraspStartCallWasFoundInThe": "ملقيناش استدعاء لتشغيل freeRASP في الكود اللي اتفحص.",
   "protectionRulesNoFreeraspListenerRegistrationWasFoundInThe": "ملقيناش تسجيل للـ listener في الكود اللي اتفحص.",
   "protectionRulesIsprodIsSoReleaseBuildsRun": "isProd قيمته \"{v}\"، يعني الـ release هيشغّل freeRASP في وضع التطوير.",
@@ -1207,5 +1206,25 @@
         "type": "String"
       }
     }
-  }
+  },
+  "raspNone": "{platform}: مفيش أي مكتبة أو SDK للـ RASP مستخدمة، ومفيش كود بيكشف الـ {check} لا في Dart ولا في الكود الـ native.",
+  "raspPartial": "{platform}: الفحوصات اللي في كود التطبيق بتكشف {found} لكن مش بتكشف {missing}. ضيف الفحوصات الناقصة أو استخدم RASP SDK بيغطيهم كلهم.",
+  "raspUnused": "{name} موجودة في الـ dependencies بس مفيش كود بيستخدمها، فهي مش بتحمي التطبيق.",
+  "raspFoundPackage": "حماية وقت التشغيل على {platforms}: مكتبة {name}، مستخدمة في {file}.",
+  "raspFoundPackageName": "حماية وقت التشغيل على {platforms}: مكتبة {name} (اتعرفت من اسمها)، مستخدمة في {file}.",
+  "raspFoundPackageCode": "حماية وقت التشغيل على {platforms}: مكتبة {name}، والكود بتاعها بيفحص {checks}، مستخدمة في {file}.",
+  "raspFoundSdk": "حماية وقت التشغيل على {platforms}: الـ SDK {name}، مستخدم في {file}.",
+  "raspFoundCustom": "فحوصات وقت التشغيل اللي في كود التطبيق على {platform}: {checks}، في {files}.",
+  "raspNoneBinary": "{platform}: مفيش أي RASP SDK ومفيش كود بيكشف الـ {check} في ملف الـ {artifact}.",
+  "raspLibraryOnly": "{platform}: الكود الوحيد اللي بيكشف الـ {check} تبع {libraries}. المكتبة دي بتستخدمه في التقارير بتاعتها بس ومش بتتصرف لما تلاقي تهديد، فهو مش حماية للتطبيق. مفيش أي مكتبة أو SDK للـ RASP ومفيش فحص تبع التطبيق نفسه.",
+  "raspLibraryChecks": "{name} بتفحص {checks} على {platforms} ({file}). ده للتقارير بتاعتها هي، فمش محسوب حماية للتطبيق.",
+  "raspFoundBinary": "حماية وقت التشغيل على {platforms}: {name}، موجود في {file}.",
+  "raspUncertain": "{platform}: فيه فحوصات لـ {checks} في ملف الـ {artifact} ({files})، بس مش معروف الكود ده تبع مين، و{libraries} موجودة في نفس الملف وعندها نفس نوع الفحص للتقارير بتاعتها. ممكن متكونش حماية تبع التطبيق، فمش محسوبة: افحص الـ source أو اتأكد منها بنفسك.",
+  "raspBinaryEncrypted": "كود الـ IPA متشفّر (نسخة من الـ App Store)، فمش ممكن نقرا منه حماية وقت التشغيل. افحص الـ IPA اللي طالع من Xcode أو الـ source.",
+  "raspPubGetRan": "اتشغّل `{command}` علشان نقرا الكود الـ native بتاع مكتبات التطبيق.",
+  "raspPubGetRanCreated": "اتشغّل `{command}` علشان نقرا الكود الـ native بتاع مكتبات التطبيق، وده عمل ملف pubspec.lock.",
+  "raspPackagesNotResolved": "الكود الـ native بتاع {packages} ماتقراش لأن الـ dependencies مش متحمّلة. شغّل `flutter pub get` أو شيل --no-pub-get؛ لحد ما ده يحصل المكتبات المعروفة بالاسم بس هي اللي بتتحسب.",
+  "raspPubGetUnavailable": "الكود الـ native بتاع {packages} ماتقراش: `{command}` ماشتغلش. المكتبات المعروفة بالاسم بس هي اللي بتتحسب.",
+  "raspPubGetFailed": "الكود الـ native بتاع {packages} ماتقراش: `{command}` فشل. المكتبات المعروفة بالاسم بس هي اللي بتتحسب.",
+  "raspEvidenceTitle": "حماية وقت التشغيل (RASP)"
 }

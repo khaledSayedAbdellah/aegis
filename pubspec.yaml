@@ -3,7 +3,7 @@ description: >-
   Security audit for Flutter, React Native, KMP and native Android/iOS apps:
   OWASP MASVS-mapped rules, MAS profile scoring (L1/L2/R), and reports in
   English and Arabic.
-version: 0.11.0
+version: 0.12.0
 repository: https://github.com/khaledSayedAbdellah/aegis
 issue_tracker: https://github.com/khaledSayedAbdellah/aegis/issues
 

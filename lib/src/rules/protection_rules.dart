@@ -14,6 +14,10 @@ import 'package:xml/xml.dart';
 import '../dart_scanner.dart';
 import '../model.dart';
 import '../project.dart';
+import '../project/package_roots.dart';
+import '../security/evidence.dart';
+import '../security/rasp_binary.dart';
+import '../security/rasp_detection.dart';
 import '../util.dart';
 import 'dart_rules.dart' show guardedByDebug;
 import 'rule.dart';
@@ -22,16 +26,6 @@ const _all = {MasProfile.l1, MasProfile.l2, MasProfile.r};
 const _r = {MasProfile.r};
 const _l2 = {MasProfile.l2};
 const _l2r = {MasProfile.l2, MasProfile.r};
-
-const raspPackages = [
-  'freerasp',
-  'safe_device',
-  'flutter_jailbreak_detection',
-  'jailbreak_root_detection',
-  'flutter_neo_shield',
-  'flutter_app_security',
-  'trust_fall',
-];
 
 /// Dart files that import [package].
 List<DartFile> filesImporting(Project p, String package) =>
@@ -170,15 +164,291 @@ class RaspPresenceRule extends Rule {
       );
 
   @override
-  RuleCheck check(Project project, ProfileSet profile) {
-    if (!project.isFlutterApp) return RuleCheck.notApplicable();
-    final has = raspPackages.any(project.usesPackage);
-    if (has) return RuleCheck([]);
-    return RuleCheck([
-      inFile('pubspec.yaml', null,
-          En.protectionRulesNoRaspPackageFoundInDependencies,
-          messageAr: Ar.protectionRulesNoRaspPackageFoundInDependencies)
-    ]);
+  Future<RuleCheck> check(Project project, ProfileSet profile) async {
+    final apk = project.apk, ipa = project.ipa;
+    // Without source, protection is read from the compiled app.
+    final binary = !project.hasSource;
+    final artifact = apk?.kind ?? 'IPA';
+    final Set<String> platforms;
+    RaspInventory found;
+    PackageRoots? packages;
+    var unread = const <String>[];
+    if (binary) {
+      if (apk == null && ipa == null) return RuleCheck.notApplicable();
+      platforms = {apk != null ? raspAndroid : raspIos};
+      found = apk != null ? detectApkRasp(apk) : detectIpaRasp(ipa!);
+    } else {
+      var targets = {
+        if (project.hasAndroid) raspAndroid,
+        if (project.hasIos) raspIos,
+      };
+      // A Flutter app without its platform folders (not created yet, or kept
+      // elsewhere) still ships to both.
+      if (targets.isEmpty && project.isFlutterApp) {
+        targets = {raspAndroid, raspIos};
+      }
+      if (targets.isEmpty) return RuleCheck.notApplicable();
+      platforms = targets;
+      found = detectRasp(project, platforms);
+      // Other packages only count when their code checks the device: that
+      // needs their files, so resolve them when something is still missing.
+      final toScan = raspPackagesToScan(project);
+      if (toScan.isNotEmpty && !platforms.every(found.coversWithSdk)) {
+        packages = await resolvePackageRoots(project.root, toScan,
+            pubGet: project.pubGet, offline: project.offline);
+        found = detectRasp(project, platforms, roots: packages.roots);
+        unread = toScan.where((n) => !packages!.roots.containsKey(n)).toList()
+          ..sort();
+      }
+    }
+    String label(String platform) =>
+        platform == raspAndroid ? 'Android' : 'iOS';
+    String labels(Iterable<String> platforms) =>
+        [raspAndroid, raspIos].where(platforms.contains).map(label).join(', ');
+    String checks(Iterable<String> checks) =>
+        [raspRoot, raspJailbreak, raspDebugger, raspHooking]
+            .where(checks.contains)
+            .map((c) => c == raspHooking ? 'hooking (Frida/Xposed)' : c)
+            .join(', ');
+    final artifactFile = apk?.fileName ?? ipa?.label ?? '.';
+    void evidence(
+            String file, String en, String ar, Map<String, Object?> data) =>
+        project.securityEvidence.add(SecurityEvidence(
+            meta.id, binary ? artifactFile : file, Bilingual(en, ar),
+            status: 'facts', data: {...data, 'runtimeVerified': false}));
+
+    for (final s in found.sdks) {
+      final on = labels(s.platforms);
+      final (en, ar) = switch (s.kind) {
+        'package' => (
+            En.raspFoundPackage(platforms: on, name: s.name, file: s.file),
+            Ar.raspFoundPackage(platforms: on, name: s.name, file: s.file)
+          ),
+        'package-name' => (
+            En.raspFoundPackageName(platforms: on, name: s.name, file: s.file),
+            Ar.raspFoundPackageName(platforms: on, name: s.name, file: s.file)
+          ),
+        'package-code' => (
+            En.raspFoundPackageCode(
+                platforms: on,
+                name: s.name,
+                checks: checks(s.checks),
+                file: s.file),
+            Ar.raspFoundPackageCode(
+                platforms: on,
+                name: s.name,
+                checks: checks(s.checks),
+                file: s.file)
+          ),
+        'binary' => (
+            En.raspFoundBinary(platforms: on, name: s.name, file: s.file),
+            Ar.raspFoundBinary(platforms: on, name: s.name, file: s.file)
+          ),
+        _ => (
+            En.raspFoundSdk(platforms: on, name: s.name, file: s.file),
+            Ar.raspFoundSdk(platforms: on, name: s.name, file: s.file)
+          ),
+      };
+      evidence(s.file, en, ar, {
+        'source': s.kind,
+        'name': s.name,
+        'platforms': s.platforms.toList()..sort(),
+      });
+    }
+    for (final l in found.libraries) {
+      final on = labels(l.platforms);
+      evidence(
+          l.file,
+          En.raspLibraryChecks(
+              name: l.name,
+              checks: checks(l.checks),
+              platforms: on,
+              file: l.file),
+          Ar.raspLibraryChecks(
+              name: l.name,
+              checks: checks(l.checks),
+              platforms: on,
+              file: l.file),
+          {
+            'source': 'library',
+            'name': l.name,
+            'platforms': l.platforms.toList()..sort(),
+            'checks': l.checks.toList()..sort(),
+            'countsAsProtection': false,
+          });
+    }
+    final uncertainEn = <String>[], uncertainAr = <String>[];
+    for (final platform in [raspAndroid, raspIos].where(platforms.contains)) {
+      final custom = found.custom[platform];
+      if (custom == null) continue;
+      final files = {for (final f in custom.values) ...f}.toList()..sort();
+      final shown = files.take(5).join(', ');
+      final maybe = found.uncertain[platform];
+      final data = {
+        'source': 'custom',
+        'platform': platform,
+        'checks': {
+          for (final e in custom.entries) e.key: e.value.toList()..sort()
+        },
+      };
+      if (maybe != null && !found.coversWithSdk(platform)) {
+        final libraries = (maybe.toList()..sort()).join(', ');
+        final en = En.raspUncertain(
+            platform: label(platform),
+            checks: checks(custom.keys),
+            artifact: artifact,
+            files: shown,
+            libraries: libraries);
+        final ar = Ar.raspUncertain(
+            platform: label(platform),
+            checks: checks(custom.keys),
+            artifact: artifact,
+            files: shown,
+            libraries: libraries);
+        uncertainEn.add(en);
+        uncertainAr.add(ar);
+        evidence(files.first, en, ar, {
+          ...data,
+          'mayBelongTo': maybe.toList()..sort(),
+          'countsAsProtection': false,
+        });
+        continue;
+      }
+      evidence(
+          files.first,
+          En.raspFoundCustom(
+              platform: label(platform),
+              checks: checks(custom.keys),
+              files: shown),
+          Ar.raspFoundCustom(
+              platform: label(platform),
+              checks: checks(custom.keys),
+              files: shown),
+          data);
+    }
+    if (packages != null) {
+      final command = packages.command;
+      final names = unread.take(5).join(', ');
+      final (String, String)? note;
+      if (unread.isEmpty) {
+        note = command == null
+            ? null
+            : packages.created
+                ? (
+                    En.raspPubGetRanCreated(command: command),
+                    Ar.raspPubGetRanCreated(command: command)
+                  )
+                : (
+                    En.raspPubGetRan(command: command),
+                    Ar.raspPubGetRan(command: command)
+                  );
+      } else {
+        note = switch (packages.issue) {
+          'tool-missing' => (
+              En.raspPubGetUnavailable(packages: names, command: command!),
+              Ar.raspPubGetUnavailable(packages: names, command: command)
+            ),
+          'failed' => (
+              En.raspPubGetFailed(packages: names, command: command!),
+              Ar.raspPubGetFailed(packages: names, command: command)
+            ),
+          _ => (
+              En.raspPackagesNotResolved(packages: names),
+              Ar.raspPackagesNotResolved(packages: names)
+            ),
+        };
+      }
+      if (note != null) {
+        evidence('pubspec.yaml', note.$1, note.$2, {
+          'source': 'packages',
+          if (command != null) 'command': command,
+          if (packages.issue != null) 'issue': packages.issue,
+          'unread': unread,
+        });
+      }
+    }
+    if (found.unreadable) {
+      return RuleCheck.incompleteLocalized(
+          En.raspBinaryEncrypted, Ar.raspBinaryEncrypted);
+    }
+
+    final home = binary
+        ? (String _) => artifactFile
+        : File(project.abs('pubspec.yaml')).existsSync()
+            ? (String _) => 'pubspec.yaml'
+            : (String platform) =>
+                (platform == raspAndroid
+                        ? project.androidNativeSources
+                        : project.iosNativeSources)
+                    .firstOrNull
+                    ?.path ??
+                '.';
+    final out = <Finding>[];
+    for (final platform in [raspAndroid, raspIos].where(platforms.contains)) {
+      if (found.coversWithSdk(platform)) continue;
+      final custom = found.custom[platform] ?? const {};
+      final integrity = raspIntegrityCheck(platform);
+      if (!custom.containsKey(integrity)) {
+        final libraries = found.librariesChecking(platform).join(', ');
+        final (en, ar) = libraries.isNotEmpty
+            ? (
+                En.raspLibraryOnly(
+                    platform: label(platform),
+                    check: integrity,
+                    libraries: libraries),
+                Ar.raspLibraryOnly(
+                    platform: label(platform),
+                    check: integrity,
+                    libraries: libraries)
+              )
+            : binary
+                ? (
+                    En.raspNoneBinary(
+                        platform: label(platform),
+                        check: integrity,
+                        artifact: artifact),
+                    Ar.raspNoneBinary(
+                        platform: label(platform),
+                        check: integrity,
+                        artifact: artifact)
+                  )
+                : (
+                    En.raspNone(platform: label(platform), check: integrity),
+                    Ar.raspNone(platform: label(platform), check: integrity)
+                  );
+        out.add(inFile(home(platform), null, en, messageAr: ar));
+        continue;
+      }
+      if (found.uncertain.containsKey(platform)) continue;
+      final missing = [raspDebugger, raspHooking]
+          .where((c) => !custom.containsKey(c))
+          .toList();
+      if (missing.isEmpty) continue;
+      final file =
+          binary ? artifactFile : (custom[integrity]!.toList()..sort()).first;
+      out.add(inFile(
+          file,
+          null,
+          En.raspPartial(
+              platform: label(platform),
+              found: checks(custom.keys),
+              missing: checks(missing)),
+          messageAr: Ar.raspPartial(
+              platform: label(platform),
+              found: checks(custom.keys),
+              missing: checks(missing))));
+    }
+    if (out.isNotEmpty) {
+      for (final (name, file) in found.unused) {
+        out.add(inFile(file, null, En.raspUnused(name: name),
+            messageAr: Ar.raspUnused(name: name)));
+      }
+    }
+    if (out.isEmpty && uncertainEn.isNotEmpty) {
+      return RuleCheck.evidenceOnly(
+          uncertainEn.join(' '), uncertainAr.join(' '));
+    }
+    return RuleCheck(out);
   }
 }
 
