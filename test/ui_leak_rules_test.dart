@@ -134,4 +134,74 @@ final card = TextField(decoration: InputDecoration(labelText: 'Card number'));
         contains('android/app/src/main/res/layout/pay.xml:2'));
     expect(result(r, 'AEG-P14').note, isNot(contains('pay.xml:3')));
   });
+
+  test('AEG-D16 native clipboard', () async {
+    final r = await audit({
+      'ios/Runner/Copy.swift': '''
+func copy() {
+  // UIPasteboard.general.string = password
+  UIPasteboard.general.string = session.refreshToken
+  UIPasteboard.general.string = orderId
+}
+''',
+      'android/app/src/main/kotlin/Copy.kt': '''
+fun copy(cm: ClipboardManager) {
+  cm.setPrimaryClip(ClipData.newPlainText("pw", userPassword))
+}
+''',
+    });
+    expect(lines(r, 'AEG-D16'), [
+      '2: `userPassword` is copied to the clipboard.',
+      '3: `session.refreshToken` is copied to the clipboard.',
+    ]);
+  });
+
+  test('AEG-D20 native raw key bytes in plain storage', () async {
+    final r = await audit({
+      'android/app/src/main/kotlin/Keys.kt': '''
+fun save(prefs: SharedPreferences, key: SecretKey) {
+  val raw = key.encoded
+  prefs.edit().putString("k", Base64.encodeToString(raw, 0)).apply()
+  prefs.edit().putString("theme", "dark").apply()
+}
+''',
+      'ios/Runner/Keys.swift': '''
+func save(key: SymmetricKey) {
+  let raw = key.rawRepresentation
+  UserDefaults.standard.set(raw, forKey: "k")
+}
+''',
+    });
+    expect(lines(r, 'AEG-D20'), [
+      '3: Key `raw` is written to plain storage with putString().',
+      '3: Key `raw` is written to plain storage with UserDefaults.standard.set().',
+    ]);
+  });
+
+  test('AEG-D04 drift, Isar and ObjectBox entities', () async {
+    final r = await audit({
+      'lib/db.dart': r"""
+class Users extends Table {
+  IntColumn get id => integer()();
+  TextColumn get accessToken => text()();
+}
+@collection
+class Account {
+  Id id = Isar.autoIncrement;
+  String? password;
+  String? email;
+}
+@Entity()
+class Card {
+  int id = 0;
+  String cvv = '';
+}
+""",
+    });
+    expect(lines(r, 'AEG-D04'), [
+      '3: The drift entity Users stores accessToken without encryption.',
+      '8: The Isar entity Account stores password without encryption.',
+      '14: The ObjectBox entity Card stores cvv without encryption.',
+    ]);
+  });
 }

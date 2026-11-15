@@ -1836,6 +1836,13 @@ class L10n {
   String get passTitlesWebviewsAreLockedDown => isArabic
       ? Ar.passTitlesWebviewsAreLockedDown
       : En.passTitlesWebviewsAreLockedDown;
+  String plainEntityField(
+          {required Object? entity,
+          required Object? field,
+          required Object? store}) =>
+      isArabic
+          ? Ar.plainEntityField(entity: entity, field: field, store: store)
+          : En.plainEntityField(entity: entity, field: field, store: store);
   String plainHiveBox({required Object? box}) =>
       isArabic ? Ar.plainHiveBox(box: box) : En.plainHiveBox(box: box);
   String plainKey({required Object? call, required Object? key}) => isArabic
@@ -4268,6 +4275,17 @@ abstract final class En {
   static const passTitlesTlsCertificatesAreValidated =
       "TLS certificates are validated";
   static const passTitlesWebviewsAreLockedDown = "WebViews are locked down";
+  static String plainEntityField(
+          {required Object? entity,
+          required Object? field,
+          required Object? store}) =>
+      "The " +
+      store.toString() +
+      " entity " +
+      entity.toString() +
+      " stores " +
+      field.toString() +
+      " without encryption.";
   static String plainHiveBox({required Object? box}) =>
       "Hive box \"" +
       box.toString() +
@@ -6566,6 +6584,17 @@ abstract final class Ar {
   static const passTitlesTlsCertificatesAreValidated =
       "شهادات TLS بيتم التحقق منها";
   static const passTitlesWebviewsAreLockedDown = "الـ WebView مقفول كويس";
+  static String plainEntityField(
+          {required Object? entity,
+          required Object? field,
+          required Object? store}) =>
+      "الـ" +
+      store.toString() +
+      " entity " +
+      entity.toString() +
+      " بيخزّن " +
+      field.toString() +
+      " من غير تشفير.";
   static String plainHiveBox({required Object? box}) =>
       "الـHive box \"" +
       box.toString() +

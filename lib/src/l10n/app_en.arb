@@ -5049,5 +5049,20 @@
         "type": "String"
       }
     }
+  },
+  "plainEntityField": "The {store} entity {entity} stores {field} without encryption.",
+  "@plainEntityField": {
+    "description": "rules/dart_rules.dart: AEG-D04 database entities.",
+    "placeholders": {
+      "store": {
+        "type": "String"
+      },
+      "entity": {
+        "type": "String"
+      },
+      "field": {
+        "type": "String"
+      }
+    }
   }
 }

@@ -1299,5 +1299,6 @@
   "a11yLeakPass": "الحقول الحساسة مخفية عن خدمات الـaccessibility",
   "a11yLeakDescription": "خدمات الـaccessibility بتقرا اللي على الشاشة، والبرامج الضارة كتير بتطلب الصلاحية دي. فأرقام الكروت والهوية اللي بتظهر في حقول عادية ممكن تتقري وتتبعت. والـaccessibility لازم تفضل شغّالة، فالـrule دي بتعرض الحقول للمراجعة بدل ما تفشل.",
   "a11yLeakFix": "على Android حط `android:accessibilityDataSensitive=\"yes\"` (API 34) على الحقول دي، وفي Flutter اخفي القيمة (`obscureText`) أو حط الحقل جوّه `Semantics(obscured: true)` في الأماكن اللي قارئ الشاشة مش محتاج فيها الأرقام.",
-  "a11yLeak": "حقول فيها أرقام كروت أو هوية ممكن خدمات الـaccessibility تقراها، محتاجة مراجعة: {places}."
+  "a11yLeak": "حقول فيها أرقام كروت أو هوية ممكن خدمات الـaccessibility تقراها، محتاجة مراجعة: {places}.",
+  "plainEntityField": "الـ{store} entity {entity} بيخزّن {field} من غير تشفير."
 }

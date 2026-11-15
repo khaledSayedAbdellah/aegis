@@ -11,6 +11,7 @@ import '../dart_scanner.dart';
 import '../l10n/messages.g.dart';
 import '../model.dart';
 import '../project.dart';
+import '../security/native_analysis.dart' show withoutComments;
 import 'dart_rules.dart' show guardedByDebug, isSecretName;
 import 'rule.dart';
 
@@ -64,6 +65,18 @@ bool _obscured(DartFile f, CallSite c) {
   final v = _named(f, c, 'obscureText');
   return v != null && v != 'false';
 }
+
+/// Line number (1-based) of [offset] in [text].
+int _lineAt(String text, int offset) =>
+    '\n'.allMatches(text.substring(0, offset)).length + 1;
+
+/// The last identifier of an expression: `session.accessToken` -> `accessToken`.
+String _lastName(String expression) =>
+    RegExp(r'[A-Za-z_]\w*')
+        .allMatches(expression)
+        .map((m) => m[0]!)
+        .lastOrNull ??
+    expression;
 
 class KeyboardCacheRule extends Rule {
   const KeyboardCacheRule();
@@ -134,6 +147,21 @@ class ClipboardRule extends Rule {
             .lastWhere((s) => s.isNotEmpty, orElse: () => value);
         if (!isSecretName(name)) continue;
         out.add(at(f, c.nameIndex, En.clipboard(value: value),
+            messageAr: Ar.clipboard(value: value)));
+      }
+    }
+    // Swift / Objective-C and Kotlin / Java.
+    final native = RegExp(
+        r'(?:UIPasteboard\.general|generalPasteboard\])\.string\s*=\s*([\w.]+)|'
+        r'UIPasteboard\.general\.setValue\(\s*([\w.]+)|'
+        r'ClipData\.newPlainText\([^,]*,\s*([\w.]+)');
+    for (final file in project.nativeSources) {
+      final code = withoutComments(file.text);
+      for (final m in native.allMatches(code)) {
+        final value = m[1] ?? m[2] ?? m[3]!;
+        if (!isSecretName(_lastName(value))) continue;
+        out.add(inFile(
+            file.path, _lineAt(code, m.start), En.clipboard(value: value),
             messageAr: Ar.clipboard(value: value)));
       }
     }
@@ -271,6 +299,19 @@ class PlainKeyStorageRule extends Rule {
       r'(?:cipher|crypt|db|database|wrap|wrapping|kek|dek|data|storage)_?key|keybytes|rawkey|keymaterial',
       caseSensitive: false);
 
+  /// Native variables holding raw key bytes: `val raw = key.encoded`,
+  /// `let data = SecKeyCopyExternalRepresentation(key, nil)`,
+  /// `let raw = symmetricKey.rawRepresentation`.
+  static final _nativeKeyBytes = RegExp(
+      r'\b(?:val|var|let|byte\[\])\s+(\w+)\s*(?::\s*[\w<>?\[\]]+\s*)?=\s*'
+      r'(?:[\w.]+\.encoded\b|SecKeyCopyExternalRepresentation\(|[\w.]+\.rawRepresentation\b|'
+      r'SecretKeySpec\(|keyGenerator\.generateKey\(\)|KeyGenerator\.getInstance)');
+
+  /// Native writes to plain storage, one line each.
+  static final _nativeWrite =
+      RegExp(r'[^\n]*?\b(putString|putStringSet|writeBytes|writeText|'
+          r'UserDefaults\.standard\.set|setObject|write\(to)\b[^\n]*');
+
   static const _writers = {
     'setString', 'setStringList', 'write', 'put', 'putAll', 'writeAsString', //
     'writeAsBytes', 'writeAsStringSync', 'writeAsBytesSync',
@@ -301,6 +342,28 @@ class PlainKeyStorageRule extends Rule {
         if (key == null || guardedByDebug(f, c.nameIndex)) continue;
         out.add(at(f, c.nameIndex, En.plainKey(key: key, call: c.name),
             messageAr: Ar.plainKey(key: key, call: c.name)));
+      }
+    }
+    for (final file in project.nativeSources) {
+      final code = withoutComments(file.text);
+      // Values that are raw key bytes.
+      final keys = {
+        for (final m in _nativeKeyBytes.allMatches(code)) m[1]!,
+      };
+      for (final m in _nativeWrite.allMatches(code)) {
+        final line = m[0]!;
+        final key = keys
+                .where((k) => RegExp('\\b$k\\b').hasMatch(line))
+                .firstOrNull ??
+            (RegExp(r'\.encoded\b|SecKeyCopyExternalRepresentation|\.rawRepresentation')
+                    .hasMatch(line)
+                ? _lastName(line.split('(').skip(1).join('('))
+                : null);
+        if (key == null) continue;
+        final call = m[1]!;
+        out.add(inFile(file.path, _lineAt(code, m.start),
+            En.plainKey(key: key, call: call),
+            messageAr: Ar.plainKey(key: key, call: call)));
       }
     }
     return RuleCheck(out);

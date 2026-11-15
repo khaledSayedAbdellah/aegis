@@ -21,6 +21,7 @@ import 'project/native_files.dart';
 import 'rules/android_rules.dart';
 import 'rules/backend_rules.dart';
 import 'rules/debug_tool_rules.dart';
+import 'rules/ui_leak_rules.dart' show ClipboardRule, PlainKeyStorageRule;
 import 'rules/platform_security_rules.dart';
 import 'rules/platform_protection_rules.dart';
 import 'rules/native_security_rules.dart';
@@ -421,6 +422,8 @@ Future<AuditReport> runAudit(
           const RaspPresenceRule(),
           ...backendRules,
           ...debugToolRules,
+          const ClipboardRule(),
+          const PlainKeyStorageRule(),
         ],
         // Without source, runtime protection is read from the artifact.
         if (!project.hasSource && (project.apk != null || ipa != null))

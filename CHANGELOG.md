@@ -7,7 +7,8 @@
   * `AEG-D18` (low): `flutter_secure_storage` items saved with an accessibility that isn't `_this_device`, or as synchronizable.
   * `AEG-D20` (medium, high for L2): crypto keys the app generates, or key material, written to SharedPreferences, Hive or files instead of the Keystore or Keychain.
   * `AEG-P14` (low, listed for review): card and identity number fields that accessibility services can read.
-* `AEG-D04` also reports Hive boxes named for secrets opened without `encryptionCipher`, and SQLite tables with password or token columns when the database isn't encrypted (no SQLCipher).
+* `AEG-D04` also reports Hive boxes named for secrets opened without `encryptionCipher`, and SQLite tables, drift tables, Isar collections and ObjectBox entities with password or token fields when the database isn't encrypted (no SQLCipher, no Isar `encryptionKey`).
+* `AEG-D16` and `AEG-D20` also read Swift, Objective-C, Kotlin and Java: `UIPasteboard` and `ClipData` with secrets, and raw key bytes (`key.encoded`, `rawRepresentation`, `SecKeyCopyExternalRepresentation`) saved with `putString`, `UserDefaults` or file writes. Both now also run for native Android and iOS projects.
 
 ## 0.13.0
 

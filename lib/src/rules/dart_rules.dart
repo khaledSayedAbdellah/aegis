@@ -429,6 +429,8 @@ class InsecureStorageRule extends Rule {
   @override
   RuleCheck check(Project project, ProfileSet profile) {
     final out = <Finding>[];
+    final encryptedIsar =
+        project.dartFiles.any((f) => f.source.contains('encryptionKey:'));
     final encryptedSql = project.usesPackage('sqflite_sqlcipher') ||
         project.usesPackage('sqlcipher_flutter_libs') ||
         project.usesPackage('encrypted_drift');
@@ -480,6 +482,43 @@ class InsecureStorageRule extends Rule {
         out.add(at(f, c.nameIndex, En.plainHiveBox(box: t.value!),
             messageAr: Ar.plainHiveBox(box: t.value!)));
       }
+      // drift tables, Isar collections and ObjectBox entities with secret
+      // fields, when the database isn't encrypted.
+      for (final m in _entityClass.allMatches(f.source)) {
+        final annotation = m[1] ?? '';
+        final drift = m[3] != null;
+        if (annotation.isEmpty && !drift) continue;
+        final store = drift
+            ? 'drift'
+            : annotation.contains('Entity')
+                ? 'ObjectBox'
+                : 'Isar';
+        if (store == 'drift' && encryptedSql) continue;
+        if (store == 'Isar' && encryptedIsar) continue;
+        var depth = 1, end = m.end;
+        while (end < f.source.length && depth > 0) {
+          final ch = f.source[end];
+          if (ch == '{') depth++;
+          if (ch == '}') depth--;
+          end++;
+        }
+        final body = f.source.substring(m.end, end);
+        final fields = drift ? _driftColumn : _entityField;
+        for (final field in fields.allMatches(body)) {
+          if (!isSecretName(field[1]!)) continue;
+          final line = '\n'
+                  .allMatches(f.source.substring(0, m.end + field.start))
+                  .length +
+              1;
+          out.add(inFile(
+              f.path,
+              line,
+              En.plainEntityField(
+                  store: store, entity: m[2]!, field: field[1]!),
+              messageAr: Ar.plainEntityField(
+                  store: store, entity: m[2]!, field: field[1]!)));
+        }
+      }
       // SQLite tables with sensitive columns in an unencrypted database.
       if (!encryptedSql) {
         for (final i in f.stringIndexes()) {
@@ -500,6 +539,13 @@ class InsecureStorageRule extends Rule {
     }
     return RuleCheck(out);
   }
+
+  static final _entityClass = RegExp(
+      r'(@(?:collection|Collection\(\)|Entity\(\))\s+)?class\s+(\w+)(\s+extends\s+Table)?[^{;]*\{');
+  static final _driftColumn =
+      RegExp(r'(?:TextColumn|BlobColumn)\s+get\s+(\w+)');
+  static final _entityField =
+      RegExp(r'(?:String|List<int>|Uint8List|List<String>)\??\s+(\w+)\s*[;=]');
 
   static final _secretStore = RegExp(
       r'secret|token|auth|credential|password|session|wallet|card|\bpin\b|vault|keys?\b',
