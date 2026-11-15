@@ -1,5 +1,6 @@
-## Unreleased
+## 0.12.1
 
+* The README opens with a screenshot of the HTML report, and pub.dev shows it as the package screenshot.
 * New [GitHub Action](https://github.com/khaledSayedAbdellah/aegis-action): `uses: khaledSayedAbdellah/aegis-action@v1` runs aegis and reports to code scanning, annotations, the job summary and a reports artifact, with the score and counts as step outputs. It is kept in `action/` and published with each release.
 
 ## 0.12.0
