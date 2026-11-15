@@ -1,4 +1,4 @@
-/// Orchestrates `aegis probe` (doc/plans/probe.md §2–3): boot, baseline gate,
+/// Orchestrates `aegis probe`: boot, baseline gate,
 /// then each resilience check, each judged only from what was observed.
 ///
 /// Pure orchestration over the [ProbeDevice] seam and [observation.dart], so

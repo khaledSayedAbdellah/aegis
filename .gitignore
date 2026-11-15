@@ -17,3 +17,6 @@ aegis-report.*
 
 # Python
 __pycache__/
+
+# Plans are local working notes and are never uploaded.
+doc/plans/

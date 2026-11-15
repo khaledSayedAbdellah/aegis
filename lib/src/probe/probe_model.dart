@@ -1,4 +1,4 @@
-/// Data types for `aegis probe` (doc/plans/probe.md). No I/O.
+/// Data types for `aegis probe`. No I/O.
 library;
 
 import '../l10n/messages.g.dart';

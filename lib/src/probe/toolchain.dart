@@ -1,6 +1,6 @@
-/// Finds the tools the resilience probe will need (doc/plans/probe-toolchain.md
-/// §3–4). Android SDK and Java are resolved in the same order Flutter uses, so
-/// aegis works with exactly the tools the app is built with.
+/// Finds the tools the resilience probe will need. Android SDK and Java are
+/// resolved in the same order Flutter uses, so aegis works with exactly the
+/// tools the app is built with.
 ///
 /// Everything goes through [Host]; this file does no I/O of its own.
 library;

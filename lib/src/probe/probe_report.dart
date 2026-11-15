@@ -1,4 +1,4 @@
-/// Renders a [ProbeReport] for the console, en/ar (doc/plans/probe.md §3).
+/// Renders a [ProbeReport] for the console, en/ar.
 library;
 
 import '../l10n/messages.g.dart';

@@ -1,7 +1,7 @@
 /// Every version `aegis setup` installs, so results are the same on every
 /// machine and upgrading is one edit here.
 ///
-/// To upgrade (see doc/plans/probe-toolchain.md §5.2): take the newest
+/// To upgrade: take the newest
 /// `frida` on PyPI, a `frida-tools` whose `Requires-Dist` accepts it, and
 /// check that `frida-server-<v>-android-arm64.xz` and
 /// `bundletool-all-<v>.jar` exist in the GitHub releases.

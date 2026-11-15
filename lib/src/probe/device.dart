@@ -1,7 +1,7 @@
-/// The one place `aegis probe` touches the emulator and the SDK tools
-/// (doc/plans/probe.md §5). Everything goes through [Host], so the runner can
-/// be driven by a fake. Tool paths come from the toolchain (verified against
-/// disk; `~/.aegis/tools.json` is only a cache).
+/// The one place `aegis probe` touches the emulator and the SDK tools.
+/// Everything goes through [Host], so the runner can be driven by a fake. Tool
+/// paths come from the toolchain (verified against disk; `~/.aegis/tools.json`
+/// is only a cache).
 ///
 /// `Device` sets up standard OWASP MASTG conditions on the developer's own
 /// app and reads back what happened. It does not try to defeat or evade any
