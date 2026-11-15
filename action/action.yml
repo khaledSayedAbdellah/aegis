@@ -1,5 +1,5 @@
 name: Aegis Mobile Security Audit
-description: OWASP MASVS security audit for Flutter, React Native, KMP and native Android/iOS apps, with code scanning alerts and a job summary.
+description: OWASP MASVS security audit for Flutter, React Native, KMP and native Android/iOS apps, reported to code scanning.
 author: khaledSayedAbdellah
 branding:
   icon: shield
