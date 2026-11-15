@@ -24,5 +24,9 @@ __pycache__/
 # Not part of the published package: historical implementation plans.
 doc/plans/
 
+# The README loads its images from GitHub; pub.dev only needs the light
+# screenshot listed in pubspec.yaml.
+doc/images/report-dark.png
+
 # The GitHub Action is synced to its own repository on release.
 action/

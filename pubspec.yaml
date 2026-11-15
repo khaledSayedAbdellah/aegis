@@ -45,3 +45,7 @@ false_secrets:
   - /test/scoring_test.dart
   - /tool/make_apk_fixtures.py
   - /tool/make_aab_fixtures.py
+
+screenshots:
+  - description: 'The HTML report: the security score, the score of each MASVS category, and the findings with why they matter and how to fix them.'
+    path: doc/images/report-light.png

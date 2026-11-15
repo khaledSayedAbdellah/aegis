@@ -8,6 +8,15 @@
 
 Most scanners ask *"do you have RASP?"*. aegis also asks *"is it started, configured for your app, and does a detected threat trigger a real reaction?"* Every rule is mapped to **OWASP MASVS v2**, **MASWE** and **CWE**, and the score adapts to the **OWASP MAS profile** your app needs (L1, L2, R).
 
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/khaledSayedAbdellah/aegis/main/doc/images/report-dark.png">
+    <img src="https://raw.githubusercontent.com/khaledSayedAbdellah/aegis/main/doc/images/report-light.png" alt="aegis HTML report: a security score of 40 (D), the score of each MASVS category, and the findings with where they are, why they matter and how to fix them" width="760">
+  </picture>
+</p>
+
+`aegis run` writes this report as HTML and PDF next to the terminal output:
+
 ```text
 🛡  Aegis security audit  ·  aegis 0.12.0
 ────────────────────────────────────────────────────────────────
