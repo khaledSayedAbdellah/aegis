@@ -1,0 +1,179 @@
+name: Aegis Mobile Security Audit
+description: OWASP MASVS security audit for Flutter, React Native, KMP and native Android/iOS apps, with code scanning alerts and a job summary.
+author: khaledSayedAbdellah
+branding:
+  icon: shield
+  color: blue
+
+inputs:
+  path:
+    description: Project folder to audit, relative to the workspace.
+    default: .
+  version:
+    description: aegis version from pub.dev, e.g. 0.12.0. Empty installs the aegis release this action release was published with.
+    default: ''
+  profile:
+    description: 'MAS profile: l1, l2, l1+r, l2+r, or a preset (standard, sensitive, game, banking, fintech, payments, government). Empty uses aegis.yaml.'
+    default: ''
+  apk:
+    description: Release APK or AAB to audit with the source (or alone when the path has no source).
+    default: ''
+  ipa:
+    description: Release IPA to audit with the source (or alone when the path has no source).
+    default: ''
+  fail-on:
+    description: 'Fail when a new finding is at or above this severity: critical, high, medium or low. Empty uses aegis.yaml.'
+    default: ''
+  min-score:
+    description: Fail when the score is below this value. Empty uses aegis.yaml.
+    default: ''
+  baseline:
+    description: Baseline file of accepted findings. Empty uses aegis-baseline.json in the project, if any.
+    default: ''
+  strict:
+    description: Fail when an applicable check could not complete.
+    default: 'false'
+  offline:
+    description: Skip the OSV vulnerability lookup.
+    default: 'false'
+  pub-get:
+    description: Run pub get when the dependencies are not resolved, so the native code of packages can be checked.
+    default: 'true'
+  lang:
+    description: 'Report language: en or ar.'
+    default: en
+  pdf:
+    description: Also write a PDF report (needs Chrome, which GitHub-hosted runners have).
+    default: 'false'
+  output-dir:
+    description: Folder for the reports, relative to the workspace.
+    default: aegis-report
+  upload-sarif:
+    description: 'Upload the findings to GitHub code scanning. Needs `security-events: write`; private repositories also need GitHub Advanced Security.'
+    default: 'true'
+  sarif-category:
+    description: Code scanning category, to keep several audits of one repository apart.
+    default: aegis
+  annotations:
+    description: Annotate new findings on the changed files of the run and pull request.
+    default: 'true'
+  job-summary:
+    description: Show the report in the job summary.
+    default: 'true'
+  upload-artifact:
+    description: Upload the reports as a workflow artifact.
+    default: 'true'
+  artifact-name:
+    description: Name of the reports artifact.
+    default: aegis-report
+  args:
+    description: Other aegis options, e.g. `--ignore-baseline --verbose`.
+    default: ''
+
+outputs:
+  score:
+    description: Security score from 0 to 100.
+    value: ${{ steps.audit.outputs.score }}
+  grade:
+    description: Letter grade of the score.
+    value: ${{ steps.audit.outputs.grade }}
+  exit-code:
+    description: 'aegis exit code: 0 passed, 1 a threshold failed, 2 invalid input or an incomplete audit in strict mode.'
+    value: ${{ steps.audit.outputs.exit-code }}
+  new-findings:
+    description: Findings that are not in the baseline.
+    value: ${{ steps.audit.outputs.new-findings }}
+  critical:
+    description: Failed rules of critical severity.
+    value: ${{ steps.audit.outputs.critical }}
+  high:
+    description: Failed rules of high severity.
+    value: ${{ steps.audit.outputs.high }}
+  medium:
+    description: Failed rules of medium severity.
+    value: ${{ steps.audit.outputs.medium }}
+  low:
+    description: Failed rules of low severity.
+    value: ${{ steps.audit.outputs.low }}
+  report-dir:
+    description: Folder with the reports.
+    value: ${{ steps.audit.outputs.report-dir }}
+  json-file:
+    description: The JSON report.
+    value: ${{ steps.audit.outputs.json-file }}
+  sarif-file:
+    description: The SARIF report.
+    value: ${{ steps.audit.outputs.sarif-file }}
+  html-file:
+    description: The HTML report.
+    value: ${{ steps.audit.outputs.html-file }}
+
+runs:
+  using: composite
+  steps:
+    - name: Look for Dart
+      id: dart
+      shell: bash
+      run: |
+        if command -v dart >/dev/null 2>&1; then
+          echo "found=true" >> "$GITHUB_OUTPUT"
+        else
+          echo "found=false" >> "$GITHUB_OUTPUT"
+        fi
+
+    - name: Set up Dart
+      if: steps.dart.outputs.found != 'true'
+      uses: dart-lang/setup-dart@v1
+      with:
+        sdk: stable
+
+    - name: Run aegis
+      id: audit
+      shell: bash
+      env:
+        AEGIS_PATH: ${{ inputs.path }}
+        AEGIS_VERSION: ${{ inputs.version }}
+        AEGIS_PROFILE: ${{ inputs.profile }}
+        AEGIS_APK: ${{ inputs.apk }}
+        AEGIS_IPA: ${{ inputs.ipa }}
+        AEGIS_FAIL_ON: ${{ inputs.fail-on }}
+        AEGIS_MIN_SCORE: ${{ inputs.min-score }}
+        AEGIS_BASELINE: ${{ inputs.baseline }}
+        AEGIS_STRICT: ${{ inputs.strict }}
+        AEGIS_OFFLINE: ${{ inputs.offline }}
+        AEGIS_PUB_GET: ${{ inputs.pub-get }}
+        AEGIS_LANG: ${{ inputs.lang }}
+        AEGIS_PDF: ${{ inputs.pdf }}
+        AEGIS_OUTPUT_DIR: ${{ inputs.output-dir }}
+        AEGIS_ANNOTATIONS: ${{ inputs.annotations }}
+        AEGIS_JOB_SUMMARY: ${{ inputs.job-summary }}
+        AEGIS_ARGS: ${{ inputs.args }}
+      run: bash "$GITHUB_ACTION_PATH/scripts/audit.sh"
+
+    - name: Upload to code scanning
+      if: always() && inputs.upload-sarif == 'true' && steps.audit.outputs.sarif-file != ''
+      continue-on-error: true
+      uses: github/codeql-action/upload-sarif@v4
+      with:
+        sarif_file: ${{ steps.audit.outputs.sarif-file }}
+        category: ${{ inputs.sarif-category }}
+
+    - name: Upload the reports
+      if: always() && inputs.upload-artifact == 'true' && steps.audit.outputs.report-dir != ''
+      uses: actions/upload-artifact@v7
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ steps.audit.outputs.report-dir }}
+        if-no-files-found: ignore
+
+    - name: Result
+      if: always() && steps.audit.outputs.exit-code != ''
+      shell: bash
+      env:
+        CODE: ${{ steps.audit.outputs.exit-code }}
+      run: |
+        case "$CODE" in
+          0) echo "aegis passed." ;;
+          1) echo "::error title=aegis::A finding or the score crossed the configured threshold (fail-on / min-score)."; exit 1 ;;
+          *) echo "::error title=aegis::aegis exited with code $CODE: invalid input, or an incomplete audit in strict mode."; exit "$CODE" ;;
+        esac

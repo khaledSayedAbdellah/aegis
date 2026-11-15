@@ -1,3 +1,7 @@
+## Unreleased
+
+* New [GitHub Action](https://github.com/khaledSayedAbdellah/aegis-action): `uses: khaledSayedAbdellah/aegis-action@v1` runs aegis and reports to code scanning, annotations, the job summary and a reports artifact, with the score and counts as step outputs. It is kept in `action/` and published with each release.
+
 ## 0.12.0
 
 * `AEG-P01` (no runtime protection) no longer checks only for a few RASP packages in `pubspec.yaml`. It looks at Android and iOS separately and counts a Dart package only when the code imports it: known RASP packages, packages named for it, and any package whose own native code checks for root or jailbreak. It also finds native SDKs (freeRASP, RootBeer, IOSSecuritySuite, DTTJailbreakDetection, Approov, Zimperium, DexGuard, DexProtector) declared in Gradle, CocoaPods, Swift Package Manager or package.json and used by the native code, and the app's own root/jailbreak, debugger and hooking checks in Dart, Kotlin/Java or Swift/Objective-C. Own checks that cover only some of these are reported with what is missing, and declared but unused protection is reported as such. What was found is listed as evidence.

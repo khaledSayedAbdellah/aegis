@@ -67,6 +67,45 @@ jobs:
           name: aegis-example-report
           path: build/aegis-example.*
 
+  # The GitHub Action in action/, run against this checkout of aegis instead
+  # of a pub.dev release.
+  action:
+    name: GitHub Action
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - name: Run the action on the example app
+        id: audit
+        continue-on-error: true
+        uses: ./action
+        env:
+          AEGIS_SKIP_INSTALL: '1'
+          AEGIS_COMMAND: dart run ${{ github.workspace }}/bin/aegis.dart
+        with:
+          path: example/vulnerable_app
+          offline: true
+          upload-sarif: false
+          artifact-name: aegis-action-report
+      - name: Check the outputs
+        env:
+          OUTCOME: ${{ steps.audit.outcome }}
+          CODE: ${{ steps.audit.outputs.exit-code }}
+          SCORE: ${{ steps.audit.outputs.score }}
+          CRITICAL: ${{ steps.audit.outputs.critical }}
+          SARIF: ${{ steps.audit.outputs.sarif-file }}
+        run: |
+          set -x
+          # The example's aegis.yaml fails on high findings.
+          test "$OUTCOME" = failure
+          test "$CODE" = 1
+          [[ "$SCORE" =~ ^[0-9]+$ ]]
+          test "$CRITICAL" -ge 1
+          grep -q '"uri": "example/vulnerable_app/' "$SARIF"
+
   android-probe:
     name: Android resilience probe
     runs-on: ubuntu-latest

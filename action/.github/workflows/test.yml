@@ -1,0 +1,101 @@
+name: Test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  # Weekly, so a change in aegis that breaks the action is noticed.
+  schedule:
+    - cron: '0 6 * * 1'
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  source:
+    name: Source audit (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: action
+      # aegis's own intentionally vulnerable example app.
+      - uses: actions/checkout@v7
+        with:
+          repository: khaledSayedAbdellah/aegis
+          path: aegis
+      - name: Run the action
+        id: audit
+        continue-on-error: true
+        uses: ./action
+        with:
+          path: aegis/example/vulnerable_app
+          profile: l2+r
+          offline: true
+          upload-sarif: ${{ matrix.os == 'ubuntu-latest' }}
+          sarif-category: action-test
+          artifact-name: aegis-report-${{ matrix.os }}
+      - name: Check the outputs
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.audit.outcome }}
+          CODE: ${{ steps.audit.outputs.exit-code }}
+          SCORE: ${{ steps.audit.outputs.score }}
+          GRADE: ${{ steps.audit.outputs.grade }}
+          CRITICAL: ${{ steps.audit.outputs.critical }}
+          NEW: ${{ steps.audit.outputs.new-findings }}
+          SARIF: ${{ steps.audit.outputs.sarif-file }}
+          HTML: ${{ steps.audit.outputs.html-file }}
+        run: |
+          set -x
+          # The example's aegis.yaml fails on high findings.
+          test "$OUTCOME" = failure
+          test "$CODE" = 1
+          [[ "$SCORE" =~ ^[0-9]+$ ]]
+          test -n "$GRADE"
+          test "$CRITICAL" -ge 1
+          test "$NEW" -ge 1
+          test -s "$SARIF"
+          test -s "$HTML"
+          # Paths in the SARIF file are relative to the repository.
+          grep -q '"uri": "aegis/example/vulnerable_app/' "$SARIF"
+
+  binary:
+    name: APK audit without source
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: action
+      - uses: actions/checkout@v7
+        with:
+          repository: khaledSayedAbdellah/aegis
+          path: aegis
+          sparse-checkout: test/fixtures/apk
+      - run: mkdir empty
+      - name: Run the action
+        id: audit
+        uses: ./action
+        with:
+          path: empty
+          apk: aegis/test/fixtures/apk/secure.apk
+          profile: l2
+          offline: true
+          fail-on: critical
+          upload-sarif: false
+          artifact-name: aegis-report-apk
+      - name: Check the outputs
+        shell: bash
+        env:
+          CODE: ${{ steps.audit.outputs.exit-code }}
+          SCORE: ${{ steps.audit.outputs.score }}
+        run: |
+          set -x
+          test "$CODE" = 0
+          test "$SCORE" -ge 90

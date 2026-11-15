@@ -49,6 +49,7 @@ MASVS coverage: 17 of 24 controls checked automatically (71%)
 * [Configuration — `aegis.yaml`](#configuration--aegisyaml)
 * [Baselines](#baselines)
 * [CI](#ci)
+  * [GitHub Actions](#github-actions)
   * [Azure Pipelines](#azure-pipelines)
 * [Rules](#rules)
 * [Development: run from source and run the tests](#development-run-from-source-and-run-the-tests)
@@ -584,17 +585,37 @@ aegis --fail-on high           # now fails only on findings that are not in the 
 
 ## CI
 
+Exit codes: `0` ok, `1` `--fail-on` / `--min-score` threshold reached, `2` usage error.
+
+### GitHub Actions
+
+The [aegis GitHub Action](https://github.com/khaledSayedAbdellah/aegis-action) installs aegis, puts every finding in code scanning (the Security tab and pull requests), annotates the lines, writes the report to the job summary and keeps the HTML/JSON/SARIF reports as an artifact:
+
 ```yaml
-# GitHub Actions
+permissions:
+  contents: read
+  security-events: write   # code scanning alerts
+
+steps:
+  - uses: actions/checkout@v7
+  - uses: khaledSayedAbdellah/aegis-action@v1
+    with:
+      profile: l2
+      fail-on: high
+```
+
+It also takes `apk`, `ipa`, `baseline`, `min-score`, `strict` and the other options, and exposes the score, grade and counts as step outputs; see its [README](https://github.com/khaledSayedAbdellah/aegis-action#readme). `@v1` installs the latest aegis release; `@vX.Y.Z` stays on aegis X.Y.Z.
+
+Without the action:
+
+```yaml
 - run: dart pub global activate aegis
 - run: aegis --profile l2 --fail-on high -f console,sarif -o aegis
-- uses: github/codeql-action/upload-sarif@v3
+- uses: github/codeql-action/upload-sarif@v4
   if: always()
   with:
     sarif_file: aegis.sarif
 ```
-
-Exit codes: `0` ok, `1` `--fail-on` / `--min-score` threshold reached, `2` usage error.
 
 ### Azure Pipelines
 
@@ -714,7 +735,7 @@ The tests need no network, emulator or Android tools: the CLI tests run `bin/aeg
 git tag vX.Y.Z && git push origin vX.Y.Z   # X.Y.Z: the version in pubspec.yaml
 ```
 
-The `Publish to pub.dev` workflow publishes that tag. It fails when the tag and `pubspec.yaml` disagree.
+The `Publish to pub.dev` workflow publishes that tag. It fails when the tag and `pubspec.yaml` disagree. It then creates the GitHub Release and copies `action/` (the GitHub Action) to [aegis-action](https://github.com/khaledSayedAbdellah/aegis-action) with tags `vX.Y.Z` and `v1`, so the action is only edited here. That step needs the repository secret `ACTION_DEPLOY_KEY`: the private half of a deploy key with write access on aegis-action. The `GitHub Action` CI job tests `action/` against this checkout.
 
 ## Use from Dart
 
