@@ -18,7 +18,7 @@ Most scanners ask *"do you have RASP?"*. aegis also asks *"is it started, config
 `aegis run` writes this report as HTML and PDF next to the terminal output:
 
 ```text
-🛡  Aegis security audit  ·  aegis 0.12.1
+🛡  Aegis security audit  ·  aegis 0.13.0
 ────────────────────────────────────────────────────────────────
 Project: my_bank
 MAS profile: L2+R
@@ -102,7 +102,7 @@ Other sources, when you need them:
 
 ```bash
 # A specific released version
-dart pub global activate aegis 0.12.1
+dart pub global activate aegis 0.13.0
 
 # Your local clone: every change in the clone is used right away, no reinstall
 dart pub global activate --source path ~/path/to/aegis
@@ -641,12 +641,12 @@ resources:
     type: github
     endpoint: <your GitHub service connection>
     name: khaledSayedAbdellah/aegis
-    ref: refs/tags/v0.12.1
+    ref: refs/tags/v0.13.0
 
 steps:
 - template: ci/azure-pipelines/aegis-steps.yml@aegis
   parameters:
-    aegisVersion: 0.12.1   # installed from pub.dev; keep it equal to the ref above
+    aegisVersion: 0.13.0   # installed from pub.dev; keep it equal to the ref above
     failOn: high
 ```
 

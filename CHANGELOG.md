@@ -1,4 +1,4 @@
-## Unreleased
+## 0.13.0
 
 * `aegis.yaml` can tell `AEG-P01` about runtime protection it doesn't know (`rasp: packages:`) and about libraries whose device checks are not protection (`rasp: not_protection:`). Names are Dart packages, Android class prefixes or iOS frameworks and class prefixes, and work for source, APK and IPA audits. `aegis init` writes the section.
 * `AEG-D02` now also reports `ws://`, `ftp://` and `mqtt://` URLs, gRPC channels with `ChannelCredentials.insecure()` and `mqtt_client` connections without `secure = true`, outside debug-only code. Its title is now "Cleartext traffic in code"; existing `http://` findings keep their message, so baselines still match.
