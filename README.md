@@ -822,4 +822,4 @@ are changed. See [scope, prerequisites and scenario contract](doc/runtime-securi
 
 ## License
 
-MIT
+MIT: you may use, change and redistribute the code, keeping the copyright notice and the license. The MIT License covers the code, not the name: a fork or modified version must have a different name, say that it is based on aegis, and not present itself as aegis. See [TRADEMARKS.md](TRADEMARKS.md).

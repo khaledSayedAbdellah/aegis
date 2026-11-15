@@ -143,4 +143,4 @@ This repository is published from the [`action` folder of aegis](https://github.
 
 ## License
 
-MIT
+MIT. The license covers the code, not the aegis name: forks must use a different name and credit aegis. See [TRADEMARKS.md](https://github.com/khaledSayedAbdellah/aegis/blob/main/TRADEMARKS.md).
