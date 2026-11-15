@@ -23,7 +23,7 @@ void main() {
         text,
         contains('| [MASWE-0001](https://mas.owasp.org/MASWE/'
             'MASVS-STORAGE/MASWE-0001/) | Sensitive Data Stored Unencrypted in '
-            'Private Storage | AEG-D04, AEG-N04, AEG-R10 |'));
+            'Private Storage | AEG-D04, AEG-D18, AEG-N04, AEG-R10 |'));
     expect(text, contains('| not covered |'));
   });
 }

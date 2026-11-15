@@ -5,6 +5,13 @@ class L10n {
   const L10n(this.locale);
   final String locale;
   bool get isArabic => locale.toLowerCase().split(RegExp(r"[-_]"))[0] == "ar";
+  String a11yLeak({required Object? places}) =>
+      isArabic ? Ar.a11yLeak(places: places) : En.a11yLeak(places: places);
+  String get a11yLeakDescription =>
+      isArabic ? Ar.a11yLeakDescription : En.a11yLeakDescription;
+  String get a11yLeakFix => isArabic ? Ar.a11yLeakFix : En.a11yLeakFix;
+  String get a11yLeakPass => isArabic ? Ar.a11yLeakPass : En.a11yLeakPass;
+  String get a11yLeakTitle => isArabic ? Ar.a11yLeakTitle : En.a11yLeakTitle;
   String get aabCompanionMismatch =>
       isArabic ? Ar.aabCompanionMismatch : En.aabCompanionMismatch;
   String get aabCompanionRequired =>
@@ -577,6 +584,13 @@ class L10n {
       isArabic
           ? Ar.cleartextChannel(channel: channel, code: code)
           : En.cleartextChannel(channel: channel, code: code);
+  String clipboard({required Object? value}) =>
+      isArabic ? Ar.clipboard(value: value) : En.clipboard(value: value);
+  String get clipboardDescription =>
+      isArabic ? Ar.clipboardDescription : En.clipboardDescription;
+  String get clipboardFix => isArabic ? Ar.clipboardFix : En.clipboardFix;
+  String get clipboardPass => isArabic ? Ar.clipboardPass : En.clipboardPass;
+  String get clipboardTitle => isArabic ? Ar.clipboardTitle : En.clipboardTitle;
   String get dartRulesACertificateCallbackThatAlwaysReturnsTrueAccepts =>
       isArabic
           ? Ar.dartRulesACertificateCallbackThatAlwaysReturnsTrueAccepts
@@ -1389,6 +1403,28 @@ class L10n {
       ? Ar.ipaRulesTheReleaseApplicationAndItsNestedCodeShould
       : En.ipaRulesTheReleaseApplicationAndItsNestedCodeShould;
   String get jailbreakLimit => isArabic ? Ar.jailbreakLimit : En.jailbreakLimit;
+  String keyboardCache({required Object? field}) => isArabic
+      ? Ar.keyboardCache(field: field)
+      : En.keyboardCache(field: field);
+  String get keyboardCacheDescription =>
+      isArabic ? Ar.keyboardCacheDescription : En.keyboardCacheDescription;
+  String get keyboardCacheFix =>
+      isArabic ? Ar.keyboardCacheFix : En.keyboardCacheFix;
+  String get keyboardCachePass =>
+      isArabic ? Ar.keyboardCachePass : En.keyboardCachePass;
+  String get keyboardCacheTitle =>
+      isArabic ? Ar.keyboardCacheTitle : En.keyboardCacheTitle;
+  String keychainOptions({required Object? option}) => isArabic
+      ? Ar.keychainOptions(option: option)
+      : En.keychainOptions(option: option);
+  String get keychainOptionsDescription =>
+      isArabic ? Ar.keychainOptionsDescription : En.keychainOptionsDescription;
+  String get keychainOptionsFix =>
+      isArabic ? Ar.keychainOptionsFix : En.keychainOptionsFix;
+  String get keychainOptionsPass =>
+      isArabic ? Ar.keychainOptionsPass : En.keychainOptionsPass;
+  String get keychainOptionsTitle =>
+      isArabic ? Ar.keychainOptionsTitle : En.keychainOptionsTitle;
   String get lockPackagesMissing =>
       isArabic ? Ar.lockPackagesMissing : En.lockPackagesMissing;
   String get lockUnreadable => isArabic ? Ar.lockUnreadable : En.lockUnreadable;
@@ -1635,6 +1671,18 @@ class L10n {
       isArabic ? Ar.nativeSourceDescription : En.nativeSourceDescription;
   String get nativeSourceScope =>
       isArabic ? Ar.nativeSourceScope : En.nativeSourceScope;
+  String notificationLeak({required Object? places}) => isArabic
+      ? Ar.notificationLeak(places: places)
+      : En.notificationLeak(places: places);
+  String get notificationLeakDescription => isArabic
+      ? Ar.notificationLeakDescription
+      : En.notificationLeakDescription;
+  String get notificationLeakFix =>
+      isArabic ? Ar.notificationLeakFix : En.notificationLeakFix;
+  String get notificationLeakPass =>
+      isArabic ? Ar.notificationLeakPass : En.notificationLeakPass;
+  String get notificationLeakTitle =>
+      isArabic ? Ar.notificationLeakTitle : En.notificationLeakTitle;
   String get osvAdvisoryInvalid =>
       isArabic ? Ar.osvAdvisoryInvalid : En.osvAdvisoryInvalid;
   String get osvBatchInvalid =>
@@ -1788,6 +1836,20 @@ class L10n {
   String get passTitlesWebviewsAreLockedDown => isArabic
       ? Ar.passTitlesWebviewsAreLockedDown
       : En.passTitlesWebviewsAreLockedDown;
+  String plainHiveBox({required Object? box}) =>
+      isArabic ? Ar.plainHiveBox(box: box) : En.plainHiveBox(box: box);
+  String plainKey({required Object? call, required Object? key}) => isArabic
+      ? Ar.plainKey(call: call, key: key)
+      : En.plainKey(call: call, key: key);
+  String get plainKeyDescription =>
+      isArabic ? Ar.plainKeyDescription : En.plainKeyDescription;
+  String get plainKeyFix => isArabic ? Ar.plainKeyFix : En.plainKeyFix;
+  String get plainKeyPass => isArabic ? Ar.plainKeyPass : En.plainKeyPass;
+  String get plainKeyTitle => isArabic ? Ar.plainKeyTitle : En.plainKeyTitle;
+  String plainSqlTable({required Object? column, required Object? table}) =>
+      isArabic
+          ? Ar.plainSqlTable(column: column, table: table)
+          : En.plainSqlTable(column: column, table: table);
   String get platformA14Limit =>
       isArabic ? Ar.platformA14Limit : En.platformA14Limit;
   String get platformA14Title =>
@@ -2687,6 +2749,18 @@ class L10n {
 }
 
 abstract final class En {
+  static String a11yLeak({required Object? places}) =>
+      "Fields with card or identity numbers that accessibility services can read, to review: " +
+      places.toString() +
+      ".";
+  static const a11yLeakDescription =
+      "Accessibility services read what is on screen, and malware often asks for that permission. Card and identity numbers shown in plain fields can be read and sent out. Accessibility must stay usable, so this lists fields to review rather than failing.";
+  static const a11yLeakFix =
+      "On Android set `android:accessibilityDataSensitive=\"yes\"` (API 34) on such fields; in Flutter mask the value (`obscureText`) or wrap the field in `Semantics(obscured: true)` where screen readers don't need the digits.";
+  static const a11yLeakPass =
+      "Sensitive fields are hidden from accessibility services";
+  static const a11yLeakTitle =
+      "Sensitive fields readable by accessibility services";
   static const aabCompanionMismatch =
       "--probe-apk must have the same package name and version code as the AAB. Supply all splits as a .apks archive or a device-specific APK directory.";
   static const aabCompanionRequired =
@@ -3147,6 +3221,14 @@ abstract final class En {
       " connection: " +
       code.toString() +
       ".";
+  static String clipboard({required Object? value}) =>
+      "`" + value.toString() + "` is copied to the clipboard.";
+  static const clipboardDescription =
+      "Anything on the clipboard can be read by other apps and keyboards, and it syncs to the user's other devices. A token, password or key copied there leaves the app's control.";
+  static const clipboardFix =
+      "Don't copy secrets. If users must copy one (a recovery code), clear it after a short time and mark it sensitive (`ClipDescription.EXTRA_IS_SENSITIVE` on Android 13+, `UIPasteboard` expiration on iOS).";
+  static const clipboardPass = "No sensitive data is copied to the clipboard";
+  static const clipboardTitle = "Sensitive data copied to the clipboard";
   static const dartRulesACertificateCallbackThatAlwaysReturnsTrueAccepts =
       "A certificate callback that always returns true accepts any certificate, so any proxy (Burp, mitmproxy) can read all traffic.";
   static const dartRulesAJavascriptChannelWithoutNavigationRestrictionsLetsAny =
@@ -3881,6 +3963,27 @@ abstract final class En {
       "The release application and its nested code should have a valid Apple code signature.";
   static const jailbreakLimit =
       "Coverage limits: this Simulator test simulates file indicators through NSFileManager and access/stat/lstat. It does not test a real jailbreak, kernel checks, sandbox escape, URL schemes or direct syscalls. The verdict applies to the tested file indicators on this Simulator build.";
+  static String keyboardCache({required Object? field}) =>
+      "" +
+      field.toString() +
+      " for sensitive input keeps keyboard suggestions and autocorrect on.";
+  static const keyboardCacheDescription =
+      "Keyboards learn what users type to suggest it later, and third-party keyboards can send it to their servers. A password, PIN or card number typed into a field with suggestions and autocorrect on can end up in the keyboard's dictionary or cloud.";
+  static const keyboardCacheFix =
+      "Use `obscureText: true` for passwords and PINs. For other sensitive fields set `enableSuggestions: false`, `autocorrect: false` and `enableIMEPersonalizedLearning: false`.";
+  static const keyboardCachePass =
+      "Sensitive fields keep input out of the keyboard cache";
+  static const keyboardCacheTitle = "Keyboard can learn sensitive input";
+  static String keychainOptions({required Object? option}) =>
+      "Secure storage uses `" +
+      option.toString() +
+      "`, so items can move to other devices.";
+  static const keychainOptionsDescription =
+      "flutter_secure_storage items saved with an accessibility that isn't `_this_device`, or as synchronizable, go into encrypted backups and iCloud Keychain and can be restored on another device.";
+  static const keychainOptionsFix =
+      "Use `KeychainAccessibility.first_unlock_this_device` or `unlocked_this_device`, and leave `synchronizable` off for tokens and keys.";
+  static const keychainOptionsPass = "Keychain items stay on this device";
+  static const keychainOptionsTitle = "Keychain items can leave the device";
   static const lockPackagesMissing =
       "pubspec.lock does not contain a packages map";
   static const lockUnreadable = "Could not read pubspec.lock";
@@ -4062,6 +4165,16 @@ abstract final class En {
       "Lexical inspection of Kotlin (including KMP), Java, Swift, Objective-C and JavaScript/TypeScript source. Matches identify source patterns, not complete data-flow analysis or verified runtime protection.";
   static const nativeSourceScope =
       "Some source/configuration inputs could not be inspected. Confirmed findings are retained; no complete verdict is available for missing inputs.";
+  static String notificationLeak({required Object? places}) =>
+      "Notifications that may show sensitive data, to review: " +
+      places.toString() +
+      ".";
+  static const notificationLeakDescription =
+      "Notifications appear on the lock screen and on paired watches, and other apps with notification access can read them. Codes, balances or tokens in a notification are visible without unlocking the phone.";
+  static const notificationLeakFix =
+      "Keep codes and amounts out of the notification text, or set `visibility: NotificationVisibility.secret` (or `private` with a public version) in `AndroidNotificationDetails`.";
+  static const notificationLeakPass = "Notifications don't show sensitive data";
+  static const notificationLeakTitle = "Sensitive data shown in notifications";
   static const osvAdvisoryInvalid = "Invalid OSV advisory response";
   static const osvBatchInvalid = "Invalid OSV batch response";
   static String osvLookupFailed({required Object? error}) =>
@@ -4155,6 +4268,30 @@ abstract final class En {
   static const passTitlesTlsCertificatesAreValidated =
       "TLS certificates are validated";
   static const passTitlesWebviewsAreLockedDown = "WebViews are locked down";
+  static String plainHiveBox({required Object? box}) =>
+      "Hive box \"" +
+      box.toString() +
+      "\" is opened without encryptionCipher, so its data is stored unencrypted.";
+  static String plainKey({required Object? call, required Object? key}) =>
+      "Key `" +
+      key.toString() +
+      "` is written to plain storage with " +
+      call.toString() +
+      "().";
+  static const plainKeyDescription =
+      "A key saved next to the data it protects protects nothing: anyone who can read the app's files (backup, rooted device, forensic copy) reads the key too and decrypts everything.";
+  static const plainKeyFix =
+      "Keep keys in the Android Keystore or iOS Keychain (`flutter_secure_storage`), or derive them when needed and never write them to SharedPreferences, Hive or files.";
+  static const plainKeyPass = "Crypto keys stay in the Keystore or Keychain";
+  static const plainKeyTitle =
+      "Crypto key stored outside the Keystore or Keychain";
+  static String plainSqlTable(
+          {required Object? column, required Object? table}) =>
+      "Table " +
+      table.toString() +
+      " stores " +
+      column.toString() +
+      " in an unencrypted SQLite database.";
   static const platformA14Limit =
       "Android-only checks distinguish full and partial occlusion. Synthetic events are passed only to visible views’ security-filter predicates, never dispatched as touches or clicks. A filter result does not prove OS overlay handling, Flutter widget coverage or sensitive-action authorization.";
   static const platformA14Title =
@@ -4935,6 +5072,16 @@ abstract final class En {
 }
 
 abstract final class Ar {
+  static String a11yLeak({required Object? places}) =>
+      "حقول فيها أرقام كروت أو هوية ممكن خدمات الـaccessibility تقراها، محتاجة مراجعة: " +
+      places.toString() +
+      ".";
+  static const a11yLeakDescription =
+      "خدمات الـaccessibility بتقرا اللي على الشاشة، والبرامج الضارة كتير بتطلب الصلاحية دي. فأرقام الكروت والهوية اللي بتظهر في حقول عادية ممكن تتقري وتتبعت. والـaccessibility لازم تفضل شغّالة، فالـrule دي بتعرض الحقول للمراجعة بدل ما تفشل.";
+  static const a11yLeakFix =
+      "على Android حط `android:accessibilityDataSensitive=\"yes\"` (API 34) على الحقول دي، وفي Flutter اخفي القيمة (`obscureText`) أو حط الحقل جوّه `Semantics(obscured: true)` في الأماكن اللي قارئ الشاشة مش محتاج فيها الأرقام.";
+  static const a11yLeakPass = "الحقول الحساسة مخفية عن خدمات الـaccessibility";
+  static const a11yLeakTitle = "حقول حساسة ممكن تقراها خدمات الـaccessibility";
   static const aabCompanionMismatch =
       "ملف --probe-apk لازم يطابق package name وversion code بتوع AAB. وفّر كل splits في أرشيف .apks أو مجلد APK مخصص للجهاز.";
   static const aabCompanionRequired =
@@ -5389,6 +5536,14 @@ abstract final class Ar {
   static String cleartextChannel(
           {required Object? channel, required Object? code}) =>
       "اتصال " + channel.toString() + " غير مشفر: " + code.toString() + ".";
+  static String clipboard({required Object? value}) =>
+      "`" + value.toString() + "` بيتنسخ على الـclipboard.";
+  static const clipboardDescription =
+      "أي حاجة على الـclipboard ممكن التطبيقات والكيبوردات التانية تقراها، وبتتزامن مع أجهزة المستخدم التانية. فأي token أو كلمة سر أو مفتاح بيتنسخ هناك بيبقى برّه سيطرة التطبيق.";
+  static const clipboardFix =
+      "ماتنسخش أسرار. ولو المستخدم لازم ينسخ حاجة (زي recovery code)، امسحها بعد وقت قصير وعلّمها إنها sensitive (`ClipDescription.EXTRA_IS_SENSITIVE` على Android 13+، وexpiration للـ`UIPasteboard` على iOS).";
+  static const clipboardPass = "مفيش بيانات حساسة بتتنسخ على الـclipboard";
+  static const clipboardTitle = "بيانات حساسة بتتنسخ على الـclipboard";
   static const dartRulesACertificateCallbackThatAlwaysReturnsTrueAccepts =
       "الـ callback اللي بيرجع true دايماً بيقبل أي شهادة، يعني أي proxy (زي Burp أو mitmproxy) يقدر يقرا كل الترافيك.";
   static const dartRulesAJavascriptChannelWithoutNavigationRestrictionsLetsAny =
@@ -6108,6 +6263,27 @@ abstract final class Ar {
       "تطبيق الـrelease والكود المتضمّن فيه لازم يكون ليهم توقيع Apple صالح.";
   static const jailbreakLimit =
       "حدود التغطية: اختبار على نسخة المحاكي يحاكي مؤشرات ملفات عبر NSFileManager وaccess/stat/lstat. لا يختبر jailbreak فعليًا أو النواة أو تجاوز sandbox أو URL schemes أو استدعاءات النظام المباشرة. الحكم يخص مؤشرات الملفات المختبَرة على نسخة المحاكي.";
+  static String keyboardCache({required Object? field}) =>
+      "" +
+      field.toString() +
+      " لبيانات حساسة سايب اقتراحات وتصحيح الكيبورد شغّالين.";
+  static const keyboardCacheDescription =
+      "الكيبورد بيتعلّم اللي المستخدم بيكتبه علشان يقترحه بعدين، وفيه كيبوردات بتبعته للسيرفرات بتاعتها. فكلمة السر أو الـPIN أو رقم الكارت لو اتكتبوا في حقل الاقتراحات والتصحيح فيه شغّالين، ممكن يتخزنوا في قاموس الكيبورد أو على الـcloud.";
+  static const keyboardCacheFix =
+      "استخدم `obscureText: true` لكلمات السر والـPIN. وللحقول الحساسة التانية حط `enableSuggestions: false` و`autocorrect: false` و`enableIMEPersonalizedLearning: false`.";
+  static const keyboardCachePass =
+      "الحقول الحساسة مش بتسيب البيانات في cache الكيبورد";
+  static const keyboardCacheTitle = "الكيبورد ممكن يتعلّم البيانات الحساسة";
+  static String keychainOptions({required Object? option}) =>
+      "الـsecure storage بيستخدم `" +
+      option.toString() +
+      "`، فالعناصر ممكن تنتقل لأجهزة تانية.";
+  static const keychainOptionsDescription =
+      "العناصر اللي بتتخزن بـflutter_secure_storage بـaccessibility مش `_this_device`، أو كـsynchronizable، بتدخل في الـbackups المتشفّرة وiCloud Keychain، وممكن تترجع على جهاز تاني.";
+  static const keychainOptionsFix =
+      "استخدم `KeychainAccessibility.first_unlock_this_device` أو `unlocked_this_device`، وسيب `synchronizable` مقفول للـtokens والمفاتيح.";
+  static const keychainOptionsPass = "عناصر الـKeychain بتفضل على الجهاز ده";
+  static const keychainOptionsTitle = "عناصر الـKeychain ممكن تخرج من الجهاز";
   static const lockPackagesMissing =
       "ملف pubspec.lock لا يحتوي على خريطة packages";
   static const lockUnreadable = "تعذّر قراءة pubspec.lock";
@@ -6284,6 +6460,16 @@ abstract final class Ar {
       "فحص أنماط كود Kotlin (بما فيها KMP) وJava وSwift وObjective-C وJavaScript/TypeScript. تطابق الأنماط لا يمثل تحليلًا كاملًا لتدفق البيانات أو إثباتًا لتشغيل الحماية فعليًا.";
   static const nativeSourceScope =
       "تعذر فحص بعض مدخلات الكود أو الإعدادات. تظل النتائج المثبتة محفوظة؛ ولا تتوفر نتيجة مكتملة للمدخلات المفقودة.";
+  static String notificationLeak({required Object? places}) =>
+      "إشعارات ممكن تعرض بيانات حساسة، محتاجة مراجعة: " +
+      places.toString() +
+      ".";
+  static const notificationLeakDescription =
+      "الإشعارات بتظهر على شاشة القفل وعلى الساعات المتوصلة، والتطبيقات اللي ليها صلاحية الإشعارات تقدر تقراها. فأي كود أو رصيد أو token في إشعار بيبان من غير فتح الموبايل.";
+  static const notificationLeakFix =
+      "خلّي الأكواد والمبالغ برّه نص الإشعار، أو حط `visibility: NotificationVisibility.secret` (أو `private` مع نسخة public) في `AndroidNotificationDetails`.";
+  static const notificationLeakPass = "الإشعارات مش بتعرض بيانات حساسة";
+  static const notificationLeakTitle = "بيانات حساسة بتظهر في الإشعارات";
   static const osvAdvisoryInvalid = "استجابة OSV الخاصة بالثغرة غير صالحة";
   static const osvBatchInvalid = "استجابة OSV لمجموعة الاستعلامات غير صالحة";
   static String osvLookupFailed({required Object? error}) =>
@@ -6380,6 +6566,31 @@ abstract final class Ar {
   static const passTitlesTlsCertificatesAreValidated =
       "شهادات TLS بيتم التحقق منها";
   static const passTitlesWebviewsAreLockedDown = "الـ WebView مقفول كويس";
+  static String plainHiveBox({required Object? box}) =>
+      "الـHive box \"" +
+      box.toString() +
+      "\" بيتفتح من غير encryptionCipher، فبياناته بتتخزن من غير تشفير.";
+  static String plainKey({required Object? call, required Object? key}) =>
+      "المفتاح `" +
+      key.toString() +
+      "` بيتكتب في تخزين مش آمن بـ" +
+      call.toString() +
+      "().";
+  static const plainKeyDescription =
+      "المفتاح اللي متخزن جنب البيانات اللي بيحميها مش بيحمي حاجة: أي حد يقدر يقرا ملفات التطبيق (backup أو جهاز root أو نسخة forensic) هيقرا المفتاح كمان ويفك تشفير كل حاجة.";
+  static const plainKeyFix =
+      "خلّي المفاتيح في Android Keystore أو iOS Keychain (`flutter_secure_storage`)، أو اشتقها وقت الحاجة، وماتكتبهاش أبدًا في SharedPreferences أو Hive أو ملفات.";
+  static const plainKeyPass =
+      "مفاتيح التشفير متخزنة في الـKeystore أو الـKeychain";
+  static const plainKeyTitle =
+      "مفتاح تشفير متخزن برّه الـKeystore أو الـKeychain";
+  static String plainSqlTable(
+          {required Object? column, required Object? table}) =>
+      "جدول " +
+      table.toString() +
+      " بيخزّن " +
+      column.toString() +
+      " في قاعدة بيانات SQLite مش متشفّرة.";
   static const platformA14Limit =
       "تفرّق فحوصات Android بين الحجب الكامل والجزئي. تُمرر أحداث اصطناعية لدوال تصفية الأمان في العناصر المرئية فقط، ولا تُنفذ كلمسات أو ضغطات. نتيجة التصفية لا تثبت معالجة النظام للنوافذ المغطية أو تغطية عناصر Flutter أو صلاحيات العملية الحساسة.";
   static const platformA14Title =

@@ -429,6 +429,9 @@ class InsecureStorageRule extends Rule {
   @override
   RuleCheck check(Project project, ProfileSet profile) {
     final out = <Finding>[];
+    final encryptedSql = project.usesPackage('sqflite_sqlcipher') ||
+        project.usesPackage('sqlcipher_flutter_libs') ||
+        project.usesPackage('encrypted_drift');
     for (final f in project.dartFiles) {
       for (final c in f.calls(_writers)) {
         final recv = c.receivers.join('.').toLowerCase();
@@ -465,9 +468,46 @@ class InsecureStorageRule extends Rule {
             messageAr:
                 'قيمة حساسة "${shorten(keyName, 40)}" بتتخزن بـ ${c.name}() من غير تشفير.'));
       }
+      // Hive boxes named for secrets, opened without encryption.
+      for (final c in f.calls({'openBox', 'openLazyBox'})) {
+        if (c.receiver != 'Hive') continue;
+        final args = f.args(c.open);
+        if (args.isEmpty || f.namedArg(args, 'encryptionCipher') != null) {
+          continue;
+        }
+        final t = f.tokens[args.first.start];
+        if (!t.isString || !_secretStore.hasMatch(t.value ?? '')) continue;
+        out.add(at(f, c.nameIndex, En.plainHiveBox(box: t.value!),
+            messageAr: Ar.plainHiveBox(box: t.value!)));
+      }
+      // SQLite tables with sensitive columns in an unencrypted database.
+      if (!encryptedSql) {
+        for (final i in f.stringIndexes()) {
+          final sql = f.tokens[i].value ?? '';
+          final table = RegExp(
+                  r'create\s+table\s+(?:if\s+not\s+exists\s+)?[`"\[]?(\w+)',
+                  caseSensitive: false)
+              .firstMatch(sql);
+          if (table == null) continue;
+          final column = _secretColumn.firstMatch(sql.substring(table.end));
+          if (column == null) continue;
+          out.add(at(
+              f, i, En.plainSqlTable(table: table[1]!, column: column[0]!),
+              messageAr:
+                  Ar.plainSqlTable(table: table[1]!, column: column[0]!)));
+        }
+      }
     }
     return RuleCheck(out);
   }
+
+  static final _secretStore = RegExp(
+      r'secret|token|auth|credential|password|session|wallet|card|\bpin\b|vault|keys?\b',
+      caseSensitive: false);
+
+  static final _secretColumn = RegExp(
+      r'\b(?:password|passwd|pass_hash|access_token|refresh_token|auth_token|token|secret|pin|pin_code|card_number|cvv|ssn|private_key|api_key)\b',
+      caseSensitive: false);
 }
 
 class WeakCryptoRule extends Rule {

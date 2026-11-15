@@ -696,6 +696,7 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-P10 | Release build commands without `--obfuscate` *(R)* | RESILIENCE-3 |
 | AEG-P12 | Firebase security rules open to anyone (Firestore, Storage, Realtime Database), including test-mode rules not yet expired | AUTH-1 |
 | AEG-P15 | Firebase security rules broader than needed: any signed-in user on all data, or anonymous writes to a path | AUTH-1 |
+| AEG-P14 | Card and identity number fields readable by accessibility services (listed for review) | PLATFORM-3 |
 | AEG-A01 | Android app debuggable | RESILIENCE-4 |
 | AEG-A02 | Backup allowed | STORAGE-2 |
 | AEG-A03 | Cleartext traffic (manifest) | NETWORK-1 |
@@ -718,7 +719,7 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-D01 | Hardcoded secret (known formats, JWT/Supabase service role, high-entropy values) | STORAGE-1 |
 | AEG-D02 | Cleartext traffic in code: `http://`, `ws://`, `ftp://`, `mqtt://` URLs, gRPC `ChannelCredentials.insecure()`, MQTT clients without `secure = true` | NETWORK-1 |
 | AEG-D03 | TLS validation disabled | NETWORK-1 |
-| AEG-D04 | Sensitive data in SharedPreferences / GetStorage / Hive | STORAGE-1 |
+| AEG-D04 | Sensitive data in SharedPreferences / GetStorage / Hive; Hive boxes named for secrets without `encryptionCipher`; SQLite tables with password or token columns without SQLCipher | STORAGE-1 |
 | AEG-D05 | Weak cryptography | CRYPTO-1 |
 | AEG-D06 | Hardcoded encryption key or IV | CRYPTO-2 |
 | AEG-D07 | `Random()` for security values | CRYPTO-1 |
@@ -729,6 +730,11 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-D12 | Values pasted into WebView HTML or JavaScript (`runJavaScript`, `loadHtmlString`, `evaluateJavascript`) without encoding | PLATFORM-2 |
 | AEG-D13 | Debug tools in release builds: Alice, DevicePreview, Stetho, Flipper used outside `kDebugMode`; Chucker, Stetho, Flipper, LeakCanary added with `implementation` in Gradle | RESILIENCE-4 |
 | AEG-D14 | Permission, session or integrity check made only inside `assert()`, which release builds remove | CODE-4 |
+| AEG-D15 | Password, PIN or card field with keyboard suggestions and autocorrect on (keyboard cache) | STORAGE-2 |
+| AEG-D16 | Token, password or key copied to the clipboard | PLATFORM-3 |
+| AEG-D17 | Notifications that may show codes, balances or tokens (listed for review) | PLATFORM-3 |
+| AEG-D18 | `flutter_secure_storage` items that can leave the device (not `_this_device`, or synchronizable) | STORAGE-1 |
+| AEG-D20 | Generated crypto keys or key material written to SharedPreferences, Hive or files | STORAGE-1 |
 | AEG-C01 | Dependency with known vulnerabilities (OSV, skipped with `--offline`) | CODE-3 |
 | AEG-C02 | Unpinned git dependencies, `dependency_overrides` | CODE-3 |
 

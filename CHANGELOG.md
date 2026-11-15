@@ -1,3 +1,14 @@
+## Unreleased
+
+* New rules for data leaking through the UI and local storage:
+  * `AEG-D15` (medium): password, PIN, card or similar fields with keyboard suggestions and autocorrect on, so the keyboard can learn them.
+  * `AEG-D16` (medium): tokens, passwords or keys copied to the clipboard.
+  * `AEG-D17` (low, listed for review): `flutter_local_notifications` notifications that may show codes, balances or tokens on the lock screen.
+  * `AEG-D18` (low): `flutter_secure_storage` items saved with an accessibility that isn't `_this_device`, or as synchronizable.
+  * `AEG-D20` (medium, high for L2): crypto keys the app generates, or key material, written to SharedPreferences, Hive or files instead of the Keystore or Keychain.
+  * `AEG-P14` (low, listed for review): card and identity number fields that accessibility services can read.
+* `AEG-D04` also reports Hive boxes named for secrets opened without `encryptionCipher`, and SQLite tables with password or token columns when the database isn't encrypted (no SQLCipher).
+
 ## 0.13.0
 
 * `aegis.yaml` can tell `AEG-P01` about runtime protection it doesn't know (`rasp: packages:`) and about libraries whose device checks are not protection (`rasp: not_protection:`). Names are Dart packages, Android class prefixes or iOS frameworks and class prefixes, and work for source, APK and IPA audits. `aegis init` writes the section.

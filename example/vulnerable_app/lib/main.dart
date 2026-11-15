@@ -103,3 +103,19 @@ Future<void> transfer(dynamic session, int amount) async {
   assert(session.hasPermission('transfer'));
   await session.send(amount);
 }
+
+class PaymentForm {
+  // AEG-D15: the keyboard learns the card number.
+  final card =
+      TextField(decoration: const InputDecoration(labelText: 'Card number'));
+
+  Future<void> save(dynamic prefs, String token) async {
+    // AEG-D16: the token goes to the clipboard.
+    await Clipboard.setData(ClipboardData(text: token));
+    // AEG-D04: a box of tokens without encryptionCipher.
+    await Hive.openBox('tokens');
+    // AEG-D20: the generated key is saved next to the data.
+    final key = Key.fromSecureRandom(32);
+    await prefs.setString('data', key.base64);
+  }
+}

@@ -4875,5 +4875,179 @@
         "type": "String"
       }
     }
+  },
+  "plainHiveBox": "Hive box \"{box}\" is opened without encryptionCipher, so its data is stored unencrypted.",
+  "@plainHiveBox": {
+    "description": "Phase 2 rules: UI and storage leaks.",
+    "placeholders": {
+      "box": {
+        "type": "String"
+      }
+    }
+  },
+  "plainSqlTable": "Table {table} stores {column} in an unencrypted SQLite database.",
+  "@plainSqlTable": {
+    "description": "Phase 2 rules: UI and storage leaks.",
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "column": {
+        "type": "String"
+      }
+    }
+  },
+  "keyboardCacheTitle": "Keyboard can learn sensitive input",
+  "@keyboardCacheTitle": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "keyboardCachePass": "Sensitive fields keep input out of the keyboard cache",
+  "@keyboardCachePass": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "keyboardCacheDescription": "Keyboards learn what users type to suggest it later, and third-party keyboards can send it to their servers. A password, PIN or card number typed into a field with suggestions and autocorrect on can end up in the keyboard's dictionary or cloud.",
+  "@keyboardCacheDescription": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "keyboardCacheFix": "Use `obscureText: true` for passwords and PINs. For other sensitive fields set `enableSuggestions: false`, `autocorrect: false` and `enableIMEPersonalizedLearning: false`.",
+  "@keyboardCacheFix": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "keyboardCache": "{field} for sensitive input keeps keyboard suggestions and autocorrect on.",
+  "@keyboardCache": {
+    "description": "Phase 2 rules: UI and storage leaks.",
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "clipboardTitle": "Sensitive data copied to the clipboard",
+  "@clipboardTitle": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "clipboardPass": "No sensitive data is copied to the clipboard",
+  "@clipboardPass": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "clipboardDescription": "Anything on the clipboard can be read by other apps and keyboards, and it syncs to the user's other devices. A token, password or key copied there leaves the app's control.",
+  "@clipboardDescription": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "clipboardFix": "Don't copy secrets. If users must copy one (a recovery code), clear it after a short time and mark it sensitive (`ClipDescription.EXTRA_IS_SENSITIVE` on Android 13+, `UIPasteboard` expiration on iOS).",
+  "@clipboardFix": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "clipboard": "`{value}` is copied to the clipboard.",
+  "@clipboard": {
+    "description": "Phase 2 rules: UI and storage leaks.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "notificationLeakTitle": "Sensitive data shown in notifications",
+  "@notificationLeakTitle": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "notificationLeakPass": "Notifications don't show sensitive data",
+  "@notificationLeakPass": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "notificationLeakDescription": "Notifications appear on the lock screen and on paired watches, and other apps with notification access can read them. Codes, balances or tokens in a notification are visible without unlocking the phone.",
+  "@notificationLeakDescription": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "notificationLeakFix": "Keep codes and amounts out of the notification text, or set `visibility: NotificationVisibility.secret` (or `private` with a public version) in `AndroidNotificationDetails`.",
+  "@notificationLeakFix": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "notificationLeak": "Notifications that may show sensitive data, to review: {places}.",
+  "@notificationLeak": {
+    "description": "Phase 2 rules: UI and storage leaks.",
+    "placeholders": {
+      "places": {
+        "type": "String"
+      }
+    }
+  },
+  "keychainOptionsTitle": "Keychain items can leave the device",
+  "@keychainOptionsTitle": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "keychainOptionsPass": "Keychain items stay on this device",
+  "@keychainOptionsPass": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "keychainOptionsDescription": "flutter_secure_storage items saved with an accessibility that isn't `_this_device`, or as synchronizable, go into encrypted backups and iCloud Keychain and can be restored on another device.",
+  "@keychainOptionsDescription": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "keychainOptionsFix": "Use `KeychainAccessibility.first_unlock_this_device` or `unlocked_this_device`, and leave `synchronizable` off for tokens and keys.",
+  "@keychainOptionsFix": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "keychainOptions": "Secure storage uses `{option}`, so items can move to other devices.",
+  "@keychainOptions": {
+    "description": "Phase 2 rules: UI and storage leaks.",
+    "placeholders": {
+      "option": {
+        "type": "String"
+      }
+    }
+  },
+  "plainKeyTitle": "Crypto key stored outside the Keystore or Keychain",
+  "@plainKeyTitle": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "plainKeyPass": "Crypto keys stay in the Keystore or Keychain",
+  "@plainKeyPass": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "plainKeyDescription": "A key saved next to the data it protects protects nothing: anyone who can read the app's files (backup, rooted device, forensic copy) reads the key too and decrypts everything.",
+  "@plainKeyDescription": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "plainKeyFix": "Keep keys in the Android Keystore or iOS Keychain (`flutter_secure_storage`), or derive them when needed and never write them to SharedPreferences, Hive or files.",
+  "@plainKeyFix": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "plainKey": "Key `{key}` is written to plain storage with {call}().",
+  "@plainKey": {
+    "description": "Phase 2 rules: UI and storage leaks.",
+    "placeholders": {
+      "key": {
+        "type": "String"
+      },
+      "call": {
+        "type": "String"
+      }
+    }
+  },
+  "a11yLeakTitle": "Sensitive fields readable by accessibility services",
+  "@a11yLeakTitle": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "a11yLeakPass": "Sensitive fields are hidden from accessibility services",
+  "@a11yLeakPass": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "a11yLeakDescription": "Accessibility services read what is on screen, and malware often asks for that permission. Card and identity numbers shown in plain fields can be read and sent out. Accessibility must stay usable, so this lists fields to review rather than failing.",
+  "@a11yLeakDescription": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "a11yLeakFix": "On Android set `android:accessibilityDataSensitive=\"yes\"` (API 34) on such fields; in Flutter mask the value (`obscureText`) or wrap the field in `Semantics(obscured: true)` where screen readers don't need the digits.",
+  "@a11yLeakFix": {
+    "description": "Phase 2 rules: UI and storage leaks."
+  },
+  "a11yLeak": "Fields with card or identity numbers that accessibility services can read, to review: {places}.",
+  "@a11yLeak": {
+    "description": "Phase 2 rules: UI and storage leaks.",
+    "placeholders": {
+      "places": {
+        "type": "String"
+      }
+    }
   }
 }

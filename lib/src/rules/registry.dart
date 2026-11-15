@@ -11,6 +11,7 @@ import 'native_source_rules.dart';
 import 'source_coverage_rule.dart';
 import 'elf_rules.dart';
 import 'tracker_rules.dart';
+import 'ui_leak_rules.dart';
 import 'binary_rules.dart';
 import 'dart_rules.dart';
 import 'debug_tool_rules.dart';
@@ -31,6 +32,7 @@ const List<Rule> allRules = [
   ...injectionRules,
   ...debugToolRules,
   ...assertRules,
+  ...uiLeakRules,
 ];
 
 /// Rules that read a compiled APK (used with --apk).
