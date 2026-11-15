@@ -122,9 +122,24 @@ To keep the job going after a failure and decide yourself:
 * It runs on Linux, macOS and Windows runners. iOS code-signature checks of an IPA need a macOS runner.
 * aegis checks configuration and code statically. It does not prove an app is secure; see the [aegis documentation](https://github.com/khaledSayedAbdellah/aegis#readme) for what each rule covers.
 
+## Privacy
+
+The action runs on your runner and sends nothing to its author: no telemetry, no usage data. Its network connections are:
+
+* **pub.dev**, to install aegis and, when the project's dependencies are not resolved, to run `pub get` for it (`pub-get: false` turns that off). When the runner has no Dart, `dart-lang/setup-dart` downloads the SDK from Google's storage.
+* **api.osv.dev**, with the names and versions of the project's dependencies, to look up known vulnerabilities.
+* **The app's own link domains**, to read their `/.well-known/assetlinks.json` and `apple-app-site-association` files and check Android App Links and iOS universal links.
+* **GitHub**, to upload the SARIF file to the repository's code scanning (`github/codeql-action/upload-sarif`) and the reports as an artifact of the run (`actions/upload-artifact`).
+
+`offline: true` turns off the OSV lookup and the link checks. The reports stay in your repository's code scanning, job summary and artifacts, under that repository's access rules. They quote the lines a finding is about, with the values of secrets they find masked (`AKIA…MPLE`).
+
+## Support
+
+Report bugs, wrong findings and feature requests in the [aegis issues](https://github.com/khaledSayedAbdellah/aegis/issues/new/choose), and security vulnerabilities in aegis or the action privately through [aegis's security advisories](https://github.com/khaledSayedAbdellah/aegis/security/advisories/new). This repository has no issues of its own.
+
 ## Versions
 
-This repository is published from the [`action` folder of aegis](https://github.com/khaledSayedAbdellah/aegis/tree/main/action) with every aegis release: tag `vX.Y.Z` is the action for aegis X.Y.Z, and `v1` follows the latest one. Report issues and send changes to [aegis](https://github.com/khaledSayedAbdellah/aegis).
+This repository is published from the [`action` folder of aegis](https://github.com/khaledSayedAbdellah/aegis/tree/main/action) with every aegis release: tag `vX.Y.Z` is the action for aegis X.Y.Z, and `v1` follows the latest one. Send changes as pull requests to [aegis](https://github.com/khaledSayedAbdellah/aegis); this repository is overwritten on each release.
 
 ## License
 
