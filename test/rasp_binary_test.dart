@@ -9,6 +9,7 @@ import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
+import 'arm64_strings_test.dart' show swiftLiteral;
 import 'support/dex_fixture.dart';
 import 'support/macho_security_fixture.dart';
 
@@ -244,6 +245,15 @@ void main() {
       final full = await ipa(
           securityMachO(strings: [...jailbreakPaths, 'ptrace', 'FridaGadget']));
       expect(p01(full).status, RuleStatus.passed);
+    });
+
+    test('short Swift literals in the code count too', () async {
+      // `name.contains("FridaGadget")`: Swift keeps a literal of up to 15
+      // bytes in the instructions, not in __cstring.
+      final r = await ipa(securityMachO(
+          strings: [...jailbreakPaths, 'ptrace'],
+          code: [...swiftLiteral('FridaGadget'), 0xd65f03c0]));
+      expect(p01(r).status, RuleStatus.passed);
     });
 
     test('checks next to a statically linked crash reporter are uncertain',

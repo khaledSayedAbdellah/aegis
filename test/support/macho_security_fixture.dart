@@ -11,12 +11,16 @@ Uint8List securityMachO({
   bool symbolTable = true,
   List<(String, int)> symbols = const [],
   List<String> strings = const [],
+  List<int> code = const [],
 }) {
-  const segmentSize = 152;
+  // A __text section is added after __cstring when [code] (arm64 instruction
+  // words) is given.
+  final segmentSize = 72 + 80 * (code.isEmpty ? 1 : 2);
   final commandsSize = 24 + segmentSize + (symbolTable ? 24 : 0) + 24 + 16;
   final text = utf8.encode('${strings.join('\x00')}\x00');
   final stringOffset = 32 + commandsSize;
-  final symbolOffset = (stringOffset + text.length + 7) & ~7;
+  final codeOffset = (stringOffset + text.length + 3) & ~3;
+  final symbolOffset = (codeOffset + code.length * 4 + 7) & ~7;
   final names = <int>[0];
   final nameOffsets = <int>[];
   for (final (name, _) in symbols) {
@@ -53,7 +57,7 @@ Uint8List securityMachO({
   wide(pos + 48, bytes.length);
   word(pos + 56, maxProtection);
   word(pos + 60, initialProtection);
-  word(pos + 64, 1);
+  word(pos + 64, code.isEmpty ? 1 : 2);
   final section = pos + 72;
   name(section, '__cstring');
   name(section + 16, '__TEXT');
@@ -61,6 +65,18 @@ Uint8List securityMachO({
   wide(section + 40, text.length);
   word(section + 48, stringOffset);
   word(section + 64, 2);
+  if (code.isNotEmpty) {
+    final textSection = section + 80;
+    name(textSection, '__text');
+    name(textSection + 16, '__TEXT');
+    wide(textSection + 32, 0x1000 + codeOffset);
+    wide(textSection + 40, code.length * 4);
+    word(textSection + 48, codeOffset);
+    word(textSection + 64, 0x80000400);
+    for (var i = 0; i < code.length; i++) {
+      word(codeOffset + i * 4, code[i]);
+    }
+  }
   pos += segmentSize;
   if (symbolTable) {
     word(pos, 2);

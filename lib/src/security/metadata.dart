@@ -19,6 +19,7 @@ RuleMeta extendedMeta(String id) => switch (id) {
           fix: Bilingual(En.extA11Fix, Ar.extA11Fix),
           severity: Severity.medium,
           masvs: ['MASVS-PLATFORM-1'],
+          maswe: ['MASWE-0029'],
           profiles: {MasProfile.l1}),
       'AEG-A12' => const RuleMeta(
           id: 'AEG-A12',
@@ -28,6 +29,7 @@ RuleMeta extendedMeta(String id) => switch (id) {
           fix: Bilingual(En.extA12Fix, Ar.extA12Fix),
           severity: Severity.medium,
           masvs: ['MASVS-PLATFORM-1'],
+          maswe: ['MASWE-0018'],
           profiles: {MasProfile.l1}),
       'AEG-A13' => const RuleMeta(
           id: 'AEG-A13',
@@ -37,6 +39,7 @@ RuleMeta extendedMeta(String id) => switch (id) {
           fix: Bilingual(En.extA13Fix, Ar.extA13Fix),
           severity: Severity.medium,
           masvs: ['MASVS-PLATFORM-1'],
+          maswe: ['MASWE-0029'],
           profiles: {MasProfile.l1}),
       'AEG-N01' => const RuleMeta(
           id: 'AEG-N01',
@@ -46,6 +49,7 @@ RuleMeta extendedMeta(String id) => switch (id) {
           fix: Bilingual(En.extN01Fix, Ar.extN01Fix),
           severity: Severity.high,
           masvs: ['MASVS-NETWORK-1'],
+          maswe: ['MASWE-0027'],
           profiles: {MasProfile.l1}),
       'AEG-N02' => const RuleMeta(
           id: 'AEG-N02',
@@ -55,6 +59,7 @@ RuleMeta extendedMeta(String id) => switch (id) {
           fix: Bilingual(En.extN02Fix, Ar.extN02Fix),
           severity: Severity.medium,
           masvs: ['MASVS-PLATFORM-2'],
+          maswe: ['MASWE-0034', 'MASWE-0026'],
           profiles: {MasProfile.l1}),
       'AEG-N03' => const RuleMeta(
           id: 'AEG-N03',
@@ -64,6 +69,7 @@ RuleMeta extendedMeta(String id) => switch (id) {
           fix: Bilingual(En.extN03Fix, Ar.extN03Fix),
           severity: Severity.medium,
           masvs: ['MASVS-CRYPTO-1'],
+          maswe: ['MASWE-0007'],
           profiles: {MasProfile.l1}),
       'AEG-N04' => const RuleMeta(
           id: 'AEG-N04',
@@ -73,6 +79,7 @@ RuleMeta extendedMeta(String id) => switch (id) {
           fix: Bilingual(En.extN04Fix, Ar.extN04Fix),
           severity: Severity.medium,
           masvs: ['MASVS-STORAGE-1'],
+          maswe: ['MASWE-0001', 'MASWE-0002'],
           profiles: {MasProfile.l1}),
       'AEG-I10' => const RuleMeta(
           id: 'AEG-I10',
@@ -100,6 +107,7 @@ RuleMeta extendedMeta(String id) => switch (id) {
           fix: Bilingual(En.extB12Fix, Ar.extB12Fix),
           severity: Severity.medium,
           masvs: ['MASVS-CODE-4'],
+          maswe: ['MASWE-0045'],
           profiles: {MasProfile.l1}),
       'AEG-T01' => const RuleMeta(
           id: 'AEG-T01',
@@ -118,6 +126,7 @@ RuleMeta extendedMeta(String id) => switch (id) {
           fix: Bilingual(En.extR09Fix, Ar.extR09Fix),
           severity: Severity.high,
           masvs: ['MASVS-NETWORK-1', 'MASVS-NETWORK-2'],
+          maswe: ['MASWE-0027', 'MASWE-0028'],
           profiles: {MasProfile.l1}),
       'AEG-R10' => const RuleMeta(
           id: 'AEG-R10',
@@ -127,6 +136,7 @@ RuleMeta extendedMeta(String id) => switch (id) {
           fix: Bilingual(En.extR10Fix, Ar.extR10Fix),
           severity: Severity.high,
           masvs: ['MASVS-STORAGE-2'],
+          maswe: ['MASWE-0005', 'MASWE-0030', 'MASWE-0001'],
           profiles: {MasProfile.l1}),
       'AEG-P11' => const RuleMeta(
           id: 'AEG-P11',
@@ -135,6 +145,7 @@ RuleMeta extendedMeta(String id) => switch (id) {
           fix: Bilingual(En.platformP11Limit, Ar.platformP11Limit),
           severity: Severity.medium,
           masvs: ['MASVS-PLATFORM-3'],
+          maswe: ['MASWE-0038'],
           profiles: {MasProfile.l1}),
       'AEG-N05' => const RuleMeta(
           id: 'AEG-N05',
@@ -143,6 +154,7 @@ RuleMeta extendedMeta(String id) => switch (id) {
           fix: Bilingual(En.platformN05Limit, Ar.platformN05Limit),
           severity: Severity.medium,
           masvs: ['MASVS-STORAGE-2'],
+          maswe: ['MASWE-0006'],
           profiles: {MasProfile.l1}),
       'AEG-N06' => const RuleMeta(
           id: 'AEG-N06',
@@ -151,6 +163,7 @@ RuleMeta extendedMeta(String id) => switch (id) {
           fix: Bilingual(En.platformN06Limit, Ar.platformN06Limit),
           severity: Severity.medium,
           masvs: ['MASVS-AUTH-2'],
+          maswe: ['MASWE-0016', 'MASWE-0022'],
           profiles: {MasProfile.l1}),
       'AEG-I12' => const RuleMeta(
           id: 'AEG-I12',
@@ -159,6 +172,7 @@ RuleMeta extendedMeta(String id) => switch (id) {
           fix: Bilingual(En.platformI12Limit, Ar.platformI12Limit),
           severity: Severity.medium,
           masvs: ['MASVS-PLATFORM-1'],
+          maswe: ['MASWE-0029'],
           profiles: {MasProfile.l1}),
       'AEG-N07' => const RuleMeta(
           id: 'AEG-N07',
@@ -167,6 +181,7 @@ RuleMeta extendedMeta(String id) => switch (id) {
           fix: Bilingual(En.platformN07Limit, Ar.platformN07Limit),
           severity: Severity.medium,
           masvs: ['MASVS-PLATFORM-2'],
+          maswe: ['MASWE-0033', 'MASWE-0035'],
           profiles: {MasProfile.l1}),
       'AEG-A14' => const RuleMeta(
           id: 'AEG-A14',
@@ -175,6 +190,7 @@ RuleMeta extendedMeta(String id) => switch (id) {
           fix: Bilingual(En.platformA14Limit, Ar.platformA14Limit),
           severity: Severity.medium,
           masvs: ['MASVS-PLATFORM-3'],
+          maswe: ['MASWE-0039'],
           profiles: {MasProfile.l1}),
       _ => throw ArgumentError.value(id),
     };

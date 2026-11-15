@@ -652,7 +652,7 @@ See [ci/azure-pipelines/README.md](ci/azure-pipelines/README.md) for all paramet
 
 ## Rules
 
-Run `aegis --list-rules` for the full list.
+Run `aegis --list-rules` for the full list. [MASWE coverage](doc/maswe-coverage.md) lists every OWASP MASWE weakness with the rules that check it, and the ones aegis doesn't check yet.
 
 **Where `AEG-P01` looks for runtime protection.** Separately for Android and iOS, any of these counts:
 

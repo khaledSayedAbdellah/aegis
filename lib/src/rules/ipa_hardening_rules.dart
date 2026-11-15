@@ -22,6 +22,7 @@ class _IpaHardeningRule extends Rule {
             fix: Bilingual(En.iosPieFix, Ar.iosPieFix),
             severity: Severity.medium,
             masvs: ['MASVS-CODE-4'],
+            maswe: ['MASWE-0045'],
             profiles: {MasProfile.l1}),
         _Check.memory => const RuleMeta(
             id: 'AEG-I08',
@@ -32,6 +33,7 @@ class _IpaHardeningRule extends Rule {
             fix: Bilingual(En.iosMemoryFix, Ar.iosMemoryFix),
             severity: Severity.medium,
             masvs: ['MASVS-CODE-4'],
+            maswe: ['MASWE-0045'],
             profiles: {MasProfile.l1}),
         _Check.debug => const RuleMeta(
             id: 'AEG-I09',
@@ -42,6 +44,7 @@ class _IpaHardeningRule extends Rule {
             fix: Bilingual(En.iosDebugFix, Ar.iosDebugFix),
             severity: Severity.low,
             masvs: ['MASVS-RESILIENCE-3'],
+            maswe: ['MASWE-0061'],
             profiles: {MasProfile.r}),
       };
 

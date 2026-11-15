@@ -5,6 +5,7 @@ library;
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'arm64_strings.dart';
 import 'macho_metadata.dart';
 
 class MachSecurity {
@@ -122,6 +123,7 @@ MachSecurity _inspect(Uint8List bytes) {
   var pos = header, encrypted = false, signature = false;
   (int, int, int, int)? symtab;
   final stringRanges = <(int, int)>[];
+  final codeRanges = <(int, int)>[];
   final segments = <MachSegment>[];
   final metadataSections = <MachSection>[];
   (int, int)? fixups;
@@ -220,6 +222,15 @@ MachSecurity _inspect(Uint8List bytes) {
           metadataSections.add(MachSection(fixed(section + 16, 16), name,
               address(section + 32), offset, length));
         }
+        // arm64 code holds Swift's short string literals as instructions.
+        if (name == '__text' &&
+            fixed(section + 16, 16) == '__TEXT' &&
+            cpu == 0x0100000c) {
+          final offset = word(section + (wide ? 48 : 40));
+          final length = address(section + (wide ? 40 : 36));
+          bounds(offset, length);
+          codeRanges.add((offset, length));
+        }
         if (flags & 0xff == 2 ||
             const {
               '__cstring',
@@ -291,6 +302,16 @@ MachSecurity _inspect(Uint8List bytes) {
       if (strings.length > 200000) {
         throw const FormatException('Too many Mach-O strings.');
       }
+    }
+    var code = 0;
+    for (final (offset, length) in codeRanges) {
+      code += length;
+      if (code > 256 * 1024 * 1024) {
+        stringsLimited = true;
+        break;
+      }
+      strings.addAll(arm64SmallStrings(
+          Uint8List.sublistView(bytes, offset, offset + length)));
     }
   }
   return MachSecurity(

@@ -31,6 +31,7 @@ class NativeSourceRule extends Rule {
             : const Bilingual(En.nativeSecretsFix, Ar.nativeSecretsFix),
         severity: Severity.high,
         masvs: [logging ? 'MASVS-STORAGE-2' : 'MASVS-STORAGE-1'],
+        maswe: [logging ? 'MASWE-0005' : 'MASWE-0004'],
         profiles: {MasProfile.l1},
       );
 

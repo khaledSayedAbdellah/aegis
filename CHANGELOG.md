@@ -1,5 +1,8 @@
 ## Unreleased
 
+* IPA audits now read Swift's short string literals (up to 15 bytes), which the compiler keeps inside arm64 instructions instead of the string table. An app's own check such as `name.contains("FridaGadget")` is now found by `AEG-P01` and listed in the iOS binary evidence. Checked on real release builds.
+* [MASWE coverage](doc/maswe-coverage.md) lists every OWASP MASWE weakness with the aegis rules that check it. It is generated from the rules (`dart run tool/maswe_coverage.dart`) and a test keeps it current.
+* 31 rules that cited no MASWE weakness now do, so their findings show it in the HTML, Markdown and JSON reports: the native and platform checks (`AEG-A11` to `AEG-A14`, `AEG-N01` to `AEG-N09`, `AEG-P11`, `AEG-I12`), the IPA checks (`AEG-I06` to `AEG-I09`), `AEG-B12`, the runtime scenarios (`AEG-R09`, `AEG-R10`) and the resilience probe results (`AEG-R01` to `AEG-R08`).
 * The GitHub Action retries installing aegis when pub.dev is briefly unreachable, and a release now updates the action only once pub.dev serves the new version.
 
 ## 0.12.1

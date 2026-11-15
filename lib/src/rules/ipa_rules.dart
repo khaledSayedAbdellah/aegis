@@ -68,6 +68,7 @@ class IpaBundledSecretsRule extends Rule {
         severity: Severity.high,
         profiles: _all,
         masvs: ['MASVS-STORAGE-1'],
+        maswe: ['MASWE-0004'],
       );
 
   @override
