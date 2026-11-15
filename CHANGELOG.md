@@ -1,4 +1,4 @@
-## Unreleased
+## 0.14.0
 
 * New rules for data leaking through the UI and local storage:
   * `AEG-D15` (medium): password, PIN, card or similar fields with keyboard suggestions and autocorrect on, so the keyboard can learn them.
