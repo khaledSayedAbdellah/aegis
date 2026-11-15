@@ -70,6 +70,25 @@ jobs:
           else
             echo "present=true" >> "$GITHUB_OUTPUT"
           fi
+      # pub.dev can take a few minutes to serve a new version. The action's
+      # own tests start as soon as it is pushed and install this version.
+      - name: Wait for pub.dev
+        if: steps.key.outputs.present == 'true'
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          version="${TAG#v}"
+          for i in $(seq 1 30); do
+            if curl -fsS -H 'Accept: application/vnd.pub.v2+json' \
+                https://pub.dev/api/packages/aegis |
+                jq -e --arg v "$version" 'any(.versions[]; .version == $v)' > /dev/null; then
+              echo "pub.dev serves aegis $version."
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "::error::pub.dev does not list aegis $version after 10 minutes."
+          exit 1
       - uses: actions/checkout@v7
         if: steps.key.outputs.present == 'true'
         with:

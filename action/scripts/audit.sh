@@ -37,12 +37,18 @@ if [ -z "${AEGIS_VERSION:-}" ] && [ -f "$action_dir/aegis-version.txt" ]; then
 fi
 if [ -z "${AEGIS_SKIP_INSTALL:-}" ]; then
   echo "::group::Install aegis ${AEGIS_VERSION:-(latest)}"
-  if [ -n "${AEGIS_VERSION:-}" ]; then
-    "$dart" pub global activate aegis "$AEGIS_VERSION"
-  else
-    "$dart" pub global activate aegis
-  fi
-  installed=$?
+  # Retried: pub.dev can be briefly unreachable, or still publishing a
+  # version that was just released.
+  installed=1
+  for attempt in 1 2 3 4; do
+    if [ -n "${AEGIS_VERSION:-}" ]; then
+      "$dart" pub global activate aegis "$AEGIS_VERSION" && installed=0
+    else
+      "$dart" pub global activate aegis && installed=0
+    fi
+    [ "$installed" -eq 0 ] && break
+    [ "$attempt" -lt 4 ] && echo "Retrying in $((attempt * 20)) seconds." && sleep $((attempt * 20))
+  done
   echo "::endgroup::"
   if [ "$installed" -ne 0 ]; then
     echo "::error title=aegis::Could not install aegis ${AEGIS_VERSION:-} from pub.dev."

@@ -1,3 +1,7 @@
+## Unreleased
+
+* The GitHub Action retries installing aegis when pub.dev is briefly unreachable, and a release now updates the action only once pub.dev serves the new version.
+
 ## 0.12.1
 
 * The README opens with a screenshot of the HTML report, and pub.dev shows it as the package screenshot.
