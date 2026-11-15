@@ -402,6 +402,7 @@ void main() {
             'ios_xcode_scheme',
             'ios_xcode_configuration',
             'tracker_signatures',
+            'rasp',
             'runtime_security',
           ]));
       for (final key in [

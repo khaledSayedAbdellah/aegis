@@ -337,6 +337,7 @@ The report also prints the **signing certificate SHA-256 in Base64**, the exact 
 | AEG-B09 | Signed with the Android debug certificate | RESILIENCE-2 |
 | AEG-B10 | freeRASP `signingCertHashes` / `packageName` don't match the APK | RESILIENCE-2 |
 | AEG-B11 | Old targetSdk / minSdk in the final manifest | CODE-1 |
+| AEG-B13 | Chucker, Stetho, Flipper or LeakCanary inside the APK (not their no-op versions) | RESILIENCE-4 |
 
 aegis reads APKs and AABs itself (zip, binary XML, protobuf XML, v1/v2/v3 signatures) in pure Dart, with no external tools.
 
@@ -565,6 +566,9 @@ apk: build/app/outputs/flutter-apk/app-release.apk          # for aegis run --mo
 aab: build/app/outputs/bundle/release/app-release.aab       # for aegis run --mode aab
 # probe_apk: dist/app-release.apks                        # signed .apk, .apks, or APK directory for an AAB
 # probe_cert_sha256: "<app signing certificate SHA-256>"
+rasp:                  # AEG-P01, see "Where AEG-P01 looks for runtime protection"
+  packages: [my_guard, com.acme.guard., AcmeShield]
+  not_protection: [onesignal_flutter, com.onesignal., OneSignal]
 ```
 
 **Your own packages are scanned too.** Many apps keep auth, networking and storage in internal packages pulled in as git or path dependencies. aegis reads `.dart_tool/package_config.json` (run `flutter pub get` first) and scans the Dart code of every git and path dependency, listing them under "Packages scanned"; findings point to `package:<name>/...`. pub.dev packages are not scanned. Turn this off with `scan_packages: false`.
@@ -666,6 +670,8 @@ To read a package's code, aegis finds its files in `.dart_tool/package_config.js
 
 **Crash and analytics libraries are not runtime protection.** Sentry, Firebase Crashlytics, Bugsnag, Instabug, Datadog, AppsFlyer, Adjust, New Relic, App Center and Embrace check for root or jailbreak to label their own reports and never react to a threat. Their checks are listed as evidence and don't count. If they are the only checks, the finding says so.
 
+**Protection aegis doesn't know.** Name it in `aegis.yaml` under `rasp: packages:`: a Dart package (counted when the code imports it), a class or package prefix used by the Android code or found in an APK (`com.acme.guard.`), or an iOS framework or class prefix used by the Swift code or found in an IPA (`AcmeShield`). Libraries whose device checks only serve themselves go under `rasp: not_protection:` and are treated like the crash reporters above. The evidence says when protection was counted because of `aegis.yaml`.
+
 **With only an APK, AAB or IPA** (no source), `AEG-P01` reads the compiled app and attributes every check to the code that holds it:
 
 * a RASP SDK in the app passes: by its classes in the DEX files (freeRASP, RootBeer, Approov, Zimperium, DexProtector, DexGuard, safe_device, flutter_jailbreak_detection) or by its iOS framework or class names (freeRASP, IOSSecuritySuite, DTTJailbreakDetection, Approov, Zimperium);
@@ -688,6 +694,8 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-P08 | Biometrics as a plain boolean *(L2)* | AUTH-2 |
 | AEG-P09 | No screenshot protection *(L2)* | PLATFORM-3 |
 | AEG-P10 | Release build commands without `--obfuscate` *(R)* | RESILIENCE-3 |
+| AEG-P12 | Firebase security rules open to anyone (Firestore, Storage, Realtime Database), including test-mode rules not yet expired | AUTH-1 |
+| AEG-P15 | Firebase security rules broader than needed: any signed-in user on all data, or anonymous writes to a path | AUTH-1 |
 | AEG-A01 | Android app debuggable | RESILIENCE-4 |
 | AEG-A02 | Backup allowed | STORAGE-2 |
 | AEG-A03 | Cleartext traffic (manifest) | NETWORK-1 |
@@ -708,7 +716,7 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-I08 | Executable stack / initial W+X segments | CODE-4 |
 | AEG-I09 | Retained source debug entries (MAS-R) | RESILIENCE-3 |
 | AEG-D01 | Hardcoded secret (known formats, JWT/Supabase service role, high-entropy values) | STORAGE-1 |
-| AEG-D02 | `http://` URL | NETWORK-1 |
+| AEG-D02 | Cleartext traffic in code: `http://`, `ws://`, `ftp://`, `mqtt://` URLs, gRPC `ChannelCredentials.insecure()`, MQTT clients without `secure = true` | NETWORK-1 |
 | AEG-D03 | TLS validation disabled | NETWORK-1 |
 | AEG-D04 | Sensitive data in SharedPreferences / GetStorage / Hive | STORAGE-1 |
 | AEG-D05 | Weak cryptography | CRYPTO-1 |
@@ -717,6 +725,10 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-D08 | Sensitive data in logs, unguarded `LogInterceptor` | STORAGE-2 |
 | AEG-D09 | `.env` / keys bundled as assets | STORAGE-1 |
 | AEG-D10 | WebView JS bridge without navigation limits, WebView debugging | PLATFORM-2 |
+| AEG-D11 | SQL built from variables (`rawQuery('... WHERE id = $id')`, `where: 'name = \'$q\''`) instead of `?` arguments | CODE-4 |
+| AEG-D12 | Values pasted into WebView HTML or JavaScript (`runJavaScript`, `loadHtmlString`, `evaluateJavascript`) without encoding | PLATFORM-2 |
+| AEG-D13 | Debug tools in release builds: Alice, DevicePreview, Stetho, Flipper used outside `kDebugMode`; Chucker, Stetho, Flipper, LeakCanary added with `implementation` in Gradle | RESILIENCE-4 |
+| AEG-D14 | Permission, session or integrity check made only inside `assert()`, which release builds remove | CODE-4 |
 | AEG-C01 | Dependency with known vulnerabilities (OSV, skipped with `--offline`) | CODE-3 |
 | AEG-C02 | Unpinned git dependencies, `dependency_overrides` | CODE-3 |
 

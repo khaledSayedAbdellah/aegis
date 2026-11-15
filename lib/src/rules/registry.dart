@@ -2,6 +2,8 @@
 library;
 
 import 'android_rules.dart';
+import 'assert_rules.dart';
+import 'backend_rules.dart';
 import 'platform_security_rules.dart';
 import 'platform_protection_rules.dart';
 import 'native_security_rules.dart';
@@ -11,7 +13,9 @@ import 'elf_rules.dart';
 import 'tracker_rules.dart';
 import 'binary_rules.dart';
 import 'dart_rules.dart';
+import 'debug_tool_rules.dart';
 import 'dependency_rules.dart';
+import 'injection_rules.dart';
 import 'ios_rules.dart';
 import 'protection_rules.dart';
 import 'rule.dart';
@@ -23,10 +27,14 @@ const List<Rule> allRules = [
   ...iosRules,
   ...dartRules,
   ...dependencyRules,
+  ...backendRules,
+  ...injectionRules,
+  ...debugToolRules,
+  ...assertRules,
 ];
 
 /// Rules that read a compiled APK (used with --apk).
-const List<Rule> apkRules = binaryRules;
+const List<Rule> apkRules = [...binaryRules, DebugToolApkRule()];
 
 // Run once for either source or artifact. Each rule selects the authoritative
 // final manifest when available and retains source-only scope explicitly.

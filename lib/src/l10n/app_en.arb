@@ -1298,15 +1298,15 @@
   "@dartRulesMoveSecretsToYourBackendKeysThatMust": {
     "description": "rules/dart_rules.dart: localized message."
   },
-  "dartRulesCleartextHttpUrlInCode": "Cleartext http:// URL in code",
+  "dartRulesCleartextHttpUrlInCode": "Cleartext traffic in code (http://, ws://, ftp://, MQTT, gRPC)",
   "@dartRulesCleartextHttpUrlInCode": {
     "description": "rules/dart_rules.dart: localized message."
   },
-  "dartRulesRequestsToHttpUrlsCanBeReadAnd": "Requests to http:// URLs can be read and modified by anyone on the same network.",
+  "dartRulesRequestsToHttpUrlsCanBeReadAnd": "Traffic sent over http://, ws://, ftp://, plain MQTT or gRPC without TLS can be read and modified by anyone on the same network.",
   "@dartRulesRequestsToHttpUrlsCanBeReadAnd": {
     "description": "rules/dart_rules.dart: localized message."
   },
-  "dartRulesUseHttpsForEveryEndpoint": "Use https:// for every endpoint.",
+  "dartRulesUseHttpsForEveryEndpoint": "Use https://, wss:// and TLS for every connection: `ChannelCredentials.secure()` for gRPC, `secure = true` (port 8883) for MQTT.",
   "@dartRulesUseHttpsForEveryEndpoint": {
     "description": "rules/dart_rules.dart: localized message."
   },
@@ -4588,5 +4588,292 @@
   "raspEvidenceTitle": "Runtime protection (RASP)",
   "@raspEvidenceTitle": {
     "description": "Security evidence group title for AEG-P01."
+  },
+  "backendPublicTitle": "Firebase security rules let anyone access the data",
+  "@backendPublicTitle": {
+    "description": "rules/backend_rules.dart: Firebase security rules."
+  },
+  "backendPublicPass": "Firebase security rules don't open the data to everyone",
+  "@backendPublicPass": {
+    "description": "rules/backend_rules.dart: Firebase security rules."
+  },
+  "backendPublicDescription": "Firebase security rules decide who can read and write the database and storage directly, without going through the app. With a rule that allows everyone on all data, anyone who finds the project id in the app can read, change or delete every record.",
+  "@backendPublicDescription": {
+    "description": "rules/backend_rules.dart: Firebase security rules."
+  },
+  "backendPublicFix": "Allow each collection or path only to the users it belongs to, for example `allow read, write: if request.auth != null && request.auth.uid == userId;`, and test the rules with the Firebase emulator. Replace test-mode rules before the release.",
+  "@backendPublicFix": {
+    "description": "rules/backend_rules.dart: Firebase security rules."
+  },
+  "backendPublic": "{service}: anyone, without signing in, can {access} all data (`{rule}`).",
+  "@backendPublic": {
+    "description": "rules/backend_rules.dart: Firebase security rules.",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      },
+      "access": {
+        "type": "String"
+      },
+      "rule": {
+        "type": "String"
+      }
+    }
+  },
+  "backendPublicUntil": "{service}: test-mode rules let anyone, without signing in, {access} all data until {date} (`{rule}`).",
+  "@backendPublicUntil": {
+    "description": "rules/backend_rules.dart: Firebase security rules.",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      },
+      "access": {
+        "type": "String"
+      },
+      "date": {
+        "type": "String"
+      },
+      "rule": {
+        "type": "String"
+      }
+    }
+  },
+  "backendBroadTitle": "Firebase security rules are broader than needed",
+  "@backendBroadTitle": {
+    "description": "rules/backend_rules.dart: Firebase security rules."
+  },
+  "backendBroadPass": "Firebase security rules are scoped to their users",
+  "@backendBroadPass": {
+    "description": "rules/backend_rules.dart: Firebase security rules."
+  },
+  "backendBroadDescription": "A rule that lets any signed-in user reach all data, or lets anyone write to a path, relies on nothing an attacker can't get: anyone can create an account in the app.",
+  "@backendBroadDescription": {
+    "description": "rules/backend_rules.dart: Firebase security rules."
+  },
+  "backendBroadFix": "Check ownership in each rule (`request.auth.uid == userId`), validate the data being written (`request.resource.data`), and allow anonymous writes only where they are needed, with size and field limits.",
+  "@backendBroadFix": {
+    "description": "rules/backend_rules.dart: Firebase security rules."
+  },
+  "backendAnyUser": "{service}: any signed-in user can {access} all data (`{rule}`). Anyone can create an account, so this barely restricts access.",
+  "@backendAnyUser": {
+    "description": "rules/backend_rules.dart: Firebase security rules.",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      },
+      "access": {
+        "type": "String"
+      },
+      "rule": {
+        "type": "String"
+      }
+    }
+  },
+  "backendPublicWrite": "{service}: anyone, without signing in, can write to {path} (`{rule}`).",
+  "@backendPublicWrite": {
+    "description": "rules/backend_rules.dart: Firebase security rules.",
+    "placeholders": {
+      "service": {
+        "type": "String"
+      },
+      "path": {
+        "type": "String"
+      },
+      "rule": {
+        "type": "String"
+      }
+    }
+  },
+  "backendRulesMissing": "The app uses {services}, but their security rules are not in this repository. Check them in the Firebase console: rules open to everyone are a common cause of data leaks.",
+  "@backendRulesMissing": {
+    "description": "rules/backend_rules.dart: Firebase security rules.",
+    "placeholders": {
+      "services": {
+        "type": "String"
+      }
+    }
+  },
+  "backendRulesUnreadable": "Could not read {files}.",
+  "@backendRulesUnreadable": {
+    "description": "rules/backend_rules.dart: Firebase security rules.",
+    "placeholders": {
+      "files": {
+        "type": "String"
+      }
+    }
+  },
+  "sqlInjectionTitle": "SQL query built from variables (SQL injection)",
+  "@sqlInjectionTitle": {
+    "description": "rules/injection_rules.dart: SQL and WebView injection."
+  },
+  "sqlInjectionPass": "SQL queries pass values as arguments",
+  "@sqlInjectionPass": {
+    "description": "rules/injection_rules.dart: SQL and WebView injection."
+  },
+  "sqlInjectionDescription": "A value pasted into SQL text becomes part of the query. If it can come from the user, a deep link, the network or another app, it can change what the query does: read other rows, bypass a check, or delete data.",
+  "@sqlInjectionDescription": {
+    "description": "rules/injection_rules.dart: SQL and WebView injection."
+  },
+  "sqlInjectionFix": "Put a `?` in the SQL and pass the value separately: `rawQuery('SELECT * FROM users WHERE id = ?', [id])`, `query('users', where: 'id = ?', whereArgs: [id])`, or drift's typed queries and `Variable`.",
+  "@sqlInjectionFix": {
+    "description": "rules/injection_rules.dart: SQL and WebView injection."
+  },
+  "sqlInjection": "SQL built with `{value}` in {call}(). Pass it as an argument to a `?` placeholder instead.",
+  "@sqlInjection": {
+    "description": "rules/injection_rules.dart: SQL and WebView injection.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "call": {
+        "type": "String"
+      }
+    }
+  },
+  "webInjectionTitle": "Data pasted into WebView HTML or JavaScript",
+  "@webInjectionTitle": {
+    "description": "rules/injection_rules.dart: SQL and WebView injection."
+  },
+  "webInjectionPass": "WebView code doesn't paste in raw values",
+  "@webInjectionPass": {
+    "description": "rules/injection_rules.dart: SQL and WebView injection."
+  },
+  "webInjectionDescription": "HTML or JavaScript built by pasting a value runs whatever that value contains. A value from the user, a deep link or the network can run its own script in the WebView, with access to the page, its cookies and any JavaScript bridge to the app.",
+  "@webInjectionDescription": {
+    "description": "rules/injection_rules.dart: SQL and WebView injection."
+  },
+  "webInjectionFix": "Encode values before pasting them: `jsonEncode(value)` for JavaScript, `htmlEscape.convert(value)` for HTML. Better, pass data through a JavaScript channel or `postMessage` instead of building code.",
+  "@webInjectionFix": {
+    "description": "rules/injection_rules.dart: SQL and WebView injection."
+  },
+  "webInjection": "`{value}` is pasted into the code passed to {call}() without encoding.",
+  "@webInjection": {
+    "description": "rules/injection_rules.dart: SQL and WebView injection.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "call": {
+        "type": "String"
+      }
+    }
+  },
+  "debugToolTitle": "Debug tools ship in the release build",
+  "@debugToolTitle": {
+    "description": "rules/debug_tool_rules.dart: debug tools in release builds."
+  },
+  "debugToolPass": "Debug tools stay out of the release build",
+  "@debugToolPass": {
+    "description": "rules/debug_tool_rules.dart: debug tools in release builds."
+  },
+  "debugToolDescription": "Network inspectors and debug tools (Alice, Chucker, Stetho, Flipper, LeakCanary, DevicePreview) record requests, responses and tokens, and some show them in the app or in a notification. In a release build they expose that data on every user's device, to anyone holding the phone or debugging it.",
+  "@debugToolDescription": {
+    "description": "rules/debug_tool_rules.dart: debug tools in release builds."
+  },
+  "debugToolFix": "Keep them in debug builds only: `dev_dependencies` and a `kDebugMode` check in Dart; `debugImplementation` in Gradle, with Chucker's `library-no-op` for release.",
+  "@debugToolFix": {
+    "description": "rules/debug_tool_rules.dart: debug tools in release builds."
+  },
+  "debugToolDart": "{tool} is used outside a debug-only check, so it runs in release builds.",
+  "@debugToolDart": {
+    "description": "rules/debug_tool_rules.dart: debug tools in release builds.",
+    "placeholders": {
+      "tool": {
+        "type": "String"
+      }
+    }
+  },
+  "debugToolImport": "{tool} is imported in code that is part of release builds.",
+  "@debugToolImport": {
+    "description": "rules/debug_tool_rules.dart: debug tools in release builds.",
+    "placeholders": {
+      "tool": {
+        "type": "String"
+      }
+    }
+  },
+  "debugToolGradle": "{tool} is added with `{configuration}`, so it ships in release builds.",
+  "@debugToolGradle": {
+    "description": "rules/debug_tool_rules.dart: debug tools in release builds.",
+    "placeholders": {
+      "tool": {
+        "type": "String"
+      },
+      "configuration": {
+        "type": "String"
+      }
+    }
+  },
+  "debugToolApkTitle": "Debug tools inside the APK",
+  "@debugToolApkTitle": {
+    "description": "rules/debug_tool_rules.dart: debug tools in release builds."
+  },
+  "debugToolApkPass": "No debug tools inside the APK",
+  "@debugToolApkPass": {
+    "description": "rules/debug_tool_rules.dart: debug tools in release builds."
+  },
+  "debugToolApk": "{tool} is inside the APK ({evidence}).",
+  "@debugToolApk": {
+    "description": "rules/debug_tool_rules.dart: debug tools in release builds.",
+    "placeholders": {
+      "tool": {
+        "type": "String"
+      },
+      "evidence": {
+        "type": "String"
+      }
+    }
+  },
+  "assertCheckTitle": "Security check only inside assert()",
+  "@assertCheckTitle": {
+    "description": "rules/assert_rules.dart: checks only inside assert."
+  },
+  "assertCheckPass": "Security checks don't rely on assert()",
+  "@assertCheckPass": {
+    "description": "rules/assert_rules.dart: checks only inside assert."
+  },
+  "assertCheckDescription": "assert() runs only in debug builds: release builds remove it with everything inside. A permission, session or integrity check that exists only in an assert passes in testing and is missing in the app users run.",
+  "@assertCheckDescription": {
+    "description": "rules/assert_rules.dart: checks only inside assert."
+  },
+  "assertCheckFix": "Make the decision with an `if` that stops the action (return, throw or show an error); keep assert() for programming mistakes only.",
+  "@assertCheckFix": {
+    "description": "rules/assert_rules.dart: checks only inside assert."
+  },
+  "assertCheck": "`{check}` is only checked inside assert(), which release builds remove, so the check never runs in production.",
+  "@assertCheck": {
+    "description": "rules/assert_rules.dart: checks only inside assert.",
+    "placeholders": {
+      "check": {
+        "type": "String"
+      }
+    }
+  },
+  "cleartextChannel": "Unencrypted {channel} connection: {code}.",
+  "@cleartextChannel": {
+    "description": "rules/dart_rules.dart: AEG-D02 non-HTTP channels.",
+    "placeholders": {
+      "channel": {
+        "type": "String"
+      },
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "raspFoundConfig": "Runtime protection on {platforms}: {name}, declared in aegis.yaml and used in {file}.",
+  "@raspFoundConfig": {
+    "description": "rules/protection_rules.dart: AEG-P01 protection declared in aegis.yaml.",
+    "placeholders": {
+      "platforms": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "file": {
+        "type": "String"
+      }
+    }
   }
 }

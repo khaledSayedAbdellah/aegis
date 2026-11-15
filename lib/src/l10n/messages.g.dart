@@ -294,6 +294,68 @@ class L10n {
   String get appOperationContinued =>
       isArabic ? Ar.appOperationContinued : En.appOperationContinued;
   String get appUnknown => isArabic ? Ar.appUnknown : En.appUnknown;
+  String assertCheck({required Object? check}) =>
+      isArabic ? Ar.assertCheck(check: check) : En.assertCheck(check: check);
+  String get assertCheckDescription =>
+      isArabic ? Ar.assertCheckDescription : En.assertCheckDescription;
+  String get assertCheckFix => isArabic ? Ar.assertCheckFix : En.assertCheckFix;
+  String get assertCheckPass =>
+      isArabic ? Ar.assertCheckPass : En.assertCheckPass;
+  String get assertCheckTitle =>
+      isArabic ? Ar.assertCheckTitle : En.assertCheckTitle;
+  String backendAnyUser(
+          {required Object? access,
+          required Object? rule,
+          required Object? service}) =>
+      isArabic
+          ? Ar.backendAnyUser(access: access, rule: rule, service: service)
+          : En.backendAnyUser(access: access, rule: rule, service: service);
+  String get backendBroadDescription =>
+      isArabic ? Ar.backendBroadDescription : En.backendBroadDescription;
+  String get backendBroadFix =>
+      isArabic ? Ar.backendBroadFix : En.backendBroadFix;
+  String get backendBroadPass =>
+      isArabic ? Ar.backendBroadPass : En.backendBroadPass;
+  String get backendBroadTitle =>
+      isArabic ? Ar.backendBroadTitle : En.backendBroadTitle;
+  String backendPublic(
+          {required Object? access,
+          required Object? rule,
+          required Object? service}) =>
+      isArabic
+          ? Ar.backendPublic(access: access, rule: rule, service: service)
+          : En.backendPublic(access: access, rule: rule, service: service);
+  String get backendPublicDescription =>
+      isArabic ? Ar.backendPublicDescription : En.backendPublicDescription;
+  String get backendPublicFix =>
+      isArabic ? Ar.backendPublicFix : En.backendPublicFix;
+  String get backendPublicPass =>
+      isArabic ? Ar.backendPublicPass : En.backendPublicPass;
+  String get backendPublicTitle =>
+      isArabic ? Ar.backendPublicTitle : En.backendPublicTitle;
+  String backendPublicUntil(
+          {required Object? access,
+          required Object? date,
+          required Object? rule,
+          required Object? service}) =>
+      isArabic
+          ? Ar.backendPublicUntil(
+              access: access, date: date, rule: rule, service: service)
+          : En.backendPublicUntil(
+              access: access, date: date, rule: rule, service: service);
+  String backendPublicWrite(
+          {required Object? path,
+          required Object? rule,
+          required Object? service}) =>
+      isArabic
+          ? Ar.backendPublicWrite(path: path, rule: rule, service: service)
+          : En.backendPublicWrite(path: path, rule: rule, service: service);
+  String backendRulesMissing({required Object? services}) => isArabic
+      ? Ar.backendRulesMissing(services: services)
+      : En.backendRulesMissing(services: services);
+  String backendRulesUnreadable({required Object? files}) => isArabic
+      ? Ar.backendRulesUnreadable(files: files)
+      : En.backendRulesUnreadable(files: files);
   String binaryNetworkConfigUnreadable({required Object? error}) => isArabic
       ? Ar.binaryNetworkConfigUnreadable(error: error)
       : En.binaryNetworkConfigUnreadable(error: error);
@@ -511,6 +573,10 @@ class L10n {
   String get checkJailbreak => isArabic ? Ar.checkJailbreak : En.checkJailbreak;
   String get checkRepackage => isArabic ? Ar.checkRepackage : En.checkRepackage;
   String get checkRoot => isArabic ? Ar.checkRoot : En.checkRoot;
+  String cleartextChannel({required Object? channel, required Object? code}) =>
+      isArabic
+          ? Ar.cleartextChannel(channel: channel, code: code)
+          : En.cleartextChannel(channel: channel, code: code);
   String get dartRulesACertificateCallbackThatAlwaysReturnsTrueAccepts =>
       isArabic
           ? Ar.dartRulesACertificateCallbackThatAlwaysReturnsTrueAccepts
@@ -670,6 +736,29 @@ class L10n {
       isArabic
           ? Ar.dartRulesWebviewSetwebcontentsdebuggingenabledTrueInNativeCode
           : En.dartRulesWebviewSetwebcontentsdebuggingenabledTrueInNativeCode;
+  String debugToolApk({required Object? evidence, required Object? tool}) =>
+      isArabic
+          ? Ar.debugToolApk(evidence: evidence, tool: tool)
+          : En.debugToolApk(evidence: evidence, tool: tool);
+  String get debugToolApkPass =>
+      isArabic ? Ar.debugToolApkPass : En.debugToolApkPass;
+  String get debugToolApkTitle =>
+      isArabic ? Ar.debugToolApkTitle : En.debugToolApkTitle;
+  String debugToolDart({required Object? tool}) =>
+      isArabic ? Ar.debugToolDart(tool: tool) : En.debugToolDart(tool: tool);
+  String get debugToolDescription =>
+      isArabic ? Ar.debugToolDescription : En.debugToolDescription;
+  String get debugToolFix => isArabic ? Ar.debugToolFix : En.debugToolFix;
+  String debugToolGradle(
+          {required Object? configuration, required Object? tool}) =>
+      isArabic
+          ? Ar.debugToolGradle(configuration: configuration, tool: tool)
+          : En.debugToolGradle(configuration: configuration, tool: tool);
+  String debugToolImport({required Object? tool}) => isArabic
+      ? Ar.debugToolImport(tool: tool)
+      : En.debugToolImport(tool: tool);
+  String get debugToolPass => isArabic ? Ar.debugToolPass : En.debugToolPass;
+  String get debugToolTitle => isArabic ? Ar.debugToolTitle : En.debugToolTitle;
   String get dependencyRulesALockedPackageVersionHasAPublishedAdvisory =>
       isArabic
           ? Ar.dependencyRulesALockedPackageVersionHasAPublishedAdvisory
@@ -2301,6 +2390,13 @@ class L10n {
       isArabic
           ? Ar.raspFoundBinary(file: file, name: name, platforms: platforms)
           : En.raspFoundBinary(file: file, name: name, platforms: platforms);
+  String raspFoundConfig(
+          {required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      isArabic
+          ? Ar.raspFoundConfig(file: file, name: name, platforms: platforms)
+          : En.raspFoundConfig(file: file, name: name, platforms: platforms);
   String raspFoundCustom(
           {required Object? checks,
           required Object? files,
@@ -2533,6 +2629,18 @@ class L10n {
   String sourceNetworkConfigUnreadable({required Object? ref}) => isArabic
       ? Ar.sourceNetworkConfigUnreadable(ref: ref)
       : En.sourceNetworkConfigUnreadable(ref: ref);
+  String sqlInjection({required Object? call, required Object? value}) =>
+      isArabic
+          ? Ar.sqlInjection(call: call, value: value)
+          : En.sqlInjection(call: call, value: value);
+  String get sqlInjectionDescription =>
+      isArabic ? Ar.sqlInjectionDescription : En.sqlInjectionDescription;
+  String get sqlInjectionFix =>
+      isArabic ? Ar.sqlInjectionFix : En.sqlInjectionFix;
+  String get sqlInjectionPass =>
+      isArabic ? Ar.sqlInjectionPass : En.sqlInjectionPass;
+  String get sqlInjectionTitle =>
+      isArabic ? Ar.sqlInjectionTitle : En.sqlInjectionTitle;
   String get toolAndroidSdk => isArabic ? Ar.toolAndroidSdk : En.toolAndroidSdk;
   String toolAvd({required Object? avd}) =>
       isArabic ? Ar.toolAvd(avd: avd) : En.toolAvd(avd: avd);
@@ -2564,6 +2672,18 @@ class L10n {
       isArabic
           ? Ar.toolsMissing(command: command, count: count)
           : En.toolsMissing(command: command, count: count);
+  String webInjection({required Object? call, required Object? value}) =>
+      isArabic
+          ? Ar.webInjection(call: call, value: value)
+          : En.webInjection(call: call, value: value);
+  String get webInjectionDescription =>
+      isArabic ? Ar.webInjectionDescription : En.webInjectionDescription;
+  String get webInjectionFix =>
+      isArabic ? Ar.webInjectionFix : En.webInjectionFix;
+  String get webInjectionPass =>
+      isArabic ? Ar.webInjectionPass : En.webInjectionPass;
+  String get webInjectionTitle =>
+      isArabic ? Ar.webInjectionTitle : En.webInjectionTitle;
 }
 
 abstract final class En {
@@ -2778,6 +2898,85 @@ abstract final class En {
   static const appOperationContinued =
       "The app reported that the operation continued";
   static const appUnknown = "Inconclusive";
+  static String assertCheck({required Object? check}) =>
+      "`" +
+      check.toString() +
+      "` is only checked inside assert(), which release builds remove, so the check never runs in production.";
+  static const assertCheckDescription =
+      "assert() runs only in debug builds: release builds remove it with everything inside. A permission, session or integrity check that exists only in an assert passes in testing and is missing in the app users run.";
+  static const assertCheckFix =
+      "Make the decision with an `if` that stops the action (return, throw or show an error); keep assert() for programming mistakes only.";
+  static const assertCheckPass = "Security checks don't rely on assert()";
+  static const assertCheckTitle = "Security check only inside assert()";
+  static String backendAnyUser(
+          {required Object? access,
+          required Object? rule,
+          required Object? service}) =>
+      "" +
+      service.toString() +
+      ": any signed-in user can " +
+      access.toString() +
+      " all data (`" +
+      rule.toString() +
+      "`). Anyone can create an account, so this barely restricts access.";
+  static const backendBroadDescription =
+      "A rule that lets any signed-in user reach all data, or lets anyone write to a path, relies on nothing an attacker can't get: anyone can create an account in the app.";
+  static const backendBroadFix =
+      "Check ownership in each rule (`request.auth.uid == userId`), validate the data being written (`request.resource.data`), and allow anonymous writes only where they are needed, with size and field limits.";
+  static const backendBroadPass =
+      "Firebase security rules are scoped to their users";
+  static const backendBroadTitle =
+      "Firebase security rules are broader than needed";
+  static String backendPublic(
+          {required Object? access,
+          required Object? rule,
+          required Object? service}) =>
+      "" +
+      service.toString() +
+      ": anyone, without signing in, can " +
+      access.toString() +
+      " all data (`" +
+      rule.toString() +
+      "`).";
+  static const backendPublicDescription =
+      "Firebase security rules decide who can read and write the database and storage directly, without going through the app. With a rule that allows everyone on all data, anyone who finds the project id in the app can read, change or delete every record.";
+  static const backendPublicFix =
+      "Allow each collection or path only to the users it belongs to, for example `allow read, write: if request.auth != null && request.auth.uid == userId;`, and test the rules with the Firebase emulator. Replace test-mode rules before the release.";
+  static const backendPublicPass =
+      "Firebase security rules don't open the data to everyone";
+  static const backendPublicTitle =
+      "Firebase security rules let anyone access the data";
+  static String backendPublicUntil(
+          {required Object? access,
+          required Object? date,
+          required Object? rule,
+          required Object? service}) =>
+      "" +
+      service.toString() +
+      ": test-mode rules let anyone, without signing in, " +
+      access.toString() +
+      " all data until " +
+      date.toString() +
+      " (`" +
+      rule.toString() +
+      "`).";
+  static String backendPublicWrite(
+          {required Object? path,
+          required Object? rule,
+          required Object? service}) =>
+      "" +
+      service.toString() +
+      ": anyone, without signing in, can write to " +
+      path.toString() +
+      " (`" +
+      rule.toString() +
+      "`).";
+  static String backendRulesMissing({required Object? services}) =>
+      "The app uses " +
+      services.toString() +
+      ", but their security rules are not in this repository. Check them in the Firebase console: rules open to everyone are a common cause of data leaks.";
+  static String backendRulesUnreadable({required Object? files}) =>
+      "Could not read " + files.toString() + ".";
   static String binaryNetworkConfigUnreadable({required Object? error}) =>
       "Could not inspect the shipped network security config: " +
       error.toString() +
@@ -2941,6 +3140,13 @@ abstract final class En {
   static const checkJailbreak = "Jailbreak detection";
   static const checkRepackage = "Repackaging / integrity detection";
   static const checkRoot = "Root detection";
+  static String cleartextChannel(
+          {required Object? channel, required Object? code}) =>
+      "Unencrypted " +
+      channel.toString() +
+      " connection: " +
+      code.toString() +
+      ".";
   static const dartRulesACertificateCallbackThatAlwaysReturnsTrueAccepts =
       "A certificate callback that always returns true accepts any certificate, so any proxy (Burp, mitmproxy) can read all traffic.";
   static const dartRulesAJavascriptChannelWithoutNavigationRestrictionsLetsAny =
@@ -2953,7 +3159,7 @@ abstract final class En {
   static const dartRulesAssetsArePlainFilesInsideTheApkIpaA =
       "Assets are plain files inside the APK/IPA. A bundled .env, service-account JSON or private key can be unzipped by anyone.";
   static const dartRulesCleartextHttpUrlInCode =
-      "Cleartext http:// URL in code";
+      "Cleartext traffic in code (http://, ws://, ftp://, MQTT, gRPC)";
   static String dartRulesCleartextUrl({required Object? value1}) =>
       "Cleartext URL: " + value1.toString() + "";
   static String dartRulesFound({required Object? value1}) =>
@@ -3017,7 +3223,7 @@ abstract final class En {
   static const dartRulesRemoveTheFileFromFlutterAssetsUseDartDefine =
       "Remove the file from flutter: assets. Use --dart-define for non-secret config and keep real secrets on the server.";
   static const dartRulesRequestsToHttpUrlsCanBeReadAnd =
-      "Requests to http:// URLs can be read and modified by anyone on the same network.";
+      "Traffic sent over http://, ws://, ftp://, plain MQTT or gRPC without TLS can be read and modified by anyone on the same network.";
   static const dartRulesRestrictNavigationWithNavigationdelegateOnnavigationrequestOrShouldoverrideurlloadingToYour =
       "Restrict navigation with NavigationDelegate.onNavigationRequest (or shouldOverrideUrlLoading) to your own hosts, and enable WebView debugging only under kDebugMode.";
   static const dartRulesSecretFileBundledAsAnAsset =
@@ -3035,7 +3241,7 @@ abstract final class En {
   static const dartRulesTlsCertificateValidationDisabled =
       "TLS certificate validation disabled";
   static const dartRulesUseHttpsForEveryEndpoint =
-      "Use https:// for every endpoint.";
+      "Use https://, wss:// and TLS for every connection: `ChannelCredentials.secure()` for gRPC, `secure = true` (port 8883) for MQTT.";
   static const dartRulesUseRandomSecureForAnythingSecurityRelated =
       "Use Random.secure() for anything security-related.";
   static const dartRulesUseSha256OrBetterForHashingArgon2Pbkdf2For =
@@ -3049,6 +3255,36 @@ abstract final class En {
       "WebView exposes native bridge or debugging";
   static const dartRulesWebviewSetwebcontentsdebuggingenabledTrueInNativeCode =
       "WebView.setWebContentsDebuggingEnabled(true) in native code.";
+  static String debugToolApk(
+          {required Object? evidence, required Object? tool}) =>
+      "" +
+      tool.toString() +
+      " is inside the APK (" +
+      evidence.toString() +
+      ").";
+  static const debugToolApkPass = "No debug tools inside the APK";
+  static const debugToolApkTitle = "Debug tools inside the APK";
+  static String debugToolDart({required Object? tool}) =>
+      "" +
+      tool.toString() +
+      " is used outside a debug-only check, so it runs in release builds.";
+  static const debugToolDescription =
+      "Network inspectors and debug tools (Alice, Chucker, Stetho, Flipper, LeakCanary, DevicePreview) record requests, responses and tokens, and some show them in the app or in a notification. In a release build they expose that data on every user's device, to anyone holding the phone or debugging it.";
+  static const debugToolFix =
+      "Keep them in debug builds only: `dev_dependencies` and a `kDebugMode` check in Dart; `debugImplementation` in Gradle, with Chucker's `library-no-op` for release.";
+  static String debugToolGradle(
+          {required Object? configuration, required Object? tool}) =>
+      "" +
+      tool.toString() +
+      " is added with `" +
+      configuration.toString() +
+      "`, so it ships in release builds.";
+  static String debugToolImport({required Object? tool}) =>
+      "" +
+      tool.toString() +
+      " is imported in code that is part of release builds.";
+  static const debugToolPass = "Debug tools stay out of the release build";
+  static const debugToolTitle = "Debug tools ship in the release build";
   static const dependencyRulesALockedPackageVersionHasAPublishedAdvisory =
       "A locked package version has a published advisory in the OSV database.";
   static const dependencyRulesDependencyWithKnownVulnerabilities =
@@ -4359,6 +4595,17 @@ abstract final class En {
       ", found in " +
       file.toString() +
       ".";
+  static String raspFoundConfig(
+          {required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      "Runtime protection on " +
+      platforms.toString() +
+      ": " +
+      name.toString() +
+      ", declared in aegis.yaml and used in " +
+      file.toString() +
+      ".";
   static String raspFoundCustom(
           {required Object? checks,
           required Object? files,
@@ -4632,6 +4879,19 @@ abstract final class En {
       "Could not read the source network security config " +
       ref.toString() +
       "";
+  static String sqlInjection({required Object? call, required Object? value}) =>
+      "SQL built with `" +
+      value.toString() +
+      "` in " +
+      call.toString() +
+      "(). Pass it as an argument to a `?` placeholder instead.";
+  static const sqlInjectionDescription =
+      "A value pasted into SQL text becomes part of the query. If it can come from the user, a deep link, the network or another app, it can change what the query does: read other rows, bypass a check, or delete data.";
+  static const sqlInjectionFix =
+      "Put a `?` in the SQL and pass the value separately: `rawQuery('SELECT * FROM users WHERE id = ?', [id])`, `query('users', where: 'id = ?', whereArgs: [id])`, or drift's typed queries and `Variable`.";
+  static const sqlInjectionPass = "SQL queries pass values as arguments";
+  static const sqlInjectionTitle =
+      "SQL query built from variables (SQL injection)";
   static const toolAndroidSdk = "Android SDK";
   static String toolAvd({required Object? avd}) =>
       "AVD \"" + avd.toString() + "\"";
@@ -4659,6 +4919,19 @@ abstract final class En {
       " tool(s) to install: run \"" +
       command.toString() +
       "\".";
+  static String webInjection({required Object? call, required Object? value}) =>
+      "`" +
+      value.toString() +
+      "` is pasted into the code passed to " +
+      call.toString() +
+      "() without encoding.";
+  static const webInjectionDescription =
+      "HTML or JavaScript built by pasting a value runs whatever that value contains. A value from the user, a deep link or the network can run its own script in the WebView, with access to the page, its cookies and any JavaScript bridge to the app.";
+  static const webInjectionFix =
+      "Encode values before pasting them: `jsonEncode(value)` for JavaScript, `htmlEscape.convert(value)` for HTML. Better, pass data through a JavaScript channel or `postMessage` instead of building code.";
+  static const webInjectionPass = "WebView code doesn't paste in raw values";
+  static const webInjectionTitle =
+      "Data pasted into WebView HTML or JavaScript";
 }
 
 abstract final class Ar {
@@ -4873,6 +5146,83 @@ abstract final class Ar {
   static const appBlocked = "التطبيق صدّ الحالة";
   static const appOperationContinued = "التطبيق سجّل إن الإجراء كمل";
   static const appUnknown = "مش قادر يحدد";
+  static String assertCheck({required Object? check}) =>
+      "`" +
+      check.toString() +
+      "` بيتفحص جوّه assert() بس، والـrelease build بيشيله، فالفحص ده مش بيشتغل عند المستخدمين خالص.";
+  static const assertCheckDescription =
+      "الـassert() بيشتغل في الـdebug builds بس، والـrelease build بيشيله هو واللي جوّاه. فأي فحص صلاحية أو session أو integrity موجود في assert بس، بيعدّي وانت بتجرّب، ومش موجود في التطبيق اللي المستخدمين شغّالين عليه.";
+  static const assertCheckFix =
+      "خلّي القرار بـ`if` يوقف العملية (return أو throw أو رسالة خطأ)، واستخدم assert() لأخطاء البرمجة بس.";
+  static const assertCheckPass = "الفحوصات الأمنية مش معتمدة على assert()";
+  static const assertCheckTitle = "فحص أمني جوّه assert() بس";
+  static String backendAnyUser(
+          {required Object? access,
+          required Object? rule,
+          required Object? service}) =>
+      "" +
+      service.toString() +
+      ": أي مستخدم مسجّل يقدر " +
+      access.toString() +
+      " كل البيانات (`" +
+      rule.toString() +
+      "`). وأي حد يقدر يعمل حساب، فده تقريبًا مش بيمنع حاجة.";
+  static const backendBroadDescription =
+      "القاعدة اللي بتسمح لأي مستخدم مسجّل يوصل لكل البيانات، أو لأي حد يكتب في path، مش بتحمي حاجة، لأن أي حد يقدر يعمل حساب في التطبيق.";
+  static const backendBroadFix =
+      "اتأكد من صاحب البيانات في كل قاعدة (`request.auth.uid == userId`)، وافحص البيانات اللي بتتكتب (`request.resource.data`)، واسمح بالكتابة من غير تسجيل دخول بس في الأماكن اللي محتاجاها، مع حدود للحجم والحقول.";
+  static const backendBroadPass = "قواعد أمان Firebase محددة لأصحاب البيانات";
+  static const backendBroadTitle = "قواعد أمان Firebase أوسع من اللازم";
+  static String backendPublic(
+          {required Object? access,
+          required Object? rule,
+          required Object? service}) =>
+      "" +
+      service.toString() +
+      ": أي حد من غير تسجيل دخول يقدر " +
+      access.toString() +
+      " كل البيانات (`" +
+      rule.toString() +
+      "`).";
+  static const backendPublicDescription =
+      "قواعد أمان Firebase هي اللي بتحدد مين يقدر يقرا ويكتب في قاعدة البيانات والـstorage مباشرة من غير التطبيق. لو فيه قاعدة بتسمح لأي حد على كل البيانات، أي حد يعرف الـproject id من التطبيق يقدر يقرا أو يغيّر أو يمسح أي حاجة.";
+  static const backendPublicFix =
+      "اسمح لكل collection أو path بس للمستخدمين اللي هو بتاعهم، مثلًا `allow read, write: if request.auth != null && request.auth.uid == userId;`، وجرّب القواعد على Firebase emulator. وغيّر قواعد test mode قبل الـrelease.";
+  static const backendPublicPass =
+      "قواعد أمان Firebase مش فاتحة البيانات لأي حد";
+  static const backendPublicTitle =
+      "قواعد أمان Firebase بتسمح لأي حد يوصل للبيانات";
+  static String backendPublicUntil(
+          {required Object? access,
+          required Object? date,
+          required Object? rule,
+          required Object? service}) =>
+      "" +
+      service.toString() +
+      ": قواعد test mode بتسمح لأي حد من غير تسجيل دخول " +
+      access.toString() +
+      " كل البيانات لحد " +
+      date.toString() +
+      " (`" +
+      rule.toString() +
+      "`).";
+  static String backendPublicWrite(
+          {required Object? path,
+          required Object? rule,
+          required Object? service}) =>
+      "" +
+      service.toString() +
+      ": أي حد من غير تسجيل دخول يقدر يكتب في " +
+      path.toString() +
+      " (`" +
+      rule.toString() +
+      "`).";
+  static String backendRulesMissing({required Object? services}) =>
+      "التطبيق بيستخدم " +
+      services.toString() +
+      "، بس قواعد الأمان بتاعتهم مش موجودة في الـrepo. راجعها في Firebase console، لأن القواعد المفتوحة لأي حد من أشهر أسباب تسريب البيانات.";
+  static String backendRulesUnreadable({required Object? files}) =>
+      "مقدرناش نقرا " + files.toString() + ".";
   static String binaryNetworkConfigUnreadable({required Object? error}) =>
       "تعذّر فحص إعدادات network security config داخل الحزمة: " +
       error.toString() +
@@ -5036,6 +5386,9 @@ abstract final class Ar {
   static const checkJailbreak = "كشف الـ jailbreak";
   static const checkRepackage = "كشف إعادة التحزيم / العبث";
   static const checkRoot = "كشف الـ root";
+  static String cleartextChannel(
+          {required Object? channel, required Object? code}) =>
+      "اتصال " + channel.toString() + " غير مشفر: " + code.toString() + ".";
   static const dartRulesACertificateCallbackThatAlwaysReturnsTrueAccepts =
       "الـ callback اللي بيرجع true دايماً بيقبل أي شهادة، يعني أي proxy (زي Burp أو mitmproxy) يقدر يقرا كل الترافيك.";
   static const dartRulesAJavascriptChannelWithoutNavigationRestrictionsLetsAny =
@@ -5048,7 +5401,7 @@ abstract final class Ar {
   static const dartRulesAssetsArePlainFilesInsideTheApkIpaA =
       "الـ assets ملفات عادية جوه الـ APK/IPA. أي ملف .env أو service-account أو private key متضاف ممكن أي حد يفك الضغط ويقراه.";
   static const dartRulesCleartextHttpUrlInCode =
-      "لينك http:// غير مشفر في الكود";
+      "اتصال غير مشفر في الكود (http:// وws:// وftp:// وMQTT وgRPC)";
   static String dartRulesCleartextUrl({required Object? value1}) =>
       "لينك غير مشفر: " + value1.toString() + "";
   static String dartRulesFound({required Object? value1}) =>
@@ -5106,7 +5459,7 @@ abstract final class Ar {
   static const dartRulesRemoveTheFileFromFlutterAssetsUseDartDefine =
       "شيل الملف من flutter: assets. استخدم --dart-define للإعدادات العادية، وخلي الأسرار الحقيقية على السيرفر.";
   static const dartRulesRequestsToHttpUrlsCanBeReadAnd =
-      "أي request لـ http:// ممكن يتقرا ويتعدل من أي حد على نفس الشبكة.";
+      "أي بيانات بتتبعت على http:// أو ws:// أو ftp:// أو MQTT عادي أو gRPC من غير TLS ممكن تتقرا وتتعدل من أي حد على نفس الشبكة.";
   static const dartRulesRestrictNavigationWithNavigationdelegateOnnavigationrequestOrShouldoverrideurlloadingToYour =
       "اقفل التنقل على السيرفرات بتاعتك بـ onNavigationRequest أو shouldOverrideUrlLoading، وفعّل الـ debugging في الـ debug بس.";
   static const dartRulesSecretFileBundledAsAnAsset = "ملف أسرار متضاف كـ asset";
@@ -5123,7 +5476,7 @@ abstract final class Ar {
   static const dartRulesTlsCertificateValidationDisabled =
       "التحقق من شهادة TLS مقفول";
   static const dartRulesUseHttpsForEveryEndpoint =
-      "استخدم https:// لكل الـ endpoints.";
+      "استخدم https:// وwss:// وTLS لكل اتصال: `ChannelCredentials.secure()` للـgRPC، و`secure = true` (port 8883) للـMQTT.";
   static const dartRulesUseRandomSecureForAnythingSecurityRelated =
       "استخدم Random.secure() لأي حاجة ليها علاقة بالأمان.";
   static const dartRulesUseSha256OrBetterForHashingArgon2Pbkdf2For =
@@ -5137,6 +5490,34 @@ abstract final class Ar {
       "الـ WebView بيفتح bridge أو debugging";
   static const dartRulesWebviewSetwebcontentsdebuggingenabledTrueInNativeCode =
       "WebView.setWebContentsDebuggingEnabled(true) في الكود الـ native.";
+  static String debugToolApk(
+          {required Object? evidence, required Object? tool}) =>
+      "" +
+      tool.toString() +
+      " موجود جوّه الـAPK (" +
+      evidence.toString() +
+      ").";
+  static const debugToolApkPass = "مفيش أدوات debug جوّه الـAPK";
+  static const debugToolApkTitle = "أدوات debug جوّه الـAPK";
+  static String debugToolDart({required Object? tool}) =>
+      "" +
+      tool.toString() +
+      " مستخدم برّه فحص الـdebug، فهيشتغل في الـrelease.";
+  static const debugToolDescription =
+      "أدوات فحص الشبكة والـdebug (Alice وChucker وStetho وFlipper وLeakCanary وDevicePreview) بتسجّل الـrequests والـresponses والـtokens، وبعضها بيعرضها جوّه التطبيق أو في notification. لو دخلت الـrelease، البيانات دي بتبقى مكشوفة على موبايل كل مستخدم، لأي حد ماسك الموبايل أو بيعمله debug.";
+  static const debugToolFix =
+      "خلّيها في الـdebug builds بس: `dev_dependencies` وفحص `kDebugMode` في Dart، و`debugImplementation` في Gradle، ومع Chucker استخدم `library-no-op` للـrelease.";
+  static String debugToolGradle(
+          {required Object? configuration, required Object? tool}) =>
+      "" +
+      tool.toString() +
+      " متضاف بـ`" +
+      configuration.toString() +
+      "`، فهيدخل في الـrelease.";
+  static String debugToolImport({required Object? tool}) =>
+      "" + tool.toString() + " متعمله import في كود داخل في الـrelease.";
+  static const debugToolPass = "أدوات الـdebug برّه الـrelease build";
+  static const debugToolTitle = "أدوات الـdebug داخلة في الـrelease build";
   static const dependencyRulesALockedPackageVersionHasAPublishedAdvisory =
       "فيه نسخة مكتبة في pubspec.lock عليها ثغرة منشورة في قاعدة بيانات OSV.";
   static const dependencyRulesDependencyWithKnownVulnerabilities =
@@ -6428,6 +6809,17 @@ abstract final class Ar {
       "، موجود في " +
       file.toString() +
       ".";
+  static String raspFoundConfig(
+          {required Object? file,
+          required Object? name,
+          required Object? platforms}) =>
+      "حماية وقت التشغيل على " +
+      platforms.toString() +
+      ": " +
+      name.toString() +
+      "، متعرّفة في aegis.yaml ومستخدمة في " +
+      file.toString() +
+      ".";
   static String raspFoundCustom(
           {required Object? checks,
           required Object? files,
@@ -6701,6 +7093,19 @@ abstract final class Ar {
       "تعذّر قراءة إعدادات network security config من المصدر: " +
       ref.toString() +
       "";
+  static String sqlInjection({required Object? call, required Object? value}) =>
+      "الـSQL متركّب بـ`" +
+      value.toString() +
+      "` في " +
+      call.toString() +
+      "(). ابعتها كـargument لـ`?` بدل ما تحطها في النص.";
+  static const sqlInjectionDescription =
+      "أي قيمة بتتحط جوّه نص الـSQL بتبقى جزء من الاستعلام نفسه. لو القيمة دي ممكن تيجي من المستخدم أو deep link أو الشبكة أو تطبيق تاني، تقدر تغيّر الاستعلام بيعمل إيه: تقرا بيانات تانية، أو تتخطى فحص، أو تمسح بيانات.";
+  static const sqlInjectionFix =
+      "حط `?` في الـSQL وابعت القيمة لوحدها: `rawQuery('SELECT * FROM users WHERE id = ?', [id])`، أو `query('users', where: 'id = ?', whereArgs: [id])`، أو الاستعلامات الـtyped و`Variable` في drift.";
+  static const sqlInjectionPass = "استعلامات SQL بتبعت القيم كـarguments";
+  static const sqlInjectionTitle =
+      "استعلام SQL متركّب من متغيرات (SQL injection)";
   static const toolAndroidSdk = "Android SDK";
   static String toolAvd({required Object? avd}) =>
       "AVD \"" + avd.toString() + "\"";
@@ -6728,4 +7133,17 @@ abstract final class Ar {
       ". شغّل \"" +
       command.toString() +
       "\".";
+  static String webInjection({required Object? call, required Object? value}) =>
+      "`" +
+      value.toString() +
+      "` بيتحط في الكود اللي رايح لـ" +
+      call.toString() +
+      "() من غير encode.";
+  static const webInjectionDescription =
+      "الـHTML أو الـJavaScript اللي بيتبني بلزق قيمة جوّاه بينفّذ أي حاجة في القيمة دي. لو القيمة جاية من المستخدم أو deep link أو الشبكة، تقدر تشغّل script خاص بيها في الـWebView، وتوصل للصفحة والـcookies وأي JavaScript bridge للتطبيق.";
+  static const webInjectionFix =
+      "اعمل encode للقيم قبل ما تحطها: `jsonEncode(value)` للـJavaScript، و`htmlEscape.convert(value)` للـHTML. والأحسن تبعت البيانات عن طريق JavaScript channel أو `postMessage` بدل ما تبني كود.";
+  static const webInjectionPass = "كود الـWebView مش بيحط قيم خام جوّاه";
+  static const webInjectionTitle =
+      "بيانات بتتحط جوّه HTML أو JavaScript بتاع WebView";
 }

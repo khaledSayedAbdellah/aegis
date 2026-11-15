@@ -217,6 +217,17 @@ const deviceCheckingLibraries = [
       checksDevice: false),
 ];
 
+/// The libraries [deviceCheckingLibraries] knows, after the names the
+/// project declares in `aegis.yaml` (`rasp: not_protection:`).
+List<DeviceCheckingLibrary> librariesFor(List<String> notProtection) => [
+      for (final name in notProtection)
+        DeviceCheckingLibrary(name,
+            dart: '${RegExp.escape(name)}\$',
+            android: RegExp.escape(name),
+            apple: RegExp.escape(name)),
+      ...deviceCheckingLibraries,
+    ];
+
 /// One way the app gets runtime protection.
 class RaspSource {
   RaspSource(this.name, this.kind, this.file, this.platforms,
@@ -227,6 +238,7 @@ class RaspSource {
 
   /// `package` (known name), `package-name` (recognized by its name),
   /// `package-code` (its native code has integrity checks), `sdk`, `custom`,
+  /// `config` (named in `aegis.yaml` and used by the code),
   /// `binary` (an SDK found in an APK or IPA) or `library` (a
   /// [DeviceCheckingLibrary]: found, but not protection).
   final String kind;
@@ -279,6 +291,7 @@ RaspInventory detectRasp(Project project, Set<String> platforms,
   final inventory = RaspInventory();
   _dartPackages(project, platforms, inventory, roots);
   _nativeSdks(project, platforms, inventory);
+  _declaredNative(project, platforms, inventory);
   _customChecks(project, platforms, inventory);
   return inventory;
 }
@@ -295,6 +308,7 @@ Iterable<String> _candidatePackages(Project project) =>
 Set<String> raspPackagesToScan(Project project) => {
       for (final package in _candidatePackages(project))
         if (!raspPackages.contains(package) &&
+            !project.config.raspPackages.contains(package) &&
             !raspPackageName.hasMatch(package) &&
             project.dartFiles.any((f) => f.importsPackage(package)))
           package
@@ -302,11 +316,15 @@ Set<String> raspPackagesToScan(Project project) => {
 
 void _dartPackages(Project project, Set<String> platforms,
     RaspInventory inventory, Map<String, String> roots) {
+  final config = project.config;
+  final libraries = librariesFor(config.notProtection);
   for (final package in _candidatePackages(project)) {
     final importing =
         project.dartFiles.where((f) => f.importsPackage(package)).firstOrNull;
-    final known = raspPackages.contains(package);
-    final named = !known && raspPackageName.hasMatch(package);
+    final declared = config.raspPackages.contains(package);
+    final excluded = config.notProtection.contains(package);
+    final known = !excluded && (declared || raspPackages.contains(package));
+    final named = !known && !excluded && raspPackageName.hasMatch(package);
     if (importing == null) {
       if ((known || named) && project.dependsOn(package)) {
         inventory.unused.add((package, 'pubspec.yaml'));
@@ -314,8 +332,15 @@ void _dartPackages(Project project, Set<String> platforms,
       continue;
     }
     if (known || named) {
-      inventory.sdks.add(RaspSource(package, known ? 'package' : 'package-name',
-          importing.path, platforms));
+      inventory.sdks.add(RaspSource(
+          package,
+          declared
+              ? 'config'
+              : known
+                  ? 'package'
+                  : 'package-name',
+          importing.path,
+          platforms));
       continue;
     }
     final root = roots[package];
@@ -327,9 +352,8 @@ void _dartPackages(Project project, Set<String> platforms,
     if (covered.isEmpty) continue;
     final source = RaspSource(package, 'package-code', importing.path, covered,
         checks: {for (final pl in covered) ...found[pl]!});
-    final library = deviceCheckingLibraries
-        .where((l) => l.isDartPackage(package))
-        .firstOrNull;
+    final library =
+        libraries.where((l) => l.isDartPackage(package)).firstOrNull;
     if (library == null) {
       inventory.sdks.add(source);
     } else {
@@ -414,6 +438,35 @@ void _record(String code, Set<String> platforms,
   for (final check in raspChecksIn(code)) {
     for (final platform in platforms) {
       if (raspCheckApplies(check, platform)) add(platform, check);
+    }
+  }
+}
+
+/// Names from `rasp: packages:` that the native code of a platform uses
+/// (`import com.acme.guard.Guard`, `import AcmeShield`).
+void _declaredNative(
+    Project project, Set<String> platforms, RaspInventory inventory) {
+  final names = project.config.raspPackages
+      .where((n) =>
+          !project.dependencies.containsKey(n) &&
+          !project.locked.containsKey(n))
+      .toList();
+  if (names.isEmpty) return;
+  final sources = <String, List<ProjectFile>>{
+    raspAndroid: [
+      ...project.androidNativeSources,
+      ...project.sharedNativeSources
+    ],
+    raspIos: project.iosNativeSources,
+  };
+  for (final name in names) {
+    final use = RegExp('(?<![\\w.])${RegExp.escape(name)}');
+    for (final platform in platforms) {
+      final user = sources[platform]
+          ?.where((f) => use.hasMatch(withoutComments(f.text)))
+          .firstOrNull;
+      if (user == null) continue;
+      inventory.sdks.add(RaspSource(name, 'config', user.path, {platform}));
     }
   }
 }

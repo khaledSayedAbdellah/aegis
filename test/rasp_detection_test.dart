@@ -210,6 +210,58 @@ bool frida() => File('/proc/self/maps').readAsStringSync().contains('frida');
     expect(renderHtml(report), contains('Runtime protection (RASP)'));
   });
 
+  test('aegis.yaml declares protection and libraries that are not', () async {
+    put('pubspec.yaml',
+        '$flutterPubspec  acme_shield: any\n  acme_root_tools: any\n');
+    put(
+        'lib/main.dart',
+        "import 'package:acme_shield/acme_shield.dart';\n"
+            "import 'package:acme_root_tools/acme_root_tools.dart';\nvoid main() {}");
+    put(
+        'aegis.yaml',
+        'rasp:\n  packages: [acme_shield]\n'
+            '  not_protection: [acme_root_tools]\n');
+    final report = await runAudit(root.path,
+        config: AegisConfig.load(root.path)
+            .copyWith(profile: ProfileSet.tryParse('l2+r')),
+        offline: true);
+    final r = report.results.singleWhere((r) => r.meta.id == 'AEG-P01');
+    expect(r.status, RuleStatus.passed);
+    final evidence = report.securityEvidence
+        .where((e) => e.ruleId == 'AEG-P01')
+        .map((e) => e.detail.en)
+        .toList();
+    expect(evidence, [
+      'Runtime protection on Android, iOS: acme_shield, declared in '
+          'aegis.yaml and used in lib/main.dart.'
+    ]);
+
+    // Without the declaration acme_root_tools would count by its name.
+    put('aegis.yaml', 'rasp:\n  not_protection: [acme_root_tools]\n');
+    put('lib/main.dart',
+        "import 'package:acme_root_tools/acme_root_tools.dart';\nvoid main() {}");
+    final excluded = await runAudit(root.path,
+        config: AegisConfig.load(root.path)
+            .copyWith(profile: ProfileSet.tryParse('l2+r')),
+        offline: true);
+    expect(excluded.results.singleWhere((r) => r.meta.id == 'AEG-P01').status,
+        RuleStatus.failed);
+  });
+
+  test('aegis.yaml protection used from native code', () async {
+    put('aegis.yaml', 'rasp:\n  packages: [com.acme.guard, AcmeShield]\n');
+    put('android/app/src/main/kotlin/MainActivity.kt',
+        'import com.acme.guard.Guard\nclass MainActivity { val g = Guard() }');
+    put('ios/Runner/AppDelegate.swift',
+        'import AcmeShield\nlet s = AcmeShield()');
+    final report = await runAudit(root.path,
+        config: AegisConfig.load(root.path)
+            .copyWith(profile: ProfileSet.tryParse('l2+r')),
+        offline: true);
+    expect(report.results.singleWhere((r) => r.meta.id == 'AEG-P01').status,
+        RuleStatus.passed);
+  });
+
   test('native-only projects are checked too', () async {
     File(p.join(root.path, 'pubspec.yaml')).deleteSync();
     Directory(p.join(root.path, 'lib')).deleteSync(recursive: true);

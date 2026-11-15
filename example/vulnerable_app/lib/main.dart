@@ -87,3 +87,19 @@ Future<bool> unlockWithBiometrics() async {
   // AEG-P08: boolean gate with PIN fallback.
   return LocalAuthentication().authenticate(localizedReason: 'Unlock');
 }
+
+Future<void> findUser(dynamic db, String name) async {
+  // AEG-D11: the name becomes part of the SQL.
+  await db.rawQuery("SELECT * FROM users WHERE name = '$name'");
+}
+
+Future<void> greet(dynamic webView, String name) async {
+  // AEG-D12: the name runs as JavaScript.
+  await webView.runJavaScript('showGreeting("$name")');
+}
+
+Future<void> transfer(dynamic session, int amount) async {
+  // AEG-D14: the only permission check disappears in release builds.
+  assert(session.hasPermission('transfer'));
+  await session.send(amount);
+}

@@ -60,7 +60,11 @@ CryptoJS.DES.encrypt(value, key);
     expect(inventory.data['inspectedFilesByExtension'],
         {'.kt': 1, '.tsx': 1, '.js': 1});
     expect(result(r, 'AEG-S01').counts, isFalse);
-    expect(r.results.any((r) => r.meta.id.startsWith('AEG-D')), isFalse);
+    // Dart rules don't run without Dart code; AEG-D13 also reads Gradle files.
+    expect(
+        r.results.any(
+            (r) => r.meta.id.startsWith('AEG-D') && r.meta.id != 'AEG-D13'),
+        isFalse);
   });
 
   test('strings, comments, regular expressions and JSX text are not executable',

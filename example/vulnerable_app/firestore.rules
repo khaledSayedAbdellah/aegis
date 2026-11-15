@@ -1,0 +1,9 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // AEG-P12: open to anyone, signed in or not.
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

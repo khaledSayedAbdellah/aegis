@@ -232,18 +232,56 @@ class CleartextUrlRule extends Rule {
         profiles: _all,
       );
 
+  static final _cleartextScheme = RegExp(r'^(?:http|ws|ftp|mqtt)://');
+
   @override
   RuleCheck check(Project project, ProfileSet profile) {
     final out = <Finding>[];
     for (final f in project.dartFiles) {
       for (final i in f.stringIndexes()) {
         final v = f.tokens[i].value ?? '';
-        if (!v.startsWith('http://')) continue;
+        final scheme = _cleartextScheme.firstMatch(v);
+        if (scheme == null) continue;
         // A bare scheme ('http://') is a prefix check, not a URL.
-        if (v.length == 'http://'.length) continue;
-        if (_safeHttpHosts.hasMatch(v)) continue;
+        if (v.length == scheme.end) continue;
+        if (_safeHttpHosts.hasMatch(v.replaceRange(0, scheme.end, 'http://'))) {
+          continue;
+        }
         out.add(at(f, i, En.dartRulesCleartextUrl(value1: shorten(v, 80)),
             messageAr: Ar.dartRulesCleartextUrl(value1: shorten(v, 80))));
+      }
+      // gRPC without TLS.
+      for (final c in f.calls({'insecure'})) {
+        if (c.receiver != 'ChannelCredentials' ||
+            _guardedByDebug(f, c.nameIndex)) {
+          continue;
+        }
+        out.add(at(
+            f,
+            c.nameIndex,
+            En.cleartextChannel(
+                channel: 'gRPC', code: 'ChannelCredentials.insecure()'),
+            messageAr: Ar.cleartextChannel(
+                channel: 'gRPC', code: 'ChannelCredentials.insecure()')));
+      }
+      // MQTT: mqtt_client connects without TLS unless `secure = true`.
+      final mqtt = f.calls({'MqttServerClient', 'withPort'}).where((c) =>
+          c.name == 'MqttServerClient' || c.receiver == 'MqttServerClient');
+      if (mqtt.isNotEmpty &&
+          !RegExp(r'\.secure\s*=\s*true').hasMatch(f.source) &&
+          !f.source.contains('wss://')) {
+        final c = mqtt.first;
+        if (!_guardedByDebug(f, c.nameIndex)) {
+          out.add(at(
+              f,
+              c.nameIndex,
+              En.cleartextChannel(
+                  channel: 'MQTT',
+                  code: 'MqttServerClient without secure = true'),
+              messageAr: Ar.cleartextChannel(
+                  channel: 'MQTT',
+                  code: 'MqttServerClient من غير secure = true')));
+        }
       }
     }
     return RuleCheck(out);

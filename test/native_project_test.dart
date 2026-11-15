@@ -35,7 +35,11 @@ void main() {
     expect(result(r, 'AEG-A10').status, RuleStatus.failed);
     expect(result(r, 'AEG-N01').findings.single.file, endsWith('Trust.java'));
     expect(result(r, 'AEG-N03').findings.single.file, endsWith('Unsafe.kt'));
-    expect(r.results.any((r) => r.meta.id.startsWith('AEG-D')), isFalse);
+    // Dart rules don't run without Dart code; AEG-D13 also reads Gradle files.
+    expect(
+        r.results.any(
+            (r) => r.meta.id.startsWith('AEG-D') && r.meta.id != 'AEG-D13'),
+        isFalse);
     // Native apps get the runtime protection rule too: this one has none.
     expect(result(r, 'AEG-P01').findings.single.message,
         startsWith('Android: no RASP package or SDK'));

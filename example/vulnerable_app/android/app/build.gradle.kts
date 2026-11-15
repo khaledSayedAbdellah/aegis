@@ -35,3 +35,8 @@ android {
 flutter {
     source = "../.."
 }
+
+dependencies {
+    // AEG-D13: a network inspector that records requests in release builds.
+    implementation("com.github.chuckerteam.chucker:library:4.0.0")
+}

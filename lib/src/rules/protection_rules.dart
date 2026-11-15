@@ -176,7 +176,12 @@ class RaspPresenceRule extends Rule {
     if (binary) {
       if (apk == null && ipa == null) return RuleCheck.notApplicable();
       platforms = {apk != null ? raspAndroid : raspIos};
-      found = apk != null ? detectApkRasp(apk) : detectIpaRasp(ipa!);
+      final declared = project.config.raspPackages;
+      final notProtection = project.config.notProtection;
+      found = apk != null
+          ? detectApkRasp(apk, declared: declared, notProtection: notProtection)
+          : detectIpaRasp(ipa!,
+              declared: declared, notProtection: notProtection);
     } else {
       var targets = {
         if (project.hasAndroid) raspAndroid,
@@ -239,6 +244,10 @@ class RaspPresenceRule extends Rule {
                 name: s.name,
                 checks: checks(s.checks),
                 file: s.file)
+          ),
+        'config' => (
+            En.raspFoundConfig(platforms: on, name: s.name, file: s.file),
+            Ar.raspFoundConfig(platforms: on, name: s.name, file: s.file)
           ),
         'binary' => (
             En.raspFoundBinary(platforms: on, name: s.name, file: s.file),

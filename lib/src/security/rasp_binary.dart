@@ -44,7 +44,9 @@ final _obfuscatedClass =
 const _dexLimit = 96 * 1024 * 1024;
 const _nativeLimit = 96 * 1024 * 1024;
 
-RaspInventory detectApkRasp(ApkContext apk) {
+RaspInventory detectApkRasp(ApkContext apk,
+    {List<String> declared = const [], List<String> notProtection = const []}) {
+  final known = librariesFor(notProtection);
   final inventory = RaspInventory();
   final classes = <String>{};
   final users = <String, Set<String>>{};
@@ -87,13 +89,14 @@ RaspInventory detectApkRasp(ApkContext apk) {
     }
   }
 
-  DeviceCheckingLibrary? libraryOf(String className) => deviceCheckingLibraries
-      .where((l) => l.ownsAndroidClass(className))
-      .firstOrNull;
-  String? sdkOf(String className) => _androidSdks
-      .where((sdk) => sdk.$2.hasMatch(className))
-      .map((sdk) => sdk.$1)
-      .firstOrNull;
+  DeviceCheckingLibrary? libraryOf(String className) =>
+      known.where((l) => l.ownsAndroidClass(className)).firstOrNull;
+  String? sdkOf(String className) =>
+      declared.where(className.startsWith).firstOrNull ??
+      _androidSdks
+          .where((sdk) => sdk.$2.hasMatch(className))
+          .map((sdk) => sdk.$1)
+          .firstOrNull;
 
   final sdkClasses = <String, String>{};
   for (final name in classes) {
@@ -132,9 +135,7 @@ RaspInventory detectApkRasp(ApkContext apk) {
       if (!name.startsWith('lib/$abi/') || !name.endsWith('.so')) continue;
       final file = name.split('/').last;
       if (file == 'libflutter.so' || entry.size > _nativeLimit) continue;
-      final lib = deviceCheckingLibraries
-          .where((l) => l.ownsNativeLibrary(file))
-          .firstOrNull;
+      final lib = known.where((l) => l.ownsNativeLibrary(file)).firstOrNull;
       if (lib != null && lib.checksDevice) present.add(lib.name);
       final checks = raspChecksIn(
           latin1.decode(apk.zip.readEntry(entry), allowInvalid: true),
@@ -152,7 +153,9 @@ RaspInventory detectApkRasp(ApkContext apk) {
   return inventory;
 }
 
-RaspInventory detectIpaRasp(IpaContext ipa) {
+RaspInventory detectIpaRasp(IpaContext ipa,
+    {List<String> declared = const [], List<String> notProtection = const []}) {
+  final known = librariesFor(notProtection);
   final inventory = RaspInventory();
   final unidentified = <String>{};
   final libraries = <String, (Set<String> checks, Set<String> places)>{};
@@ -174,11 +177,13 @@ RaspInventory detectIpaRasp(IpaContext ipa) {
   }
 
   DeviceCheckingLibrary? libraryOf(String name) =>
-      deviceCheckingLibraries.where((l) => l.ownsAppleName(name)).firstOrNull;
-  String? sdkOf(String name) => _appleSdks
-      .where((sdk) => sdk.$2.hasMatch(name))
-      .map((sdk) => sdk.$1)
-      .firstOrNull;
+      known.where((l) => l.ownsAppleName(name)).firstOrNull;
+  String? sdkOf(String name) =>
+      declared.where(name.startsWith).firstOrNull ??
+      _appleSdks
+          .where((sdk) => sdk.$2.hasMatch(name))
+          .map((sdk) => sdk.$1)
+          .firstOrNull;
 
   for (final binary in ipa.staticAnalysis.binaries) {
     final place = binary.path.startsWith('${ipa.appPath}/')

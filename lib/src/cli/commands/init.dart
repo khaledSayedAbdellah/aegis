@@ -123,6 +123,13 @@ ios_xcode_configuration: Release  # Native Simulator build configuration.
 # Optional literal tracker signature catalog (JSON); built-in inventory always runs.
 tracker_signatures: <path-to-file>
 
+# AEG-P01: runtime protection aegis doesn't know (Dart packages, Android class
+# prefixes, iOS frameworks or class prefixes), and libraries whose root or
+# jailbreak checks only serve their own reports.
+rasp:
+  packages: []         # e.g. [my_guard, com.acme.guard., AcmeShield]
+  not_protection: []   # e.g. [onesignal_flutter, com.onesignal., OneSignal]
+
 # Opt-in application-specific network/storage scenario. No host security changes.
 # See doc/runtime-security.md. command is an argument list, never a shell string.
 # It runs only when enabled here AND `aegis run --runtime-scenario` is passed.

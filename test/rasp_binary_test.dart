@@ -24,10 +24,14 @@ void main() {
     addTearDown(() => dir.deleteSync(recursive: true));
   });
 
+  var declared = <String>[], notProtection = <String>[];
   Future<AuditReport> audit({String? apk, String? ipa}) => runAudit(dir.path,
       apkPath: apk,
       ipaPath: ipa,
-      config: AegisConfig(profile: ProfileSet.tryParse('l2+r')!),
+      config: AegisConfig(
+          profile: ProfileSet.tryParse('l2+r')!,
+          raspPackages: declared,
+          notProtection: notProtection),
       offline: true);
 
   /// The secure fixture APK with its DEX replaced and [files] added.
@@ -185,6 +189,27 @@ void main() {
       });
       expect(p01(r).status, RuleStatus.passed);
       expect(evidence(r).single, contains('lib/arm64-v8a/libapp.so'));
+    });
+
+    test('aegis.yaml declarations apply to the APK', () async {
+      declared = ['com.acme.shield.'];
+      notProtection = ['com.acme.metrics.'];
+      addTearDown(() {
+        declared = [];
+        notProtection = [];
+      });
+      final protected = await apk({
+        'com.acme.shield.Guard': ['hello'],
+      });
+      expect(p01(protected).status, RuleStatus.passed);
+
+      final metricsOnly = await apk({
+        'com.acme.metrics.DeviceInfo': rootPaths,
+      });
+      expect(
+          messages(metricsOnly).single,
+          startsWith(
+              'Android: the only root detection belongs to com.acme.metrics.'));
     });
 
     test('renamed classes next to a crash reporter cannot be attributed',

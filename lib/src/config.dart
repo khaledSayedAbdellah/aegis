@@ -39,6 +39,8 @@ class AegisConfig {
     this.probeCertSha256,
     this.trackerSignatures,
     this.runtimeSecurity = const {},
+    this.raspPackages = const [],
+    this.notProtection = const [],
   });
 
   final ProfileSet profile;
@@ -94,6 +96,14 @@ class AegisConfig {
   final String? probeCertSha256;
   final String? trackerSignatures;
   final Map<String, Object?> runtimeSecurity;
+
+  /// `rasp: packages:` — Dart packages, Android class prefixes, iOS
+  /// frameworks or class prefixes that AEG-P01 counts as runtime protection.
+  final List<String> raspPackages;
+
+  /// `rasp: not_protection:` — names AEG-P01 treats like crash and analytics
+  /// libraries: their device checks are not the app's protection.
+  final List<String> notProtection;
 
   /// An artifact path made absolute against [projectRoot], or null when unset.
   static String? resolve(String projectRoot, String? path) {
@@ -181,7 +191,21 @@ class AegisConfig {
       probeCertSha256: _path(doc['probe_cert_sha256']),
       trackerSignatures: _path(doc['tracker_signatures']),
       runtimeSecurity: _runtime(doc['runtime_security']),
+      raspPackages: _names(doc['rasp'], 'packages'),
+      notProtection: _names(doc['rasp'], 'not_protection'),
     );
+  }
+
+  static List<String> _names(Object? section, String key) {
+    if (section == null) return const [];
+    if (section is! Map) throw const FormatException('rasp must be a map');
+    final v = section[key];
+    if (v == null) return const [];
+    if (v is! List) throw FormatException('rasp.$key must be a list');
+    return [
+      for (final e in v)
+        if (e.toString().trim().isNotEmpty) e.toString().trim()
+    ];
   }
 
   static Map<String, Object?> _runtime(Object? value) {
@@ -244,5 +268,7 @@ class AegisConfig {
         probeCertSha256: probeCertSha256,
         trackerSignatures: trackerSignatures,
         runtimeSecurity: runtimeSecurity,
+        raspPackages: raspPackages,
+        notProtection: notProtection,
       );
 }
