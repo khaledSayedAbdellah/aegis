@@ -23,7 +23,8 @@ jobs:
           sdk: stable
       - run: dart pub get
       - run: dart analyze
-      - run: dart test
+      # The github reporter turns each failing test into an annotation.
+      - run: dart test --reporter github
       # The runtime driver drives Unix tools (adb, frida) from a POSIX shell.
       - if: runner.os != 'Windows'
         run: PYTHONDONTWRITEBYTECODE=1 python3 test/runtime_driver_test.py -v
