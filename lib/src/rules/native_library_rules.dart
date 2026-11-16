@@ -24,6 +24,10 @@ final _versionPatterns = <String, RegExp>{
   'zlib': RegExp(r'\b(?:de|in)flate (\d+\.\d+\.\d+(?:\.\d+)?) Copyright'),
   'libpng': RegExp(r'\blibpng version (\d+\.\d+\.\d+)'),
   'libcurl': RegExp(r'\blibcurl/(\d+\.\d+\.\d+)'),
+  // SQLite keeps no plain version string, but its source id starts with the
+  // release date: `2021-06-18 18:36:39 5c9a6c06871cb9fe42814af9c039eb6da5427a6ec28f187af7ebfb7d3f8ae1e9`.
+  'SQLite':
+      RegExp(r'\b(\d{4}-\d{2}-\d{2}) \d{2}:\d{2}:\d{2} [0-9a-f]{40,64}\b'),
 };
 
 /// Versions with critical published vulnerabilities: library -> (the first
@@ -31,13 +35,14 @@ final _versionPatterns = <String, RegExp>{
 /// advisory, and the versions it applies to).
 final _vulnerable =
     <String, List<(String? fixed, String advisory, bool Function(List<int>))>>{
-  // Branches past their end of life: 1.0.2 and 1.1.1 (2019, 2023),
-  // 3.0 (2026-09-07), 3.1 (2025-03-14), 3.2 (2025-11-23).
+  // Supported branches per openssl-library.org (read 2026-11-16): 3.5 (LTS,
+  // until 2030-04-08), 4.0 (until 2027-05-14) and 4.1 (until 2027-11-23).
+  // Every other branch is past its end of life. Update when that changes.
   'OpenSSL': [
     (
       null,
       'that branch is past its end of life and gets no security fixes',
-      (v) => v[0] < 3 || (v[0] == 3 && v[1] <= 2)
+      (v) => v[0] < 3 || (v[0] == 3 && v[1] != 5)
     ),
   ],
   'zlib': [
@@ -48,6 +53,10 @@ final _vulnerable =
   ],
   'libcurl': [
     ('8.4.0', 'CVE-2023-38545', (v) => _less(v, [8, 4, 0])),
+  ],
+  // By release date: 3.39.2 was released 2022-07-21 (sqlite.org/changes.html).
+  'SQLite': [
+    ('3.39.2', 'CVE-2022-35737', (v) => _less(v, [2022, 7, 21])),
   ],
 };
 
@@ -69,7 +78,8 @@ Iterable<NativeLibraryVersion> findLibraryVersions(
   for (final e in _versionPatterns.entries) {
     for (final m in e.value.allMatches(text)) {
       if (seen.add('${e.key} ${m[1]}')) {
-        yield NativeLibraryVersion(e.key, m[1]!, file);
+        yield NativeLibraryVersion(
+            e.key, e.key == 'SQLite' ? 'released ${m[1]}' : m[1]!, file);
       }
     }
   }

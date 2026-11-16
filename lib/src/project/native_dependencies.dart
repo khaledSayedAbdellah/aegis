@@ -41,6 +41,7 @@ List<(String, String)> dependencyFiles(String root) {
     'package-lock.json',
     'yarn.lock',
     'Package.resolved',
+    'gradle.properties',
   };
   final out = <(String, String)>[];
   var visited = 0;
@@ -88,14 +89,41 @@ List<NativeDependency> parseNativeDependencies(List<(String, String)> files) {
     }
   }
 
+  // Version variables of the Gradle build: `def okhttpVersion = '4.9.0'`,
+  // `val okhttp = "4.9.0"`, `ext { okhttp_version = '4.9.0' }`,
+  // `okhttpVersion=4.9.0` in gradle.properties.
+  final variables = <String, String>{};
+  for (final (file, text) in files) {
+    final name = p.basename(file);
+    if (name == 'gradle.properties') {
+      for (final m
+          in RegExp(r'^\s*([\w.]+)\s*=\s*(\d[\w.\-]*)\s*$', multiLine: true)
+              .allMatches(text)) {
+        variables[m[1]!.split('.').last] = m[2]!;
+      }
+    } else if (name.startsWith('build.gradle')) {
+      for (final m in RegExp(
+              r'''(?:^|[\s.;{])(\w+)\s*=\s*["'](\d[\w.\-]*)["']''',
+              multiLine: true)
+          .allMatches(text)) {
+        variables[m[1]!] = m[2]!;
+      }
+    }
+  }
+
   for (final (file, text) in files) {
     final name = p.basename(file);
     switch (name) {
       case 'build.gradle' || 'build.gradle.kts':
         for (final m in RegExp(
-                r'''\b(?:implementation|api|compileOnly|runtimeOnly|kapt|ksp|classpath|releaseImplementation|platform)\s*\(?\s*["']([\w.\-]+):([\w.\-]+):([\w.\-]+)["']''')
+                r'''\b(?:implementation|api|compileOnly|runtimeOnly|kapt|ksp|classpath|releaseImplementation|platform)\s*\(?\s*["']([\w.\-]+):([\w.\-]+):([^"'\s]+)["']''')
             .allMatches(text)) {
-          add('Maven', '${m[1]}:${m[2]}', m[3]!, file);
+          var version = m[3]!;
+          // `$okhttpVersion`, `${okhttp_version}`, `${rootProject.ext.okhttp}`.
+          final ref =
+              RegExp(r'^\$\{?(?:[\w]+\.)*(\w+)\}?$').firstMatch(version);
+          if (ref != null) version = variables[ref[1]!] ?? '';
+          add('Maven', '${m[1]}:${m[2]}', version, file);
         }
       case 'gradle.lockfile':
         for (final m

@@ -10,6 +10,46 @@ import 'package:test/test.dart';
 import 'support/macho_security_fixture.dart';
 
 void main() {
+  test('OpenSSL branches past their end of life', () {
+    String? eol(String v) {
+      final hit = vulnerability(NativeLibraryVersion('OpenSSL', v, 'x'));
+      return hit == null ? 'supported' : 'eol';
+    }
+
+    expect([
+      for (final v in [
+        '1.1.1w',
+        '3.0.15',
+        '3.3.2',
+        '3.5.1',
+        '3.6.0',
+        '4.0.0',
+        '4.1.2'
+      ])
+        eol(v)!
+    ], [
+      'eol',
+      'eol',
+      'eol',
+      'supported',
+      'eol',
+      'supported',
+      'supported'
+    ]);
+  });
+
+  test('SQLite from its source id', () {
+    final found = findLibraryVersions(
+            '2021-06-18 18:36:39 5c9a6c06871cb9fe42814af9c039eb6da5427a6ec28f187af7ebfb7d3f8ae1e9\x00'
+                '2023-11-24 11:41:44 ebead0e7230cd33bcec9f95d2183069565b9e709bf745c9b5db65cc0cbf92c0f',
+            'libsqlite3.so')
+        .toList();
+    expect([for (final v in found) v.version],
+        ['released 2021-06-18', 'released 2023-11-24']);
+    expect(vulnerability(found.first), ('3.39.2', 'CVE-2022-35737'));
+    expect(vulnerability(found.last), isNull);
+  });
+
   test('version strings and the advisory table', () {
     final found = findLibraryVersions(
             'x OpenSSL 1.1.1k  25 Mar 2021 y deflate 1.2.11 Copyright 1995 '

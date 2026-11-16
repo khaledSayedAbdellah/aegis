@@ -1,8 +1,9 @@
 ## Unreleased
 
 * `AEG-C01` also looks up native dependencies in OSV: Maven libraries from Gradle files, version catalogs, `gradle.lockfile` and the Android code of the app's Flutter plugins; npm packages from `package-lock.json` and `yarn.lock`; Swift packages from `Package.resolved`. OSV has no CocoaPods data, so a `Podfile.lock` is listed as not checked. Dart findings keep their message. `AEG-C01` now also runs for native Android and iOS projects.
-* New `AEG-B14` (APK, AAB) and `AEG-I13` (IPA), medium (high for L2): outdated C libraries compiled into the app, from their version strings: end-of-life OpenSSL branches (1.x, 3.0 to 3.2), zlib before 1.2.13, libpng before 1.6.37, libcurl before 8.4.0. All versions found are listed as evidence. The Flutter engine's own copies are skipped.
-* New `AEG-C03` (low): direct dependencies discontinued on pub.dev (with their replacement), and names one letter away from a popular package that may be a typo or an imitation. The pub.dev lookup is skipped with `--offline`.
+* New `AEG-B14` (APK, AAB) and `AEG-I13` (IPA), medium (high for L2): outdated C libraries compiled into the app, from their version strings: end-of-life OpenSSL branches, zlib before 1.2.13, libpng before 1.6.37, libcurl before 8.4.0. All versions found are listed as evidence. The Flutter engine's own copies are skipped.
+* New `AEG-C03` (low): direct dependencies discontinued on pub.dev (with their replacement), and Dart or npm package names one letter away from a popular package (a swapped pair of letters counts as one), which may be a typo or an imitation. The pub.dev lookup is skipped with `--offline`.
+* `AEG-C01` resolves Gradle versions written as variables (`$okhttpVersion`, `ext {}` blocks, `gradle.properties`). `AEG-B14` and `AEG-I13` also date bundled SQLite by its source id (before 3.39.2: CVE-2022-35737), and treat every OpenSSL branch except the supported 3.5, 4.0 and 4.1 as end of life.
 
 ## 0.14.0
 

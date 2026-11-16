@@ -195,29 +195,110 @@ const popularPackages = {
   'no_screenshot',
 };
 
-/// Levenshtein distance up to [limit] (larger distances return limit + 1).
+/// Widely used npm packages in React Native apps, for look-alike names.
+const popularNpmPackages = {
+  'react',
+  'react-native',
+  'react-dom',
+  'axios',
+  'lodash',
+  'moment',
+  'dayjs',
+  'redux',
+  'react-redux',
+  '@reduxjs/toolkit',
+  'zustand',
+  'mobx',
+  'mobx-react',
+  'expo',
+  'expo-router',
+  'expo-constants',
+  'expo-secure-store',
+  '@react-navigation/native',
+  '@react-navigation/stack',
+  '@react-navigation/native-stack',
+  '@react-navigation/bottom-tabs',
+  'react-native-reanimated',
+  'react-native-gesture-handler',
+  'react-native-screens',
+  'react-native-safe-area-context',
+  '@react-native-async-storage/async-storage',
+  'react-native-vector-icons',
+  'react-native-svg',
+  'react-native-webview',
+  'react-native-device-info',
+  'react-native-keychain',
+  'react-native-encrypted-storage',
+  'react-native-mmkv',
+  'react-native-config',
+  'react-native-permissions',
+  'react-native-maps',
+  'react-native-image-picker',
+  'react-native-fs',
+  'react-native-camera',
+  'react-native-vision-camera',
+  'react-native-push-notification',
+  '@react-native-firebase/app',
+  '@react-native-firebase/auth',
+  '@react-native-firebase/messaging',
+  '@react-native-firebase/firestore',
+  'firebase',
+  'jail-monkey',
+  'freerasp-react-native',
+  'react-query',
+  '@tanstack/react-query',
+  'formik',
+  'yup',
+  'zod',
+  'react-hook-form',
+  'i18next',
+  'react-i18next',
+  'uuid',
+  'crypto-js',
+  'jwt-decode',
+  'buffer',
+  'base-64',
+  'socket.io-client',
+  'styled-components',
+  'typescript',
+  'jest',
+  '@babel/core',
+  'metro-react-native-babel-preset',
+  'eslint',
+  'prettier',
+};
+
+/// Edit distance up to [limit] (larger distances return limit + 1), where
+/// swapping two neighbouring letters (`keychian`) counts as one edit.
 int _distance(String a, String b, int limit) {
   if ((a.length - b.length).abs() > limit) return limit + 1;
-  var previous = List<int>.generate(b.length + 1, (i) => i);
+  final d = List.generate(
+      a.length + 1,
+      (i) => List<int>.generate(
+          b.length + 1, (j) => i == 0 ? j : (j == 0 ? i : 0)));
   for (var i = 1; i <= a.length; i++) {
-    final current = List<int>.filled(b.length + 1, 0)..[0] = i;
     for (var j = 1; j <= b.length; j++) {
       final cost = a[i - 1] == b[j - 1] ? 0 : 1;
-      current[j] = [
-        previous[j] + 1,
-        current[j - 1] + 1,
-        previous[j - 1] + cost,
-      ].reduce((x, y) => x < y ? x : y);
+      var best = d[i - 1][j] + 1;
+      if (d[i][j - 1] + 1 < best) best = d[i][j - 1] + 1;
+      if (d[i - 1][j - 1] + cost < best) best = d[i - 1][j - 1] + cost;
+      if (i > 1 &&
+          j > 1 &&
+          a[i - 1] == b[j - 2] &&
+          a[i - 2] == b[j - 1] &&
+          d[i - 2][j - 2] + 1 < best) {
+        best = d[i - 2][j - 2] + 1;
+      }
+      d[i][j] = best;
     }
-    previous = current;
   }
-  return previous[b.length];
+  return d[a.length][b.length];
 }
 
 /// The popular package [name] imitates, or null.
-String? lookAlike(String name) {
-  if (name.length < 5 || popularPackages.contains(name)) return null;
-  for (final popular in popularPackages) {
+String? lookAlike(String name, {Set<String> popular = popularPackages}) {
+  if (name.length < 5 || popular.contains(name)) return null;
+  for (final popular in popular) {
     if (popular.length < 5) continue;
     if (_distance(name, popular, 1) == 1) return popular;
   }
@@ -253,7 +334,8 @@ class PackageHygieneRule extends Rule {
           (source == null || source == 'hosted');
     }).toList()
       ..sort();
-    if (direct.isEmpty) return RuleCheck.notApplicable();
+    final npm = _npmDependencies(project);
+    if (direct.isEmpty && npm.isEmpty) return RuleCheck.notApplicable();
     final out = <Finding>[];
     for (final name in direct) {
       final popular = lookAlike(name);
@@ -262,7 +344,14 @@ class PackageHygieneRule extends Rule {
           En.packageLookAlike(package: name, popular: popular),
           messageAr: Ar.packageLookAlike(package: name, popular: popular)));
     }
-    if (project.offline) return RuleCheck(out);
+    for (final name in npm) {
+      final popular = lookAlike(name, popular: popularNpmPackages);
+      if (popular == null || npm.contains(popular)) continue;
+      out.add(inFile('package.json', null,
+          En.packageLookAlike(package: name, popular: popular),
+          messageAr: Ar.packageLookAlike(package: name, popular: popular)));
+    }
+    if (project.offline || direct.isEmpty) return RuleCheck(out);
 
     final client = HttpClient()
       ..connectionTimeout = const Duration(seconds: 10);
@@ -317,5 +406,21 @@ class PackageHygieneRule extends Rule {
           out);
     }
     return RuleCheck(out);
+  }
+
+  /// Direct dependencies in the project's package.json.
+  static Set<String> _npmDependencies(Project project) {
+    final f = File(project.abs('package.json'));
+    if (!f.existsSync()) return const {};
+    try {
+      final json = jsonDecode(f.readAsStringSync());
+      if (json is! Map) return const {};
+      return {
+        for (final key in const ['dependencies', 'devDependencies'])
+          if (json[key] is Map) ...(json[key] as Map).keys.map((k) => '$k'),
+      };
+    } catch (_) {
+      return const {};
+    }
   }
 }

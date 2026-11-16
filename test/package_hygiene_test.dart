@@ -12,6 +12,7 @@ void main() {
         reason: 'names under 5 letters are skipped');
     expect(lookAlike('shared_preferences'), isNull);
     expect(lookAlike('my_company_utils'), isNull);
+    expect(lookAlike('flutter_secure_stroage'), 'flutter_secure_storage');
   });
 
   test('AEG-C03 offline reports look-alikes only', () async {
@@ -29,5 +30,23 @@ void main() {
         reason:
             'firebase_cor is next to firebase_core, which is also a dependency');
     expect(result(r, 'AEG-C03').severity, Severity.low);
+  });
+
+  test('npm look-alikes in package.json', () async {
+    final r = await audit({
+      'pubspec.yaml': 'name: app\n',
+      'package.json': '{"dependencies": {"react-native": "0.74.0", '
+          '"react-native-keychian": "1.0.0", "axois": "1.0.0"}}',
+    });
+    expect(
+        result(r, 'AEG-C03').findings.map((f) => '${f.file}: ${f.message}'),
+        [
+          startsWith(
+              'package.json: react-native-keychian is one letter away from '
+              'the popular package react-native-keychain'),
+          startsWith('package.json: axois is one letter away from the popular '
+              'package axios'),
+        ],
+        reason: 'two swapped letters count as one edit');
   });
 }

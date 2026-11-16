@@ -338,7 +338,7 @@ The report also prints the **signing certificate SHA-256 in Base64**, the exact 
 | AEG-B10 | freeRASP `signingCertHashes` / `packageName` don't match the APK | RESILIENCE-2 |
 | AEG-B11 | Old targetSdk / minSdk in the final manifest | CODE-1 |
 | AEG-B13 | Chucker, Stetho, Flipper or LeakCanary inside the APK (not their no-op versions) | RESILIENCE-4 |
-| AEG-B14 | Outdated C libraries inside the APK: end-of-life OpenSSL, zlib before 1.2.13, libpng before 1.6.37, libcurl before 8.4.0 (from version strings; `libflutter.so` is skipped) | CODE-3 |
+| AEG-B14 | Outdated C libraries inside the APK: end-of-life OpenSSL (supported: 3.5, 4.0, 4.1), zlib before 1.2.13, libpng before 1.6.37, libcurl before 8.4.0, SQLite before 3.39.2 (dated by its source id); `libflutter.so` is skipped | CODE-3 |
 
 aegis reads APKs and AABs itself (zip, binary XML, protobuf XML, v1/v2/v3 signatures) in pure Dart, with no external tools.
 
@@ -739,7 +739,7 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-D20 | Generated crypto keys or raw key bytes written to SharedPreferences, Hive, `UserDefaults` or files (Dart and native) | STORAGE-1 |
 | AEG-C01 | Dependency with known vulnerabilities (OSV): Dart packages from `pubspec.lock`; Maven from Gradle files, version catalogs, `gradle.lockfile` and the Android code of Flutter plugins; npm from `package-lock.json` / `yarn.lock`; Swift packages from `Package.resolved`. CocoaPods has no OSV data and is listed as not checked. Skipped with `--offline` | CODE-3 |
 | AEG-C02 | Unpinned git dependencies, `dependency_overrides` | CODE-3 |
-| AEG-C03 | Discontinued packages (pub.dev, skipped with `--offline`) and names one letter away from popular packages | CODE-3 |
+| AEG-C03 | Discontinued pub.dev packages (skipped with `--offline`), and Dart or npm names one letter away from popular packages | CODE-3 |
 
 ## Development: run from source and run the tests
 

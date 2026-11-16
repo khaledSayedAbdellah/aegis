@@ -85,4 +85,40 @@ axios@^0.21.0:
    "state": {"version": "4.8.0"}}
 ]}, "version": 1}'''), ['SwiftURL github.com/Alamofire/Alamofire 4.8.0']);
   });
+
+  test('Gradle versions from variables and gradle.properties', () {
+    final deps = parseNativeDependencies([
+      (
+        'android/gradle.properties',
+        'okioVersion=2.8.0\norg.gradle.jvmargs=-Xmx4G\n'
+      ),
+      (
+        'android/build.gradle',
+        '''
+ext {
+    okhttp_version = '3.12.0'
+}
+'''
+      ),
+      (
+        'android/app/build.gradle.kts',
+        '''
+val gsonVersion = "2.8.5"
+dependencies {
+    implementation("com.squareup.okhttp3:okhttp:\${rootProject.ext.okhttp_version}")
+    implementation("com.google.code.gson:gson:\$gsonVersion")
+    implementation("com.squareup.okio:okio:\$okioVersion")
+    implementation("com.example:unknown:\$missing")
+}
+'''
+      ),
+    ]);
+    expect([
+      for (final d in deps) '${d.name} ${d.version}'
+    ], [
+      'com.squareup.okhttp3:okhttp 3.12.0',
+      'com.google.code.gson:gson 2.8.5',
+      'com.squareup.okio:okio 2.8.0',
+    ]);
+  });
 }
