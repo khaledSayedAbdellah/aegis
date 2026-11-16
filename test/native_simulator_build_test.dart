@@ -85,7 +85,7 @@ void main() {
         lastBuild,
         containsAll([
           '-project',
-          '${root.path}/Probe.xcodeproj',
+          p.join(root.path, 'Probe.xcodeproj'),
           '-scheme',
           'Probe',
           '-configuration',

@@ -213,7 +213,8 @@ void main() {
           isFalse);
     });
 
-    test('follows ANDROID_AVD_HOME when the user set it', () async {
+    test('follows ANDROID_AVD_HOME when the user set it', skip: _macPaths,
+        () async {
       final h = withAvdmanager(studioMac()..envs['ANDROID_AVD_HOME'] = '/avds');
       final toolchain = Toolchain(h);
       expect(await Setup(toolchain).install('control-avd'), isNull);
@@ -236,7 +237,8 @@ void main() {
   });
 
   group('remove', () {
-    test('deletes the ~/.aegis items and the AVD, never the SDK', () async {
+    test('deletes the ~/.aegis items and the AVD, never the SDK',
+        skip: _macPaths, () async {
       final h = studioMac();
       final t = Toolchain(h);
       h.addDir(t.venvDir);
@@ -264,3 +266,7 @@ void main() {
     });
   });
 }
+
+/// These tests fake a macOS host with `/Users/dev/...` paths, which the
+/// Windows path separator can't build.
+final Object _macPaths = Platform.isWindows ? 'simulates macOS paths' : false;

@@ -594,7 +594,10 @@ void main() {
         'console,json'
       ]);
       expect(r.exitCode, isNot(2), reason: '${r.stdout}${r.stderr}');
-      expect(r.stdout, contains('auditing the code and dist/my-app-1.2.3.apk'));
+      expect(
+          r.stdout,
+          contains(
+              'auditing the code and ${p.join('dist', 'my-app-1.2.3.apk')}'));
       expect(r.stdout, contains('APK: my-app-1.2.3.apk'));
       expect(r.stdout,
           contains('resilience probe skipped (turned off with --no-probe)'));
