@@ -20,12 +20,14 @@ class DexUsage {
 }
 
 /// Reads [bytes] as a DEX file. [labels] names what a string or a method name
-/// stands for (empty when it is not interesting).
-DexUsage readDexUsage(Uint8List bytes, Set<String> Function(String) labels) {
+/// stands for (empty when it is not interesting). [classLabels] names what a
+/// call to any method of a class stands for (`dalvik.system.DexClassLoader`).
+DexUsage readDexUsage(Uint8List bytes, Set<String> Function(String) labels,
+    {Set<String> Function(String className)? classLabels}) {
   final classes = <String>{};
   final users = <String, Set<String>>{};
   try {
-    _Dex(bytes, labels, classes, users).read();
+    _Dex(bytes, labels, classes, users, classLabels).read();
     return DexUsage(classes, users, complete: true);
   } on RangeError {
     return DexUsage(classes, users, complete: false);
@@ -68,12 +70,13 @@ final List<int> _widths = () {
 }();
 
 class _Dex {
-  _Dex(this.bytes, this.labels, this.classes, this.users)
+  _Dex(this.bytes, this.labels, this.classes, this.users, this.classLabels)
       : data = ByteData.sublistView(bytes);
 
   final Uint8List bytes;
   final ByteData data;
   final Set<String> Function(String) labels;
+  final Set<String> Function(String)? classLabels;
   final Set<String> classes;
   final Map<String, Set<String>> users;
 
@@ -145,10 +148,22 @@ class _Dex {
       final name = className(i);
       if (name != null) classes.add(name);
     }
-    if (wanted.isEmpty) return;
+    final byClass = <int, Set<String>>{};
+    if (classLabels != null) {
+      for (var i = 0; i < typeCount; i++) {
+        final name = className(i);
+        if (name == null) continue;
+        final found = classLabels!(name);
+        if (found.isNotEmpty) byClass[i] = found;
+      }
+    }
+    if (wanted.isEmpty && byClass.isEmpty) return;
     for (var i = 0; i < methodCount; i++) {
-      final found = wanted[u32(methodOff + 8 * i + 4)];
-      if (found != null) wantedMethods[i] = found;
+      final found = {
+        ...?wanted[u32(methodOff + 8 * i + 4)],
+        ...?byClass[u16(methodOff + 8 * i)],
+      };
+      if (found.isNotEmpty) wantedMethods[i] = found;
     }
 
     for (var i = 0; i < classCount; i++) {

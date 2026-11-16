@@ -8,6 +8,8 @@
   * `AEG-B15` (high): an APK signed with the v1 scheme only while it supports Android before 7.0 (Janus, CVE-2017-13156). App bundles are skipped.
   * `AEG-I14` (low): the app's own iOS code uses a required-reason API without `PrivacyInfo.xcprivacy` (source and IPA).
   * `AEG-C04` (high): code loaded from outside the app: dex loaders, `System.load` and `PathClassLoader` on external or downloaded paths, `dlopen` outside the app bundle, and `eval` of non-literal JavaScript.
+* New `AEG-B16` (medium): FileProvider paths in an APK's merged resources that share the whole storage, including paths added by libraries. New `AEG-B17` (high): app classes in an APK that create a `DexClassLoader` or `InMemoryDexClassLoader`; Play services, Firebase, AndroidX and Flutter are listed as evidence, not reported.
+* `AEG-P13` also reports hand-built code flows without PKCE (any flow not using `flutter_appauth` or `oauth2`) and `AuthorizationCodeGrant(secret: ...)`. `AEG-A15` follows flags kept in a variable. `AEG-I14` also reports a privacy manifest that doesn't declare a category the code uses. `AEG-C04` lists CodePush, Expo Updates and Shorebird as evidence.
 * `AEG-P01` also lists emulator and app-virtualization (cloner) checks in its evidence. They are extras and not required for a pass.
 
 ## 0.15.0

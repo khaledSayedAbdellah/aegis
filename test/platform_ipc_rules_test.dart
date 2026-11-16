@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'rules_test.dart' show audit, result;
+import 'support/dex_fixture.dart';
 
 const pubspec = 'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n';
 
@@ -118,7 +119,8 @@ fun notify(context: Context) {
       'ios/Runner/AppDelegate.swift':
           'let seen = UserDefaults.standard.bool(forKey: "seen")',
       'ios/Runner/Info.plist': '<plist><dict/></plist>',
-      'ios/Runner/PrivacyInfo.xcprivacy': '<plist><dict/></plist>',
+      'ios/Runner/PrivacyInfo.xcprivacy':
+          '<plist><string>NSPrivacyAccessedAPICategoryUserDefaults</string></plist>',
     });
     expect(result(declared, 'AEG-I14').status, RuleStatus.passed);
   });
@@ -208,5 +210,118 @@ const clones = ['com.lody.virtual', 'com.lbe.parallel'];
         evidence,
         contains(
             'root, debugger, hooking (Frida/Xposed), emulator, virtualization'));
+  });
+
+  group('4.10', () {
+    Future<AuditReport> apkWith(
+        Directory dir, Map<String, List<String>> classes,
+        {Map<String, List<int>> files = const {}}) async {
+      final source = ZipDecoder()
+          .decodeBytes(File('test/fixtures/apk/secure.apk').readAsBytesSync());
+      final archive = Archive();
+      for (final f in source.files) {
+        if (f.name == 'classes.dex') continue;
+        archive.addFile(ArchiveFile.bytes(f.name, f.content as List<int>));
+      }
+      archive.addFile(ArchiveFile.bytes('classes.dex', dexFile(classes)));
+      final apk = p.join(dir.path, 'app.apk');
+      File(apk).writeAsBytesSync(ZipEncoder().encode(archive));
+      return runAudit(dir.path,
+          apkPath: apk,
+          config: AegisConfig(profile: ProfileSet.tryParse('l2')!),
+          offline: true);
+    }
+
+    test('AEG-B17 dex loaders in the app, not in libraries', () async {
+      final dir = Directory.systemTemp.createTempSync('aegis-b17-');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final r = await apkWith(dir, {
+        'com.acme.Plugins': ['call:dalvik.system.DexClassLoader#<init>'],
+        'com.google.android.gms.dynamite.DynamiteModule': [
+          'call:dalvik.system.DexClassLoader#<init>'
+        ],
+        'com.acme.Main': ['hello'],
+      });
+      final b17 = r.results.singleWhere((x) => x.meta.id == 'AEG-B17');
+      expect(b17.findings.map((f) => f.message), [
+        "com.acme.Plugins creates a DexClassLoader, which loads code that isn't part of the APK."
+      ]);
+      expect(
+          r.securityEvidence
+              .where((e) => e.ruleId == 'AEG-B17')
+              .single
+              .detail
+              .en,
+          contains('com.google.android.gms.dynamite.DynamiteModule'));
+    });
+
+    test('AEG-P13 hand-built flows and package:oauth2 secrets', () async {
+      final r = await audit({
+        'pubspec.yaml': '$pubspec  url_launcher: any\n',
+        'lib/auth.dart': r'''
+const url = 'https://id.example.com/authorize?response_type=code&client_id=app';
+final grant = AuthorizationCodeGrant('app', authEndpoint, tokenEndpoint, secret: 'shh');
+''',
+      });
+      expect(lines(r, 'AEG-P13'), [
+        startsWith('lib/auth.dart:2 A client_secret is sent from the app'),
+        startsWith('lib/auth.dart:1 Authorization code flow without PKCE'),
+      ]);
+      final appauth = await audit({
+        'pubspec.yaml': '$pubspec  flutter_appauth: any\n',
+        'lib/auth.dart':
+            "const url = 'https://id.example.com/authorize?response_type=code';",
+      });
+      expect(result(appauth, 'AEG-P13').status, RuleStatus.passed);
+    });
+
+    test('AEG-A15 follows flags in a variable', () async {
+      final r = await audit({
+        'android/app/src/main/kotlin/N.kt': '''
+fun n(context: Context) {
+  val implicit = Intent("com.acme.OPEN")
+  val flags = PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+  val a = PendingIntent.getActivity(context, 0, implicit, flags)
+  val safe = PendingIntent.FLAG_IMMUTABLE
+  val b = PendingIntent.getActivity(context, 1, implicit, safe)
+}
+''',
+      });
+      expect(lines(r, 'AEG-A15'),
+          [startsWith('android/app/src/main/kotlin/N.kt:4 A FLAG_MUTABLE')]);
+    });
+
+    test('AEG-I14 checks the declared categories', () async {
+      final r = await audit({
+        'ios/Runner/AppDelegate.swift': '''
+let seen = UserDefaults.standard.bool(forKey: "seen")
+let up = ProcessInfo.processInfo.systemUptime
+''',
+        'ios/Runner/Info.plist': '<plist><dict/></plist>',
+        'ios/Runner/PrivacyInfo.xcprivacy': '''
+<plist><dict><key>NSPrivacyAccessedAPITypes</key><array><dict>
+<key>NSPrivacyAccessedAPIType</key><string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+</dict></array></dict></plist>''',
+      });
+      expect(lines(r, 'AEG-I14'), [
+        'ios/Runner/AppDelegate.swift:2 PrivacyInfo.xcprivacy declares no '
+            'reason for NSPrivacyAccessedAPICategorySystemBootTime, which the '
+            "app's own code uses (systemUptime)."
+      ]);
+    });
+
+    test('AEG-C04 lists over-the-air updates as evidence', () async {
+      final r = await audit({
+        'shorebird.yaml': 'app_id: x\n',
+        'lib/main.dart': 'void main() {}',
+      });
+      expect(
+          r.securityEvidence
+              .where((e) => e.ruleId == 'AEG-C04')
+              .single
+              .detail
+              .en,
+          startsWith('Over-the-air code updates with Shorebird'));
+    });
   });
 }

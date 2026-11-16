@@ -805,9 +805,16 @@ class L10n {
       : En.dependencyRulesUpgradeThePackageToAFixedVersionDart;
   String dynamicCode({required Object? api}) =>
       isArabic ? Ar.dynamicCode(api: api) : En.dynamicCode(api: api);
+  String dynamicCodeApk({required Object? loader, required Object? owner}) =>
+      isArabic
+          ? Ar.dynamicCodeApk(loader: loader, owner: owner)
+          : En.dynamicCodeApk(loader: loader, owner: owner);
   String get dynamicCodeDescription =>
       isArabic ? Ar.dynamicCodeDescription : En.dynamicCodeDescription;
   String get dynamicCodeFix => isArabic ? Ar.dynamicCodeFix : En.dynamicCodeFix;
+  String dynamicCodeLibraries({required Object? classes}) => isArabic
+      ? Ar.dynamicCodeLibraries(classes: classes)
+      : En.dynamicCodeLibraries(classes: classes);
   String get dynamicCodePass =>
       isArabic ? Ar.dynamicCodePass : En.dynamicCodePass;
   String get dynamicCodeTitle =>
@@ -1777,6 +1784,8 @@ class L10n {
       isArabic ? Ar.osvPackageInvalid : En.osvPackageInvalid;
   String osvStatus({required Object? status}) =>
       isArabic ? Ar.osvStatus(status: status) : En.osvStatus(status: status);
+  String otaUpdates({required Object? tools}) =>
+      isArabic ? Ar.otaUpdates(tools: tools) : En.otaUpdates(tools: tools);
   String packageDiscontinued({required Object? package}) => isArabic
       ? Ar.packageDiscontinued(package: package)
       : En.packageDiscontinued(package: package);
@@ -2126,6 +2135,11 @@ class L10n {
   String get podsNotChecked => isArabic ? Ar.podsNotChecked : En.podsNotChecked;
   String privacyManifest({required Object? api}) =>
       isArabic ? Ar.privacyManifest(api: api) : En.privacyManifest(api: api);
+  String privacyManifestCategory(
+          {required Object? api, required Object? category}) =>
+      isArabic
+          ? Ar.privacyManifestCategory(api: api, category: category)
+          : En.privacyManifestCategory(api: api, category: category);
   String get privacyManifestDescription =>
       isArabic ? Ar.privacyManifestDescription : En.privacyManifestDescription;
   String get privacyManifestFix =>
@@ -3542,10 +3556,21 @@ abstract final class En {
       "Upgrade the package to a fixed version (dart pub upgrade <package>).";
   static String dynamicCode({required Object? api}) =>
       "" + api.toString() + " loads code from outside the app's own package.";
+  static String dynamicCodeApk(
+          {required Object? loader, required Object? owner}) =>
+      "" +
+      owner.toString() +
+      " creates a " +
+      loader.toString() +
+      ", which loads code that isn't part of the APK.";
   static const dynamicCodeDescription =
       "Code loaded at run time from storage, a download or a string skips the store review and the app's signature. Whoever can write that file or string, another app, a network attacker or a malicious update server, runs code as your app.";
   static const dynamicCodeFix =
       "Ship code inside the app, use Play Feature Delivery for optional modules, and never `eval` data. If code must be downloaded, verify its signature before loading it and keep it in private storage.";
+  static String dynamicCodeLibraries({required Object? classes}) =>
+      "Libraries that load code at run time as part of how they work (not counted): " +
+      classes.toString() +
+      ".";
   static const dynamicCodePass = "The app loads only its own code";
   static const dynamicCodeTitle = "Code loaded from outside the app";
   static const extA11Description =
@@ -4419,6 +4444,10 @@ abstract final class En {
   static const osvPackageInvalid = "Invalid OSV package response";
   static String osvStatus({required Object? status}) =>
       "osv.dev returned " + status.toString() + "";
+  static String otaUpdates({required Object? tools}) =>
+      "Over-the-air code updates with " +
+      tools.toString() +
+      ": they replace the app's code without store review. Check that every update is signed and that the update server is trusted.";
   static String packageDiscontinued({required Object? package}) =>
       "" +
       package.toString() +
@@ -4719,6 +4748,13 @@ abstract final class En {
       "The app's own code uses " +
       api.toString() +
       ", a required-reason API, but has no PrivacyInfo.xcprivacy.";
+  static String privacyManifestCategory(
+          {required Object? api, required Object? category}) =>
+      "PrivacyInfo.xcprivacy declares no reason for " +
+      category.toString() +
+      ", which the app's own code uses (" +
+      api.toString() +
+      ").";
   static const privacyManifestDescription =
       "Since 2024 Apple requires a PrivacyInfo.xcprivacy that declares why the app's own code uses certain APIs (UserDefaults, file timestamps, disk space, system boot time). Uploads without it are rejected, and the declarations are what users see as the app's data use.";
   static const privacyManifestFix =
@@ -6014,10 +6050,21 @@ abstract final class Ar {
       "حدّث المكتبة لنسخة فيها الإصلاح (dart pub upgrade <package>).";
   static String dynamicCode({required Object? api}) =>
       "" + api.toString() + " بيحمّل كود من برّه الـpackage بتاع التطبيق.";
+  static String dynamicCodeApk(
+          {required Object? loader, required Object? owner}) =>
+      "" +
+      owner.toString() +
+      " بيعمل " +
+      loader.toString() +
+      "، وده بيحمّل كود مش جزء من الـAPK.";
   static const dynamicCodeDescription =
       "الكود اللي بيتحمّل وقت التشغيل من التخزين أو من تحميل أو من نص بيعدّي من غير مراجعة المتجر ومن غير توقيع التطبيق. وأي حد يقدر يكتب الملف أو النص ده، سواء تطبيق تاني أو مهاجم على الشبكة أو سيرفر تحديثات ضار، بيشغّل كود بصفة تطبيقك.";
   static const dynamicCodeFix =
       "خلّي الكود جوّه التطبيق، واستخدم Play Feature Delivery للأجزاء الاختيارية، وماتعملش `eval` لأي بيانات. ولو الكود لازم يتنزّل، اتأكد من توقيعه قبل ما تحمّله، وخزّنه في التخزين الخاص بالتطبيق.";
+  static String dynamicCodeLibraries({required Object? classes}) =>
+      "مكتبات بتحمّل كود وقت التشغيل كجزء من شغلها (مش محسوبة): " +
+      classes.toString() +
+      ".";
   static const dynamicCodePass = "التطبيق بيحمّل الكود بتاعه بس";
   static const dynamicCodeTitle = "كود بيتحمّل من برّه التطبيق";
   static const extA11Description =
@@ -6880,6 +6927,10 @@ abstract final class Ar {
   static const osvPackageInvalid = "استجابة OSV الخاصة بالحزمة غير صالحة";
   static String osvStatus({required Object? status}) =>
       "أعاد osv.dev رمز الاستجابة " + status.toString() + "";
+  static String otaUpdates({required Object? tools}) =>
+      "تحديثات كود over-the-air بـ" +
+      tools.toString() +
+      ": بتغيّر كود التطبيق من غير مراجعة المتجر. اتأكد إن كل تحديث متوقّع وإن سيرفر التحديثات موثوق.";
   static String packageDiscontinued({required Object? package}) =>
       "" + package.toString() + " متوقفة على pub.dev ومش هتاخد إصلاحات تاني.";
   static String packageDiscontinuedReplaced(
@@ -7173,6 +7224,13 @@ abstract final class Ar {
       "كود التطبيق نفسه بيستخدم " +
       api.toString() +
       "، وده required-reason API، بس مفيش PrivacyInfo.xcprivacy.";
+  static String privacyManifestCategory(
+          {required Object? api, required Object? category}) =>
+      "الـPrivacyInfo.xcprivacy مش موضّح فيه سبب لـ" +
+      category.toString() +
+      "، والكود بتاع التطبيق بيستخدمه (" +
+      api.toString() +
+      ").";
   static const privacyManifestDescription =
       "من 2024، Apple بتطلب ملف PrivacyInfo.xcprivacy يوضّح ليه كود التطبيق نفسه بيستخدم APIs معينة (UserDefaults، وتواريخ الملفات، ومساحة الديسك، ووقت تشغيل الجهاز). والتطبيقات اللي من غيره بتترفض، والتصريحات دي هي اللي المستخدمين بيشوفوها عن استخدام البيانات.";
   static const privacyManifestFix =

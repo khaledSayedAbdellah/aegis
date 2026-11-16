@@ -5385,5 +5385,47 @@
         "type": "String"
       }
     }
+  },
+  "dynamicCodeApk": "{owner} creates a {loader}, which loads code that isn't part of the APK.",
+  "@dynamicCodeApk": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 leftovers.",
+    "placeholders": {
+      "owner": {
+        "type": "String"
+      },
+      "loader": {
+        "type": "String"
+      }
+    }
+  },
+  "dynamicCodeLibraries": "Libraries that load code at run time as part of how they work (not counted): {classes}.",
+  "@dynamicCodeLibraries": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 leftovers.",
+    "placeholders": {
+      "classes": {
+        "type": "String"
+      }
+    }
+  },
+  "otaUpdates": "Over-the-air code updates with {tools}: they replace the app's code without store review. Check that every update is signed and that the update server is trusted.",
+  "@otaUpdates": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 leftovers.",
+    "placeholders": {
+      "tools": {
+        "type": "String"
+      }
+    }
+  },
+  "privacyManifestCategory": "PrivacyInfo.xcprivacy declares no reason for {category}, which the app's own code uses ({api}).",
+  "@privacyManifestCategory": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 leftovers.",
+    "placeholders": {
+      "category": {
+        "type": "String"
+      },
+      "api": {
+        "type": "String"
+      }
+    }
   }
 }

@@ -46,6 +46,8 @@ const List<Rule> apkRules = [
   DebugToolApkRule(),
   OldNativeLibraryApkRule(),
   V1OnlySignatureRule(),
+  FileProviderApkRule(),
+  DynamicCodeApkRule(),
 ];
 
 // Run once for either source or artifact. Each rule selects the authoritative

@@ -8,9 +8,11 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:xml/xml.dart';
 
+import '../binary/dex.dart';
 import '../l10n/messages.g.dart';
 import '../model.dart';
 import '../project.dart';
+import '../security/evidence.dart';
 import '../security/native_analysis.dart' show withoutComments;
 import 'rule.dart';
 
@@ -68,9 +70,20 @@ class OAuthFlowRule extends Rule {
     final out = <Finding>[];
     final pkce =
         project.dartFiles.any((f) => f.source.contains('code_challenge'));
-    final manualFlow = project.usesPackage('flutter_web_auth') ||
-        project.usesPackage('flutter_web_auth_2');
+    // flutter_appauth and package:oauth2 add PKCE themselves; any other
+    // code flow (flutter_web_auth, url_launcher, a WebView) is built by hand.
+    final manualFlow = !project.usesPackage('flutter_appauth') &&
+        !project.usesPackage('oauth2');
     for (final f in project.dartFiles) {
+      // package:oauth2 with a client secret.
+      for (final c in f.calls({'AuthorizationCodeGrant'})) {
+        final secret = f.namedArg(f.args(c.open), 'secret');
+        if (secret == null || f.text(secret.start, secret.end) == 'null') {
+          continue;
+        }
+        out.add(at(f, c.nameIndex, En.oauthClientSecret,
+            messageAr: Ar.oauthClientSecret));
+      }
       var reportedCode = false;
       for (final i in f.stringIndexes()) {
         final v = f.tokens[i].value ?? '';
@@ -126,8 +139,19 @@ class PendingIntentRule extends Rule {
       for (final m in RegExp(
               r'PendingIntent\.get(?:Activity|Activities|Broadcast|Service|ForegroundService)\s*\(')
           .allMatches(code)) {
-        final args = _parenthesized(code, m.end - 1);
-        if (args == null || args.contains('FLAG_IMMUTABLE')) continue;
+        var args = _parenthesized(code, m.end - 1);
+        if (args == null) continue;
+        // Flags passed in a variable: `val flags = ... FLAG_MUTABLE`.
+        for (final name in RegExp(r'\b([a-z]\w*)\b')
+            .allMatches(args)
+            .map((m) => m[1]!)
+            .toList()) {
+          final decl = RegExp(
+                  '\\b(?:val|var|final|int)\\s+$name\\b[^=\\n]*=([^\\n;]*FLAG_[^\\n;]*)')
+              .firstMatch(code);
+          if (decl != null) args = '$args ${decl[1]}';
+        }
+        if (args!.contains('FLAG_IMMUTABLE')) continue;
         final mutable = args.contains('FLAG_MUTABLE');
         // Before Android 12 (targetSdk 31) a PendingIntent with no flag is
         // mutable.
@@ -161,6 +185,19 @@ class PendingIntentRule extends Rule {
     return false;
   }
 }
+
+/// FileProvider path elements that share far more than intended:
+/// (element, path) for each.
+List<(String, String)> broadProviderPaths(XmlDocument doc) => [
+      for (final e in doc.descendantElements)
+        if (_broadPath(e.name.local, e.getAttribute('path')))
+          (e.name.local, e.getAttribute('path') ?? ''),
+    ];
+
+bool _broadPath(String element, String? path) =>
+    element == 'root-path' ||
+    (const {'external-path', 'files-path'}.contains(element) &&
+        const {'.', '/', ''}.contains(path ?? ''));
 
 class FileProviderPathsRule extends Rule {
   const FileProviderPathsRule();
@@ -205,10 +242,7 @@ class FileProviderPathsRule extends Rule {
           final tag = m[1]!;
           final path =
               RegExp(r'''path\s*=\s*["']([^"']*)["']''').firstMatch(m[0]!)?[1];
-          final broad = tag == 'root-path' ||
-              (const {'external-path', 'files-path'}.contains(tag) &&
-                  const {'.', '/', ''}.contains(path ?? ''));
-          if (!broad) continue;
+          if (!_broadPath(tag, path)) continue;
           out.add(inFile(project.rel(e.path), _lineAt(text, m.start),
               En.fileProvider(element: tag, path: path ?? ''),
               messageAr: Ar.fileProvider(element: tag, path: path ?? '')));
@@ -354,19 +388,70 @@ class PrivacyManifestRule extends Rule {
     final dirs = {
       for (final f in project.iosNativeSources) p.dirname(f.path),
     };
-    final hasManifest = dirs.any((d) =>
-        File(project.abs(p.join(d, 'PrivacyInfo.xcprivacy'))).existsSync());
-    if (hasManifest) return RuleCheck([]);
+    final manifest = dirs
+        .map((d) => File(project.abs(p.join(d, 'PrivacyInfo.xcprivacy'))))
+        .where((f) => f.existsSync())
+        .firstOrNull;
+    final declared = manifest == null ? null : _declaredCategories(manifest);
+    final out = <Finding>[];
+    final reported = <String>{};
     for (final f in project.iosNativeSources) {
       final code = withoutComments(f.text);
-      final m = _requiredReason.firstMatch(code);
-      if (m == null) continue;
-      return RuleCheck([
-        inFile(f.path, _lineAt(code, m.start), En.privacyManifest(api: m[0]!),
-            messageAr: Ar.privacyManifest(api: m[0]!))
-      ]);
+      for (final m in _requiredReason.allMatches(code)) {
+        final api = m[0]!;
+        if (declared == null) {
+          // No manifest: one finding is enough.
+          return RuleCheck([
+            inFile(f.path, _lineAt(code, m.start), En.privacyManifest(api: api),
+                messageAr: Ar.privacyManifest(api: api))
+          ]);
+        }
+        final category = _category(api);
+        if (declared.contains(category) || !reported.add(category)) continue;
+        out.add(inFile(f.path, _lineAt(code, m.start),
+            En.privacyManifestCategory(category: category, api: api),
+            messageAr:
+                Ar.privacyManifestCategory(category: category, api: api)));
+      }
     }
-    return RuleCheck([]);
+    return RuleCheck(out);
+  }
+
+  /// Apple's category for a required-reason API.
+  static String _category(String api) => switch (api) {
+        'UserDefaults' ||
+        'NSUserDefaults' =>
+          'NSPrivacyAccessedAPICategoryUserDefaults',
+        'systemUptime' ||
+        'mach_absolute_time' =>
+          'NSPrivacyAccessedAPICategorySystemBootTime',
+        'activeInputModes' => 'NSPrivacyAccessedAPICategoryActiveKeyboards',
+        _
+            when api.startsWith('volumeAvailableCapacity') ||
+                api.startsWith('NSFileSystem') =>
+          'NSPrivacyAccessedAPICategoryDiskSpace',
+        _ => 'NSPrivacyAccessedAPICategoryFileTimestamp',
+      };
+
+  /// The NSPrivacyAccessedAPIType values a manifest declares; null when the
+  /// file can't be read (then it is not judged).
+  static Set<String>? _declaredCategories(File manifest) {
+    try {
+      final text = manifest.readAsStringSync();
+      return {
+        for (final m
+            in RegExp(r'NSPrivacyAccessedAPICategory\w+').allMatches(text))
+          m[0]!,
+      };
+    } catch (_) {
+      return <String>{
+        'NSPrivacyAccessedAPICategoryUserDefaults',
+        'NSPrivacyAccessedAPICategorySystemBootTime',
+        'NSPrivacyAccessedAPICategoryActiveKeyboards',
+        'NSPrivacyAccessedAPICategoryDiskSpace',
+        'NSPrivacyAccessedAPICategoryFileTimestamp',
+      };
+    }
   }
 }
 
@@ -444,8 +529,36 @@ class DynamicCodeLoadingRule extends Rule {
     // JavaScript evaluated from strings (React Native and web code).
     scan(project.scriptSources, RegExp(r'\beval\s*\(|\bnew\s+Function\s*\('),
         (_, args) => !RegExp(r'''^\s*(['"`])[^'"`]*\1\s*$''').hasMatch(args));
+    _overTheAir(project);
     return RuleCheck(out);
   }
+}
+
+/// Over-the-air code updates replace the app's code outside the store:
+/// listed as evidence for review.
+void _overTheAir(Project project) {
+  String read(String path) {
+    try {
+      final f = File(project.abs(path));
+      return f.existsSync() ? f.readAsStringSync() : '';
+    } catch (_) {
+      return '';
+    }
+  }
+
+  final packageJson = read('package.json');
+  final tools = [
+    if (packageJson.contains('"react-native-code-push"')) 'CodePush',
+    if (packageJson.contains('"expo-updates"')) 'Expo Updates',
+    if (File(project.abs('shorebird.yaml')).existsSync() ||
+        project.usesPackage('shorebird_code_push'))
+      'Shorebird',
+  ];
+  if (tools.isEmpty) return;
+  final list = tools.join(', ');
+  project.securityEvidence.add(SecurityEvidence('AEG-C04', '.',
+      Bilingual(En.otaUpdates(tools: list), Ar.otaUpdates(tools: list)),
+      status: 'facts', data: {'tools': tools}));
 }
 
 const platformIpcRules = <Rule>[
@@ -456,3 +569,127 @@ const platformIpcRules = <Rule>[
   PrivacyManifestRule(),
   DynamicCodeLoadingRule(),
 ];
+
+class FileProviderApkRule extends Rule {
+  const FileProviderApkRule();
+
+  @override
+  RuleMeta get meta => const RuleMeta(
+        id: 'AEG-B16',
+        title: Bilingual(En.fileProviderTitle, Ar.fileProviderTitle),
+        passTitleText: Bilingual(En.fileProviderPass, Ar.fileProviderPass),
+        description:
+            Bilingual(En.fileProviderDescription, Ar.fileProviderDescription),
+        fix: Bilingual(En.fileProviderFix, Ar.fileProviderFix),
+        severity: Severity.medium,
+        masvs: ['MASVS-PLATFORM-1'],
+        maswe: ['MASWE-0018'],
+        cwe: 'CWE-552',
+        profiles: _all,
+      );
+
+  @override
+  RuleCheck check(Project project, ProfileSet profile) {
+    final apk = project.apk;
+    final manifest = apk?.manifest;
+    if (apk == null || manifest == null) return RuleCheck.notApplicable();
+    final out = <Finding>[];
+    final seen = <String>{};
+    for (final meta in manifest.findAllElements('meta-data')) {
+      if (androidAttr(meta, 'name') != 'android.support.FILE_PROVIDER_PATHS') {
+        continue;
+      }
+      final reference = androidAttr(meta, 'resource');
+      if (reference == null) continue;
+      final List<String> paths;
+      try {
+        paths = apk.xmlResourcePaths(reference);
+      } on FormatException {
+        continue;
+      }
+      for (final path in paths) {
+        if (!seen.add(path)) continue;
+        final XmlDocument doc;
+        try {
+          doc = apk.readXmlResource(path);
+        } on FormatException {
+          continue;
+        }
+        for (final (element, value) in broadProviderPaths(doc)) {
+          out.add(inFile('${apk.fileName}!/$path', null,
+              En.fileProvider(element: element, path: value),
+              messageAr: Ar.fileProvider(element: element, path: value)));
+        }
+      }
+    }
+    return RuleCheck(out);
+  }
+}
+
+/// Libraries that load code at run time as part of how they work.
+final _loaderLibraries =
+    RegExp(r'^(?:com\.google\.android\.gms\.|com\.google\.firebase\.|'
+        r'com\.google\.android\.play\.|androidx\.|android\.|kotlin\.|'
+        r'com\.facebook\.soloader\.|io\.flutter\.|com\.android\.)');
+
+class DynamicCodeApkRule extends Rule {
+  const DynamicCodeApkRule();
+
+  @override
+  RuleMeta get meta => const RuleMeta(
+        id: 'AEG-B17',
+        title: Bilingual(En.dynamicCodeTitle, Ar.dynamicCodeTitle),
+        passTitleText: Bilingual(En.dynamicCodePass, Ar.dynamicCodePass),
+        description:
+            Bilingual(En.dynamicCodeDescription, Ar.dynamicCodeDescription),
+        fix: Bilingual(En.dynamicCodeFix, Ar.dynamicCodeFix),
+        severity: Severity.high,
+        masvs: ['MASVS-CODE-4'],
+        maswe: ['MASWE-0049'],
+        cwe: 'CWE-94',
+        profiles: _all,
+      );
+
+  static const _loaders = {
+    'dalvik.system.DexClassLoader',
+    'dalvik.system.InMemoryDexClassLoader',
+  };
+
+  @override
+  RuleCheck check(Project project, ProfileSet profile) {
+    final apk = project.apk;
+    if (apk == null) return RuleCheck.notApplicable();
+    final users = <String, String>{}; // class -> loader
+    for (final e in apk.zip.entries.values) {
+      if (!RegExp(r'(^|/)classes\d*\.dex$').hasMatch(e.name)) continue;
+      if (e.size > 96 * 1024 * 1024) continue;
+      final usage = readDexUsage(apk.zip.readEntry(e), (_) => const {},
+          classLabels: (c) => _loaders.contains(c) ? {c} : const {});
+      usage.users.forEach((cls, loaders) {
+        users.putIfAbsent(cls, () => loaders.first.split('.').last);
+      });
+    }
+    final out = <Finding>[];
+    final libraries = <String>[];
+    for (final e in users.entries) {
+      if (_loaderLibraries.hasMatch(e.key)) {
+        libraries.add(e.key);
+        continue;
+      }
+      out.add(inFile('${apk.fileName}!/classes.dex', null,
+          En.dynamicCodeApk(loader: e.value, owner: e.key),
+          messageAr: Ar.dynamicCodeApk(loader: e.value, owner: e.key)));
+    }
+    if (libraries.isNotEmpty) {
+      final list = (libraries..sort()).take(5).join(', ');
+      project.securityEvidence.add(SecurityEvidence(
+          meta.id,
+          '${apk.fileName}!/classes.dex',
+          Bilingual(En.dynamicCodeLibraries(classes: list),
+              Ar.dynamicCodeLibraries(classes: list)),
+          status: 'facts',
+          data: {'classes': libraries}));
+    }
+    return RuleCheck(out);
+  }
+}

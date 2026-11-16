@@ -5,7 +5,8 @@ import 'dart:typed_data';
 /// method per class whose code loads the class's strings.
 ///
 /// [classes] maps `com.example.Name` to what its code uses: a plain entry is
-/// a string constant, `call:name` invokes a method called `name`. Classes in
+/// a string constant, `call:name` invokes a method called `name`, and
+/// `call:pkg.Class#name` invokes `name` on that class. Classes in
 /// [referenced] are in the type table without a definition.
 Uint8List dexFile(Map<String, List<String>> classes,
     {List<String> referenced = const []}) {
@@ -16,10 +17,16 @@ Uint8List dexFile(Map<String, List<String>> classes,
         if (use.startsWith('call:')) use.substring(5)
   }.toList()
     ..sort();
+  String methodName(String call) => call.split('#').last;
+  final owners = <String>{
+    for (final c in calls)
+      if (c.contains('#')) c.split('#').first
+  };
+  referenced = [...referenced, ...owners.where((o) => !classes.containsKey(o))];
   final strings = <String>{
     ...classes.keys.map(descriptor),
     ...referenced.map(descriptor),
-    ...calls,
+    ...calls.map(methodName),
     for (final uses in classes.values)
       for (final use in uses)
         if (!use.startsWith('call:')) use
@@ -119,7 +126,12 @@ Uint8List dexFile(Map<String, List<String>> classes,
     word(typeIds + 4 * i, strings.indexOf(types[i]));
   }
   for (var i = 0; i < calls.length; i++) {
-    word(methodIds + 8 * i + 4, strings.indexOf(calls[i]));
+    final call = calls[i];
+    if (call.contains('#')) {
+      tables.setUint16(methodIds + 8 * i,
+          types.indexOf(descriptor(call.split('#').first)), Endian.little);
+    }
+    word(methodIds + 8 * i + 4, strings.indexOf(methodName(call)));
   }
   var c = 0;
   for (final name in classes.keys) {
