@@ -5,6 +5,7 @@ import '../l10n/messages.g.dart';
 
 import '../model.dart';
 import '../project.dart';
+import 'native_library_rules.dart';
 import 'rule.dart';
 import 'ipa_hardening_rules.dart';
 
@@ -90,5 +91,6 @@ class IpaBundledSecretsRule extends Rule {
 const ipaRules = <Rule>[
   IpaSignatureRule(),
   IpaBundledSecretsRule(),
-  ...ipaHardeningRules
+  ...ipaHardeningRules,
+  OldNativeLibraryIpaRule(),
 ];

@@ -1425,6 +1425,11 @@ class L10n {
       isArabic ? Ar.keychainOptionsPass : En.keychainOptionsPass;
   String get keychainOptionsTitle =>
       isArabic ? Ar.keychainOptionsTitle : En.keychainOptionsTitle;
+  String libraryVersions(
+          {required Object? artifact, required Object? versions}) =>
+      isArabic
+          ? Ar.libraryVersions(artifact: artifact, versions: versions)
+          : En.libraryVersions(artifact: artifact, versions: versions);
   String get lockPackagesMissing =>
       isArabic ? Ar.lockPackagesMissing : En.lockPackagesMissing;
   String get lockUnreadable => isArabic ? Ar.lockUnreadable : En.lockUnreadable;
@@ -1683,6 +1688,54 @@ class L10n {
       isArabic ? Ar.notificationLeakPass : En.notificationLeakPass;
   String get notificationLeakTitle =>
       isArabic ? Ar.notificationLeakTitle : En.notificationLeakTitle;
+  String oldLibrary(
+          {required Object? advisory,
+          required Object? artifact,
+          required Object? fixed,
+          required Object? library,
+          required Object? version}) =>
+      isArabic
+          ? Ar.oldLibrary(
+              advisory: advisory,
+              artifact: artifact,
+              fixed: fixed,
+              library: library,
+              version: version)
+          : En.oldLibrary(
+              advisory: advisory,
+              artifact: artifact,
+              fixed: fixed,
+              library: library,
+              version: version);
+  String get oldLibraryApkPass =>
+      isArabic ? Ar.oldLibraryApkPass : En.oldLibraryApkPass;
+  String get oldLibraryApkTitle =>
+      isArabic ? Ar.oldLibraryApkTitle : En.oldLibraryApkTitle;
+  String get oldLibraryDescription =>
+      isArabic ? Ar.oldLibraryDescription : En.oldLibraryDescription;
+  String get oldLibraryEncrypted =>
+      isArabic ? Ar.oldLibraryEncrypted : En.oldLibraryEncrypted;
+  String oldLibraryEol(
+          {required Object? artifact,
+          required Object? library,
+          required Object? note,
+          required Object? version}) =>
+      isArabic
+          ? Ar.oldLibraryEol(
+              artifact: artifact,
+              library: library,
+              note: note,
+              version: version)
+          : En.oldLibraryEol(
+              artifact: artifact,
+              library: library,
+              note: note,
+              version: version);
+  String get oldLibraryFix => isArabic ? Ar.oldLibraryFix : En.oldLibraryFix;
+  String get oldLibraryIpaPass =>
+      isArabic ? Ar.oldLibraryIpaPass : En.oldLibraryIpaPass;
+  String get oldLibraryIpaTitle =>
+      isArabic ? Ar.oldLibraryIpaTitle : En.oldLibraryIpaTitle;
   String get osvAdvisoryInvalid =>
       isArabic ? Ar.osvAdvisoryInvalid : En.osvAdvisoryInvalid;
   String get osvBatchInvalid =>
@@ -1694,6 +1747,32 @@ class L10n {
       isArabic ? Ar.osvPackageInvalid : En.osvPackageInvalid;
   String osvStatus({required Object? status}) =>
       isArabic ? Ar.osvStatus(status: status) : En.osvStatus(status: status);
+  String packageDiscontinued({required Object? package}) => isArabic
+      ? Ar.packageDiscontinued(package: package)
+      : En.packageDiscontinued(package: package);
+  String packageDiscontinuedReplaced(
+          {required Object? package, required Object? replacement}) =>
+      isArabic
+          ? Ar.packageDiscontinuedReplaced(
+              package: package, replacement: replacement)
+          : En.packageDiscontinuedReplaced(
+              package: package, replacement: replacement);
+  String get packageHygieneDescription =>
+      isArabic ? Ar.packageHygieneDescription : En.packageHygieneDescription;
+  String get packageHygieneFix =>
+      isArabic ? Ar.packageHygieneFix : En.packageHygieneFix;
+  String get packageHygienePass =>
+      isArabic ? Ar.packageHygienePass : En.packageHygienePass;
+  String get packageHygieneTitle =>
+      isArabic ? Ar.packageHygieneTitle : En.packageHygieneTitle;
+  String packageLookAlike(
+          {required Object? package, required Object? popular}) =>
+      isArabic
+          ? Ar.packageLookAlike(package: package, popular: popular)
+          : En.packageLookAlike(package: package, popular: popular);
+  String packageLookupFailed({required Object? count}) => isArabic
+      ? Ar.packageLookupFailed(count: count)
+      : En.packageLookupFailed(count: count);
   String get passTitlesAndroidAppIsNotDebuggable => isArabic
       ? Ar.passTitlesAndroidAppIsNotDebuggable
       : En.passTitlesAndroidAppIsNotDebuggable;
@@ -2002,6 +2081,7 @@ class L10n {
       ? Ar.platformWeakRuntime(fact: fact)
       : En.platformWeakRuntime(fact: fact);
   String get platformYes => isArabic ? Ar.platformYes : En.platformYes;
+  String get podsNotChecked => isArabic ? Ar.podsNotChecked : En.podsNotChecked;
   String get probeControlDead =>
       isArabic ? Ar.probeControlDead : En.probeControlDead;
   String probeFailed({required Object? reason}) => isArabic
@@ -3991,6 +4071,13 @@ abstract final class En {
       "Use `KeychainAccessibility.first_unlock_this_device` or `unlocked_this_device`, and leave `synchronizable` off for tokens and keys.";
   static const keychainOptionsPass = "Keychain items stay on this device";
   static const keychainOptionsTitle = "Keychain items can leave the device";
+  static String libraryVersions(
+          {required Object? artifact, required Object? versions}) =>
+      "C library versions found in the " +
+      artifact.toString() +
+      ": " +
+      versions.toString() +
+      ".";
   static const lockPackagesMissing =
       "pubspec.lock does not contain a packages map";
   static const lockUnreadable = "Could not read pubspec.lock";
@@ -4182,6 +4269,47 @@ abstract final class En {
       "Keep codes and amounts out of the notification text, or set `visibility: NotificationVisibility.secret` (or `private` with a public version) in `AndroidNotificationDetails`.";
   static const notificationLeakPass = "Notifications don't show sensitive data";
   static const notificationLeakTitle = "Sensitive data shown in notifications";
+  static String oldLibrary(
+          {required Object? advisory,
+          required Object? artifact,
+          required Object? fixed,
+          required Object? library,
+          required Object? version}) =>
+      "" +
+      library.toString() +
+      " " +
+      version.toString() +
+      " is inside the " +
+      artifact.toString() +
+      "; versions before " +
+      fixed.toString() +
+      " have known vulnerabilities (" +
+      advisory.toString() +
+      ").";
+  static const oldLibraryApkPass = "No outdated C libraries found in the APK";
+  static const oldLibraryApkTitle = "Outdated C library inside the APK";
+  static const oldLibraryDescription =
+      "Native libraries compiled into the app (OpenSSL, zlib, libpng, libcurl) carry their own copies of these C libraries. Old copies keep vulnerabilities that were fixed years ago, and no dependency manager reports them.";
+  static const oldLibraryEncrypted =
+      "The IPA's code is encrypted (an App Store download), so library versions cannot be read. Audit the IPA exported from Xcode.";
+  static String oldLibraryEol(
+          {required Object? artifact,
+          required Object? library,
+          required Object? note,
+          required Object? version}) =>
+      "" +
+      library.toString() +
+      " " +
+      version.toString() +
+      " is inside the " +
+      artifact.toString() +
+      ": " +
+      note.toString() +
+      ".";
+  static const oldLibraryFix =
+      "Update the SDK or native library that bundles it to a release built with a supported version, or build it yourself against a current version.";
+  static const oldLibraryIpaPass = "No outdated C libraries found in the IPA";
+  static const oldLibraryIpaTitle = "Outdated C library inside the IPA";
   static const osvAdvisoryInvalid = "Invalid OSV advisory response";
   static const osvBatchInvalid = "Invalid OSV batch response";
   static String osvLookupFailed({required Object? error}) =>
@@ -4189,6 +4317,35 @@ abstract final class En {
   static const osvPackageInvalid = "Invalid OSV package response";
   static String osvStatus({required Object? status}) =>
       "osv.dev returned " + status.toString() + "";
+  static String packageDiscontinued({required Object? package}) =>
+      "" +
+      package.toString() +
+      " is discontinued on pub.dev and gets no more fixes.";
+  static String packageDiscontinuedReplaced(
+          {required Object? package, required Object? replacement}) =>
+      "" +
+      package.toString() +
+      " is discontinued on pub.dev; it is replaced by " +
+      replacement.toString() +
+      ".";
+  static const packageHygieneDescription =
+      "A discontinued package gets no more fixes, including security fixes. A package whose name is one letter away from a popular one may be a typo, or a copy published to catch that typo with code of its own.";
+  static const packageHygieneFix =
+      "Move to the replacement pub.dev names, or to a maintained alternative; check look-alike names against the package you meant before running its code.";
+  static const packageHygienePass =
+      "Dependencies are maintained and named as expected";
+  static const packageHygieneTitle = "Discontinued or look-alike package";
+  static String packageLookAlike(
+          {required Object? package, required Object? popular}) =>
+      "" +
+      package.toString() +
+      " is one letter away from the popular package " +
+      popular.toString() +
+      ". Check that it is the package you meant.";
+  static String packageLookupFailed({required Object? count}) =>
+      "pub.dev did not answer for " +
+      count.toString() +
+      " packages, so they were not checked for discontinuation.";
   static const passTitlesAndroidAppIsNotDebuggable =
       "Android app is not debuggable";
   static const passTitlesApkSdkLevelsAreCurrent = "APK SDK levels are current";
@@ -4443,6 +4600,8 @@ abstract final class En {
       fact.toString() +
       ". This finding is limited to the observed component, not every screen or operation.";
   static const platformYes = "yes";
+  static const podsNotChecked =
+      "CocoaPods pods are not checked for known vulnerabilities: OSV has no CocoaPods data. Pods that are also Swift packages are checked through Package.resolved.";
   static const probeControlDead =
       "The app did not stay alive during the control launch.";
   static String probeFailed({required Object? reason}) =>
@@ -6302,6 +6461,13 @@ abstract final class Ar {
       "استخدم `KeychainAccessibility.first_unlock_this_device` أو `unlocked_this_device`، وسيب `synchronizable` مقفول للـtokens والمفاتيح.";
   static const keychainOptionsPass = "عناصر الـKeychain بتفضل على الجهاز ده";
   static const keychainOptionsTitle = "عناصر الـKeychain ممكن تخرج من الجهاز";
+  static String libraryVersions(
+          {required Object? artifact, required Object? versions}) =>
+      "نسخ مكتبات C اللي اتلقت في الـ" +
+      artifact.toString() +
+      ": " +
+      versions.toString() +
+      ".";
   static const lockPackagesMissing =
       "ملف pubspec.lock لا يحتوي على خريطة packages";
   static const lockUnreadable = "تعذّر قراءة pubspec.lock";
@@ -6488,6 +6654,47 @@ abstract final class Ar {
       "خلّي الأكواد والمبالغ برّه نص الإشعار، أو حط `visibility: NotificationVisibility.secret` (أو `private` مع نسخة public) في `AndroidNotificationDetails`.";
   static const notificationLeakPass = "الإشعارات مش بتعرض بيانات حساسة";
   static const notificationLeakTitle = "بيانات حساسة بتظهر في الإشعارات";
+  static String oldLibrary(
+          {required Object? advisory,
+          required Object? artifact,
+          required Object? fixed,
+          required Object? library,
+          required Object? version}) =>
+      "" +
+      library.toString() +
+      " " +
+      version.toString() +
+      " موجودة جوّه الـ" +
+      artifact.toString() +
+      "، والنسخ اللي قبل " +
+      fixed.toString() +
+      " فيها ثغرات معروفة (" +
+      advisory.toString() +
+      ").";
+  static const oldLibraryApkPass = "مفيش مكتبات C قديمة في الـAPK";
+  static const oldLibraryApkTitle = "مكتبة C قديمة جوّه الـAPK";
+  static const oldLibraryDescription =
+      "المكتبات الـnative اللي داخلة في التطبيق (OpenSSL وzlib وlibpng وlibcurl) بيبقى معاها نسخ خاصة بيها من مكتبات C دي. والنسخ القديمة بتفضل فيها ثغرات اتصلحت من سنين، ومفيش dependency manager بيبلّغ عنها.";
+  static const oldLibraryEncrypted =
+      "كود الـIPA متشفّر (نسخة من الـApp Store)، فمش ممكن نقرا نسخ المكتبات. افحص الـIPA اللي طالع من Xcode.";
+  static String oldLibraryEol(
+          {required Object? artifact,
+          required Object? library,
+          required Object? note,
+          required Object? version}) =>
+      "" +
+      library.toString() +
+      " " +
+      version.toString() +
+      " موجودة جوّه الـ" +
+      artifact.toString() +
+      ": " +
+      note.toString() +
+      ".";
+  static const oldLibraryFix =
+      "حدّث الـSDK أو المكتبة الـnative اللي جايبة النسخة دي لـversion متبنية على نسخة مدعومة، أو ابنيها بنفسك على نسخة حديثة.";
+  static const oldLibraryIpaPass = "مفيش مكتبات C قديمة في الـIPA";
+  static const oldLibraryIpaTitle = "مكتبة C قديمة جوّه الـIPA";
   static const osvAdvisoryInvalid = "استجابة OSV الخاصة بالثغرة غير صالحة";
   static const osvBatchInvalid = "استجابة OSV لمجموعة الاستعلامات غير صالحة";
   static String osvLookupFailed({required Object? error}) =>
@@ -6495,6 +6702,32 @@ abstract final class Ar {
   static const osvPackageInvalid = "استجابة OSV الخاصة بالحزمة غير صالحة";
   static String osvStatus({required Object? status}) =>
       "أعاد osv.dev رمز الاستجابة " + status.toString() + "";
+  static String packageDiscontinued({required Object? package}) =>
+      "" + package.toString() + " متوقفة على pub.dev ومش هتاخد إصلاحات تاني.";
+  static String packageDiscontinuedReplaced(
+          {required Object? package, required Object? replacement}) =>
+      "" +
+      package.toString() +
+      " متوقفة على pub.dev، والبديل بتاعها " +
+      replacement.toString() +
+      ".";
+  static const packageHygieneDescription =
+      "المكتبة المتوقفة مش هتاخد أي إصلاحات تاني، ولا حتى إصلاحات أمنية. والمكتبة اللي اسمها بيفرق حرف واحد عن مكتبة مشهورة ممكن تكون غلطة في الكتابة، أو نسخة متعمّلة مخصوص علشان تصطاد الغلطة دي وفيها كود تاني.";
+  static const packageHygieneFix =
+      "انقل للمكتبة البديلة اللي pub.dev بيقترحها أو لبديل متحدّث، وراجع الأسامي الشبيهة مع المكتبة اللي كنت تقصدها قبل ما تشغّل الكود بتاعها.";
+  static const packageHygienePass = "الـdependencies متحدّثة وأساميها سليمة";
+  static const packageHygieneTitle = "مكتبة متوقفة أو اسمها شبه مكتبة مشهورة";
+  static String packageLookAlike(
+          {required Object? package, required Object? popular}) =>
+      "اسم " +
+      package.toString() +
+      " بيفرق حرف واحد عن المكتبة المشهورة " +
+      popular.toString() +
+      ". اتأكد إنها المكتبة اللي تقصدها.";
+  static String packageLookupFailed({required Object? count}) =>
+      "pub.dev ماردّش على " +
+      count.toString() +
+      " مكتبات، فمااتفحصوش إذا كانوا متوقفين.";
   static const passTitlesAndroidAppIsNotDebuggable =
       "التطبيق مش قابل للـ debugging على Android";
   static const passTitlesApkSdkLevelsAreCurrent =
@@ -6744,6 +6977,8 @@ abstract final class Ar {
       fact.toString() +
       ". تقتصر الملاحظة على المكوّن المرصود، ولا تشمل كل الشاشات أو العمليات.";
   static const platformYes = "نعم";
+  static const podsNotChecked =
+      "الـpods بتاعة CocoaPods مش بتتفحص للثغرات المعروفة، لأن OSV مفيهوش بيانات CocoaPods. الـpods اللي ليها Swift package بتتفحص عن طريق Package.resolved.";
   static const probeControlDead = "التطبيق مكملش تشغيل أثناء التجربة المرجعية.";
   static String probeFailed({required Object? reason}) =>
       "تعذّر تشغيل الفحص: " + reason.toString() + "";

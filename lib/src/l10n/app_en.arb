@@ -5064,5 +5064,146 @@
         "type": "String"
       }
     }
+  },
+  "podsNotChecked": "CocoaPods pods are not checked for known vulnerabilities: OSV has no CocoaPods data. Pods that are also Swift packages are checked through Package.resolved.",
+  "@podsNotChecked": {
+    "description": "rules/dependency_rules.dart: AEG-C01 CocoaPods note."
+  },
+  "oldLibraryApkTitle": "Outdated C library inside the APK",
+  "@oldLibraryApkTitle": {
+    "description": "rules/native_library_rules.dart: old C libraries."
+  },
+  "oldLibraryApkPass": "No outdated C libraries found in the APK",
+  "@oldLibraryApkPass": {
+    "description": "rules/native_library_rules.dart: old C libraries."
+  },
+  "oldLibraryIpaTitle": "Outdated C library inside the IPA",
+  "@oldLibraryIpaTitle": {
+    "description": "rules/native_library_rules.dart: old C libraries."
+  },
+  "oldLibraryIpaPass": "No outdated C libraries found in the IPA",
+  "@oldLibraryIpaPass": {
+    "description": "rules/native_library_rules.dart: old C libraries."
+  },
+  "oldLibraryDescription": "Native libraries compiled into the app (OpenSSL, zlib, libpng, libcurl) carry their own copies of these C libraries. Old copies keep vulnerabilities that were fixed years ago, and no dependency manager reports them.",
+  "@oldLibraryDescription": {
+    "description": "rules/native_library_rules.dart: old C libraries."
+  },
+  "oldLibraryFix": "Update the SDK or native library that bundles it to a release built with a supported version, or build it yourself against a current version.",
+  "@oldLibraryFix": {
+    "description": "rules/native_library_rules.dart: old C libraries."
+  },
+  "oldLibrary": "{library} {version} is inside the {artifact}; versions before {fixed} have known vulnerabilities ({advisory}).",
+  "@oldLibrary": {
+    "description": "rules/native_library_rules.dart: old C libraries.",
+    "placeholders": {
+      "library": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      },
+      "artifact": {
+        "type": "String"
+      },
+      "fixed": {
+        "type": "String"
+      },
+      "advisory": {
+        "type": "String"
+      }
+    }
+  },
+  "oldLibraryEol": "{library} {version} is inside the {artifact}: {note}.",
+  "@oldLibraryEol": {
+    "description": "rules/native_library_rules.dart: old C libraries.",
+    "placeholders": {
+      "library": {
+        "type": "String"
+      },
+      "version": {
+        "type": "String"
+      },
+      "artifact": {
+        "type": "String"
+      },
+      "note": {
+        "type": "String"
+      }
+    }
+  },
+  "libraryVersions": "C library versions found in the {artifact}: {versions}.",
+  "@libraryVersions": {
+    "description": "rules/native_library_rules.dart: old C libraries.",
+    "placeholders": {
+      "artifact": {
+        "type": "String"
+      },
+      "versions": {
+        "type": "String"
+      }
+    }
+  },
+  "oldLibraryEncrypted": "The IPA's code is encrypted (an App Store download), so library versions cannot be read. Audit the IPA exported from Xcode.",
+  "@oldLibraryEncrypted": {
+    "description": "rules/native_library_rules.dart: old C libraries."
+  },
+  "packageHygieneTitle": "Discontinued or look-alike package",
+  "@packageHygieneTitle": {
+    "description": "rules/package_hygiene_rules.dart: AEG-C03."
+  },
+  "packageHygienePass": "Dependencies are maintained and named as expected",
+  "@packageHygienePass": {
+    "description": "rules/package_hygiene_rules.dart: AEG-C03."
+  },
+  "packageHygieneDescription": "A discontinued package gets no more fixes, including security fixes. A package whose name is one letter away from a popular one may be a typo, or a copy published to catch that typo with code of its own.",
+  "@packageHygieneDescription": {
+    "description": "rules/package_hygiene_rules.dart: AEG-C03."
+  },
+  "packageHygieneFix": "Move to the replacement pub.dev names, or to a maintained alternative; check look-alike names against the package you meant before running its code.",
+  "@packageHygieneFix": {
+    "description": "rules/package_hygiene_rules.dart: AEG-C03."
+  },
+  "packageDiscontinued": "{package} is discontinued on pub.dev and gets no more fixes.",
+  "@packageDiscontinued": {
+    "description": "rules/package_hygiene_rules.dart: AEG-C03.",
+    "placeholders": {
+      "package": {
+        "type": "String"
+      }
+    }
+  },
+  "packageDiscontinuedReplaced": "{package} is discontinued on pub.dev; it is replaced by {replacement}.",
+  "@packageDiscontinuedReplaced": {
+    "description": "rules/package_hygiene_rules.dart: AEG-C03.",
+    "placeholders": {
+      "package": {
+        "type": "String"
+      },
+      "replacement": {
+        "type": "String"
+      }
+    }
+  },
+  "packageLookAlike": "{package} is one letter away from the popular package {popular}. Check that it is the package you meant.",
+  "@packageLookAlike": {
+    "description": "rules/package_hygiene_rules.dart: AEG-C03.",
+    "placeholders": {
+      "package": {
+        "type": "String"
+      },
+      "popular": {
+        "type": "String"
+      }
+    }
+  },
+  "packageLookupFailed": "pub.dev did not answer for {count} packages, so they were not checked for discontinuation.",
+  "@packageLookupFailed": {
+    "description": "rules/package_hygiene_rules.dart: AEG-C03.",
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
   }
 }

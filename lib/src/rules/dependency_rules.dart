@@ -6,8 +6,13 @@ import '../l10n/messages.g.dart';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:path/path.dart' as p;
+
 import '../model.dart';
 import '../project.dart';
+import '../project/native_dependencies.dart';
+import '../project/package_roots.dart';
+import '../security/evidence.dart';
 import 'rule.dart';
 
 const _all = {MasProfile.l1, MasProfile.l2, MasProfile.r};
@@ -38,28 +43,37 @@ class VulnerableDependencyRule extends Rule {
       return RuleCheck.notApplicable('Skipped (--offline)');
     }
     final lockIssue = project.lockIssue;
-    if (lockIssue != null) {
-      return RuleCheck.incompleteLocalized(lockIssue, project.lockIssueAr);
-    }
-    final pkgs = project.locked.values
-        .where((p) => p.source == 'hosted' && p.version.isNotEmpty)
-        .toList();
-    if (pkgs.isEmpty) {
+    final pub = lockIssue != null
+        ? const <LockedPackage>[]
+        : project.locked.values
+            .where((p) => p.source == 'hosted' && p.version.isNotEmpty)
+            .toList();
+    final native = await _nativeDependencies(project);
+    if (pub.isEmpty && native.isEmpty) {
+      if (lockIssue != null) {
+        return RuleCheck.incompleteLocalized(lockIssue, project.lockIssueAr);
+      }
       return RuleCheck.notApplicable('No locked hosted dependencies');
     }
+    // (ecosystem, name, version, file); Pub first, as before.
+    final queries = [
+      for (final p in pub) ('Pub', p.name, p.version, 'pubspec.lock'),
+      for (final d in native) (d.ecosystem, d.name, d.version, d.file),
+    ];
 
     final client = HttpClient()
       ..connectionTimeout = const Duration(seconds: 10);
     final out = <Finding>[];
     try {
-      for (var i = 0; i < pkgs.length; i += 500) {
-        final batch = pkgs.sublist(i, (i + 500).clamp(0, pkgs.length).toInt());
+      for (var i = 0; i < queries.length; i += 500) {
+        final batch =
+            queries.sublist(i, (i + 500).clamp(0, queries.length).toInt());
         final body = jsonEncode({
           'queries': [
-            for (final p in batch)
+            for (final q in batch)
               {
-                'package': {'name': p.name, 'ecosystem': 'Pub'},
-                'version': p.version,
+                'package': {'name': q.$2, 'ecosystem': q.$1},
+                'version': q.$3,
               }
           ]
         });
@@ -101,10 +115,12 @@ class VulnerableDependencyRule extends Rule {
             return RuleCheck.incompleteLocalized(
                 En.osvAdvisoryInvalid, Ar.osvAdvisoryInvalid, out);
           }
-          final p = batch[k];
-          out.add(inFile('pubspec.lock', null,
-              '${p.name} ${p.version}: ${ids.join(', ')} (https://osv.dev/vulnerability/${ids.first})',
-              messageAr: '${p.name} ${p.version} عليها: ${ids.join(', ')}'));
+          final (ecosystem, name, version, file) = batch[k];
+          // Pub keeps its original message, so existing baselines match.
+          final label = ecosystem == 'Pub' ? name : '$ecosystem $name';
+          out.add(inFile(file, null,
+              '$label $version: ${ids.join(', ')} (https://osv.dev/vulnerability/${ids.first})',
+              messageAr: '$label $version عليها: ${ids.join(', ')}'));
         }
       }
     } on Object catch (e) {
@@ -113,7 +129,50 @@ class VulnerableDependencyRule extends Rule {
     } finally {
       client.close(force: true);
     }
+    _notChecked(project);
+    if (lockIssue != null) {
+      return RuleCheck.incompleteLocalized(lockIssue, project.lockIssueAr, out);
+    }
     return RuleCheck(out);
+  }
+
+  /// Maven, npm and Swift Package Manager versions of the app and of the
+  /// Android code of its Flutter plugins.
+  static Future<List<NativeDependency>> _nativeDependencies(
+      Project project) async {
+    final files = dependencyFiles(project.root)
+        .where((f) => !project.config.isExcluded(f.$1))
+        .toList();
+    if (project.locked.isNotEmpty) {
+      final roots = await resolvePackageRoots(
+          project.root, project.locked.keys.toSet(),
+          pubGet: project.pubGet, offline: project.offline);
+      for (final e in roots.roots.entries) {
+        for (final name in const ['build.gradle', 'build.gradle.kts']) {
+          final f = File(p.join(e.value, 'android', name));
+          if (!f.existsSync()) continue;
+          try {
+            files.add(('package:${e.key}/android/$name', f.readAsStringSync()));
+          } catch (_) {}
+        }
+      }
+    }
+    return parseNativeDependencies(files);
+  }
+
+  /// CocoaPods has no OSV data: say so instead of passing silently.
+  void _notChecked(Project project) {
+    for (final path in const [
+      'ios/Podfile.lock',
+      'Podfile.lock',
+      'macos/Podfile.lock'
+    ]) {
+      if (!File(project.abs(path)).existsSync()) continue;
+      project.securityEvidence.add(SecurityEvidence(
+          meta.id, path, const Bilingual(En.podsNotChecked, Ar.podsNotChecked),
+          status: 'facts', data: const {'ecosystem': 'CocoaPods'}));
+      return;
+    }
   }
 }
 
