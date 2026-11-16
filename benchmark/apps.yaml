@@ -163,3 +163,40 @@ apps:
       - {rule: AEG-B04, why: exported components}
       - {rule: AEG-B06, why: AWS key in the dex}
       - {rule: AEG-B09, why: signed with the debug certificate}
+
+  # Well-kept public apps: they catch false positives. `clean: true` makes
+  # every failing rule that isn't under `allowed` a problem; each allowed
+  # rule says why the finding is real or acceptable there.
+  nowinandroid:
+    # Google's reference Android app (Kotlin, Compose).
+    repo: android/nowinandroid
+    commit: 2982e63cb691ad49cd009aab43dc206fee6699c2
+    clean: true
+    allowed:
+      - {rule: AEG-A02, why: the app and catalog set allowBackup="true" with no backup rules}
+      - {rule: AEG-A11, why: the https deep link has no autoVerify}
+  localsend:
+    # Flutter app for sharing files on the local network.
+    repo: localsend/localsend
+    commit: 2e7ef1972b0b4e210608ec77ef5fad334f798f7e
+    path: app
+    clean: true
+    allowed:
+      - {rule: AEG-A02, why: allowBackup not set in the app manifest}
+      - {rule: AEG-A03, why: usesCleartextTraffic for the HTTP fallback on the local network}
+      - {rule: AEG-C02, why: three packages in dependency_overrides}
+      - {rule: AEG-D04, why: the receive PIN is kept in SharedPreferences}
+      - {rule: AEG-D08, why: the transfer session id is logged}
+      - {rule: AEG-I04, why: file sharing is the app's purpose (UIFileSharingEnabled)}
+  icecubes:
+    # SwiftUI Mastodon client.
+    repo: Dimillian/IceCubesApp
+    commit: 98098b9c4b5928f89f338203193c2bf40ab7f38c
+    clean: true
+    allowed:
+      - {rule: AEG-I14, why: uses UserDefaults and the repository has no PrivacyInfo.xcprivacy}
+  bluesky:
+    # Bluesky's React Native / Expo app.
+    repo: bluesky-social/social-app
+    commit: 3b4dce26a28db763e27650f2ef1cbdc8a09b86aa
+    clean: true

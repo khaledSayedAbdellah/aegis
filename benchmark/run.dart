@@ -49,6 +49,11 @@ class App {
         apk = m['apk'] as String?,
         ipa = m['ipa'] as String?,
         units = m['units'] as String?,
+        clean = m['clean'] == true,
+        allowed = {
+          for (final e in (m['allowed'] ?? const []) as List)
+            (e as Map)['rule'] as String: (e['why'] ?? '') as String
+        },
         expected = {
           for (final e in (m['expected'] ?? const []) as List)
             (e as Map)['rule'] as String: (e['why'] ?? '') as String
@@ -75,6 +80,11 @@ class App {
   /// A glob of folders that each hold one planted weakness (MASTG demos):
   /// the run lists the ones without any finding.
   final String? units;
+
+  /// A well-kept app: every rule that fails must be listed in [allowed],
+  /// so a new false positive fails the benchmark.
+  final bool clean;
+  final Map<String, String> allowed;
   final Map<String, String> expected;
 
   String get dir =>
@@ -195,6 +205,18 @@ Future<void> main(List<String> argv) async {
     }
     for (final id in gained) {
       stdout.writeln('  new      $id  (${failed[id]} findings; review it)');
+    }
+    if (app.clean) {
+      for (final id in failed.keys) {
+        if (app.allowed.containsKey(id) || app.expected.containsKey(id)) continue;
+        stdout.writeln('  unexpected  $id  (${failed[id]} findings in a clean app)');
+        for (final r in report.failed.where((r) => r.meta.id == id)) {
+          for (final f in r.findings.take(3)) {
+            stdout.writeln('      ${f.location}  ${f.message}');
+          }
+        }
+        problems.add('${app.name}: unexpected $id');
+      }
     }
     results[app.name] = {
       'commit': app.commit,

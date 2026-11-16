@@ -76,11 +76,11 @@ FirebaseRules readFirebaseRules(Project project) {
   final paths = <String, String>{}; // relative path -> service
   void add(Object? rules, String service, String base) {
     if (rules is! String || rules.isEmpty) return;
-    paths[p.normalize(p.join(base, rules))] = service;
+    paths[p.posix.normalize(p.posix.join(base, rules))] = service;
   }
 
   for (final config in _find(project.root, {'firebase.json'})) {
-    final base = p.dirname(project.rel(config.path));
+    final base = p.posix.dirname(project.rel(config.path));
     Object? json;
     try {
       json = jsonDecode(config.readAsStringSync());

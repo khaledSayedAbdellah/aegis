@@ -115,7 +115,10 @@ class NativeSourceRule extends Rule {
                 .allMatches(literal.value)
                 .map((m) => m[1] ?? m[2]!));
           }
-          final sensitive = names.where(isSecretName).toList();
+          final sensitive = names
+              .where(isSecretName)
+              .where((n) => !_usedAsFlag(scan.code, n))
+              .toList();
           if (sensitive.isNotEmpty) {
             out.add(inFile(file.path, lineAt(file.text, match.start),
                 En.nativeLogFound(names: sensitive.join(', ')),
@@ -130,4 +133,13 @@ class NativeSourceRule extends Rule {
     }
     return RuleCheck(out);
   }
+}
+
+/// Whether [code] uses [name] as a yes/no flag (`pin ? 'pin' : 'save'`,
+/// `if (!pin)`, `pin: boolean`): then it holds no secret.
+bool _usedAsFlag(String code, String name) {
+  final n = RegExp.escape(name);
+  return RegExp('\\b$n\\s*\\?(?![.?\\[])|!$n\\b|\\bif\\s*\\(\\s*!?$n\\s*\\)|'
+          '\\b$n\\s*\\??:\\s*(?:boolean|Bool|Boolean|bool)\\b|\\b$n\\s*(?:&&|\\|\\|)')
+      .hasMatch(code);
 }

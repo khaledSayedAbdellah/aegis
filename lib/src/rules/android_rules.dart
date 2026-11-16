@@ -71,9 +71,9 @@ class DebuggableRule extends Rule {
               Ar.androidRulesAndroidDebuggableTrueIsSetInTheMainManifest));
     }
     // `src/release/AndroidManifest.xml` is merged into release builds only.
-    if (p.basename(p.dirname(m.path)) == 'main') {
-      final rel = p.join(
-          p.dirname(p.dirname(m.path)), 'release', 'AndroidManifest.xml');
+    if (p.posix.basename(p.posix.dirname(m.path)) == 'main') {
+      final rel = p.posix.join(p.posix.dirname(p.posix.dirname(m.path)),
+          'release', 'AndroidManifest.xml');
       final file = File(p.join(project.root, rel));
       if (file.existsSync()) {
         final text = file.readAsStringSync();
@@ -148,6 +148,13 @@ class AllowBackupRule extends Rule {
             En.androidRulesAndroidAllowbackupTrueWithoutBackupRules,
             messageAr: Ar.androidRulesAndroidAllowbackupTrueWithoutBackupRules)
       ]);
+    }
+    // A library module's manifest that says nothing decides nothing: the
+    // app module's manifest sets backup for the merged app.
+    final gradle = project.appGradle?.text ?? '';
+    if (RegExp(r'android[.\-]library|com\.android\.library').hasMatch(gradle) &&
+        !RegExp(r'android[.\-]application').hasMatch(gradle)) {
+      return RuleCheck.notApplicable();
     }
     return RuleCheck([
       inFile(m.path, lineOfFirst(m.text, '<application'),

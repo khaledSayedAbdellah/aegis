@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:aegis/aegis.dart';
 import 'package:aegis/src/probe/ios_simulator_build.dart';
 import 'package:aegis/src/probe/ios_target.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 import 'ipa_test.dart' show fixture, executable;
 
@@ -60,8 +61,16 @@ void main() {
     addTearDown(() => root.deleteSync(recursive: true));
     Directory('${root.path}/Probe.xcodeproj').createSync();
     ipa = IpaContext.load(fixture(root).path);
-    product =
-        '${root.path}/.dart_tool/aegis/native-ios/DerivedData/Build/Products/Release-iphonesimulator/Probe.app';
+    product = p.join(
+        root.path,
+        '.dart_tool',
+        'aegis',
+        'native-ios',
+        'DerivedData',
+        'Build',
+        'Products',
+        'Release-iphonesimulator',
+        'Probe.app');
     builds = 0;
     lastBuild = [];
     failBuild = false;
@@ -101,7 +110,7 @@ void main() {
     expect(builds, 0);
     await builder.ensure(ipa, project: root.path, xcodeScheme: 'Probe');
     expect(lastBuild,
-        containsAll(['-workspace', '${root.path}/Probe.xcworkspace']));
+        containsAll(['-workspace', p.join(root.path, 'Probe.xcworkspace')]));
   });
   test('failed or mismatched builds cannot authorize reuse', () async {
     final builder = IosSimulatorBuilder(command: command);
@@ -127,7 +136,7 @@ void main() {
         .copyWith(lang: 'ar');
     final selected = resolveIosProbeSelection(
         config: config, project: root.path, target: IosTarget.simulator);
-    expect(selected.xcodeProject, '${root.path}/App.xcworkspace');
+    expect(selected.xcodeProject, p.join(root.path, 'App.xcworkspace'));
     expect(selected.xcodeScheme, 'App Release');
     expect(selected.xcodeConfiguration, 'Release-CI');
     expect(

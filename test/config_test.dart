@@ -48,7 +48,8 @@ ios_simulator_target: lib/main_prod.dart
     test('resolve makes a relative path absolute against the project', () {
       expect(AegisConfig.resolve('/proj', 'build/a.apk'),
           p.normalize('/proj/build/a.apk'));
-      expect(AegisConfig.resolve('/proj', '/abs/a.apk'), '/abs/a.apk');
+      expect(AegisConfig.resolve('/proj', '/abs/a.apk'),
+          p.normalize('/abs/a.apk'));
       expect(AegisConfig.resolve('/proj', null), isNull);
     });
 

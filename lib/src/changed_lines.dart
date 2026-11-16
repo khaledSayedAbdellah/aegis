@@ -1,6 +1,7 @@
 /// The lines changed since a git ref, for `--changed-since`.
 library;
 
+import 'dart:convert';
 import 'dart:io';
 
 /// Lines changed in each file, relative to the project root. A file mapped
@@ -34,8 +35,10 @@ class ChangedLines {
     }
     // core.quotePath=false: names outside ASCII come back as they are, not
     // as "\330\265..." escapes.
+    // git writes UTF-8 whatever the system code page (Windows).
     ProcessResult git(List<String> args) => Process.runSync(
-        'git', ['-C', root, '-c', 'core.quotePath=false', ...args]);
+        'git', ['-C', root, '-c', 'core.quotePath=false', ...args],
+        stdoutEncoding: utf8, stderrEncoding: utf8);
     final verify = git(['rev-parse', '--verify', '--quiet', '$ref^{commit}']);
     if (verify.exitCode != 0) {
       throw FormatException(

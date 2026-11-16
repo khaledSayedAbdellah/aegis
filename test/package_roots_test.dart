@@ -78,7 +78,7 @@ packages:
   local_pkg:
     dependency: "direct main"
     description:
-      path: "${p.join(cache.parent.path, 'local_pkg')}"
+      path: "${p.join(cache.parent.path, 'local_pkg').replaceAll(r'\', r'\\')}"
       relative: false
     source: path
     version: "0.0.1"

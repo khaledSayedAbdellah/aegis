@@ -365,8 +365,11 @@ class V1OnlySignatureRule extends Rule {
 final _requiredReason = RegExp(
     r'\b(?:UserDefaults|NSUserDefaults|systemUptime|mach_absolute_time|'
     r'volumeAvailableCapacity\w*|NSFileSystemFreeSize|NSFileSystemSize|'
-    r'creationDate|modificationDate|NSFileCreationDate|NSFileModificationDate|'
-    r'contentModificationDateKey|creationDateKey|activeInputModes)\b');
+    // File timestamps through the file APIs, not any `creationDate`
+    // property (a SwiftData model's, a photo's).
+    r'FileAttributeKey\.(?:creationDate|modificationDate)|fileCreationDate|fileModificationDate|'
+    r'NSFileCreationDate|NSFileModificationDate|'
+    r'contentModificationDateKey|creationDateKey|attributeModificationDateKey|activeInputModes)\b');
 
 class PrivacyManifestRule extends Rule {
   const PrivacyManifestRule();
@@ -418,12 +421,26 @@ class PrivacyManifestRule extends Rule {
         .map((d) => File(project.abs(p.join(d, 'PrivacyInfo.xcprivacy'))))
         .where((f) => f.existsSync())
         .firstOrNull;
-    final declared = manifest == null ? null : _declaredCategories(manifest);
+    // Expo writes the manifest at prebuild from `ios.privacyManifests` in
+    // app.json / app.config.js, so the ios folder may not hold one.
+    final expo = const ['app.json', 'app.config.js', 'app.config.ts']
+        .map((n) => File(project.abs(n)))
+        .where((f) =>
+            f.existsSync() && f.readAsStringSync().contains('privacyManifests'))
+        .firstOrNull;
+    final declared = manifest != null
+        ? _declaredCategories(manifest)
+        : expo != null
+            ? _declaredCategories(expo)
+            : null;
     final out = <Finding>[];
     final reported = <String>{};
     for (final f in project.iosNativeSources) {
       // Headers declare APIs; the .m / .swift files are where they are used.
       if (f.path.endsWith('.h')) continue;
+      // Apple asks for the manifest on iOS, iPadOS, tvOS, visionOS and
+      // watchOS, not for macOS apps.
+      if (RegExp(r'(?:^|/)macos/').hasMatch(f.path)) continue;
       final code = withoutComments(f.text);
       for (final m in _requiredReason.allMatches(code)) {
         final api = m[0]!;

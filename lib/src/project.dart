@@ -228,7 +228,7 @@ class Project {
             : XmlDocument.parse(context.androidManifest!.text);
       } catch (_) {/* The configuration rules report unreadable XML. */}
       final sourceSet = p.dirname(manifest);
-      context.androidResourceDir = p.join(sourceSet, 'res');
+      context.androidResourceDir = p.posix.join(sourceSet, 'res');
       // Standard Gradle module/src/<source-set>/AndroidManifest.xml layout.
       final module = p.basename(p.dirname(sourceSet)) == 'src'
           ? p.dirname(p.dirname(sourceSet))
@@ -386,7 +386,10 @@ class Project {
     }
   }
 
-  ProjectFile? _readNative(String relative) {
+  ProjectFile? _readNative(String path) {
+    // Relative paths always use `/`: excludes, findings and baselines must
+    // match on Windows too, where p.join gives `\`.
+    final relative = path.replaceAll('\\', '/');
     if (_nativeReadCache.containsKey(relative)) {
       return _nativeReadCache[relative];
     }

@@ -227,5 +227,37 @@
       "AEG-B09": 1,
       "AEG-B11": 2
     }
+  },
+  "nowinandroid": {
+    "commit": "2982e63cb691ad49cd009aab43dc206fee6699c2",
+    "score": 84,
+    "failed": {
+      "AEG-A02": 2,
+      "AEG-A11": 1
+    }
+  },
+  "localsend": {
+    "commit": "2e7ef1972b0b4e210608ec77ef5fad334f798f7e",
+    "score": 52,
+    "failed": {
+      "AEG-A02": 1,
+      "AEG-A03": 1,
+      "AEG-C02": 3,
+      "AEG-D04": 1,
+      "AEG-D08": 1,
+      "AEG-I04": 2
+    }
+  },
+  "icecubes": {
+    "commit": "98098b9c4b5928f89f338203193c2bf40ab7f38c",
+    "score": 99,
+    "failed": {
+      "AEG-I14": 1
+    }
+  },
+  "bluesky": {
+    "commit": "3b4dce26a28db763e27650f2ef1cbdc8a09b86aa",
+    "score": 100,
+    "failed": {}
   }
 }

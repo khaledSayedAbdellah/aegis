@@ -13,7 +13,9 @@ void main() {
   });
 
   test('doc/maswe-coverage.md is up to date', () {
-    expect(File(coverage.output).readAsStringSync(), coverage.generate(),
+    // A Windows checkout may turn the file's line ends into CRLF.
+    expect(File(coverage.output).readAsStringSync().replaceAll('\r\n', '\n'),
+        coverage.generate(),
         reason: 'Run: dart run tool/maswe_coverage.dart');
   });
 

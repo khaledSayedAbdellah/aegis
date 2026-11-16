@@ -2,7 +2,10 @@
 /// getting wrong, written as small fixtures.
 library;
 
+import 'dart:io';
+
 import 'package:aegis/aegis.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'rules_test.dart' show audit, result;
@@ -264,5 +267,78 @@ func find(name: String, id: Int32) {
 ''',
         }),
         ['ios/Runner/Store.swift:3', 'ios/Runner/Store.swift:4']);
+  });
+
+  group('false positives found in well-kept apps', () {
+    test('AEG-I14: model properties, the macOS target and Expo manifests',
+        () async {
+      expect(
+          await found('AEG-I14', {
+            'ios/Runner/AppView.swift': r'''
+@Query(sort: \LocalTimeline.creationDate, order: .reverse) var timelines: [LocalTimeline]
+''',
+            'macos/Runner/AppDelegate.swift': 'let d = UserDefaults.standard\n',
+          }),
+          isEmpty);
+      expect(
+          await found('AEG-I14', {
+            'ios/Runner/Files.swift':
+                'let a = try FileManager.default.attributesOfItem(atPath: p)[.creationDate]\n'
+                    'let d = a[FileAttributeKey.creationDate]\n',
+          }),
+          ['ios/Runner/Files.swift:2']);
+      expect(
+          await found('AEG-I14', {
+            'package.json': '{"dependencies": {"expo": "52.0.0"}}',
+            'app.config.js': '''
+module.exports = {ios: {privacyManifests: {NSPrivacyAccessedAPITypes: [
+  {NSPrivacyAccessedAPIType: 'NSPrivacyAccessedAPICategoryUserDefaults'}]}}}
+''',
+            'ios/Clip/ViewController.swift': 'let d = UserDefaults.standard\n',
+          }),
+          isEmpty);
+    });
+
+    test('AEG-A02: a library module that does not set backup', () async {
+      final dir = Directory.systemTemp.createTempSync('aegis_lib_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      ({
+        'settings.gradle.kts': 'include(":app", ":core")\n',
+        'app/build.gradle.kts': 'plugins { id("com.android.application") }\n',
+        'app/src/main/AndroidManifest.xml': '''
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application android:allowBackup="false"/>
+</manifest>
+''',
+        'core/build.gradle.kts':
+            'plugins { alias(libs.plugins.nowinandroid.android.library) }\n',
+        'core/src/main/AndroidManifest.xml': '''
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application/>
+</manifest>
+''',
+      }).forEach((path, text) {
+        final f = File(p.join(dir.path, path));
+        f.parent.createSync(recursive: true);
+        f.writeAsStringSync(text);
+      });
+      final r = await runAudit(dir.path, offline: true);
+      expect(result(r, 'AEG-A02').findings, isEmpty);
+    });
+
+    test('AEG-N09: a flag named like a secret is not logged data', () async {
+      expect(
+          await found('AEG-N09', {
+            'package.json': '{"dependencies": {"react-native": "0.76.0"}}',
+            'src/FeedCard.tsx': '''
+export function update(pin: boolean, token: string) {
+  const label = pin ? 'pin' : 'save'
+  logger.error('failed to update feeds', {pin})
+  console.log(`token: \${token}`)
+}
+''',
+          }),
+          ['src/FeedCard.tsx:4']);
+    });
   });
 }

@@ -20,6 +20,10 @@ dart run benchmark/run.dart --update        # save results.json
   listed as `new` to review.
 - For the OWASP MASTG demos it also counts how many demo folders get at least
   one finding and lists the rest with their titles.
+- Well-kept public apps (`clean: true`) catch false positives: every rule
+  that fails on them must be listed under `allowed`, with why the finding is
+  real or acceptable there.
+- Every report format is rendered for every app, in English and Arabic.
 
 The run exits with code 1 when an expected rule is missed or a regression
 shows up.
