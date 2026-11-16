@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ ubuntu-latest, macos-latest ]
+        os: [ ubuntu-latest, macos-latest, windows-latest ]
     steps:
       - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1
@@ -24,7 +24,9 @@ jobs:
       - run: dart pub get
       - run: dart analyze
       - run: dart test
-      - run: PYTHONDONTWRITEBYTECODE=1 python3 test/runtime_driver_test.py -v
+      # The runtime driver drives Unix tools (adb, frida) from a POSIX shell.
+      - if: runner.os != 'Windows'
+        run: PYTHONDONTWRITEBYTECODE=1 python3 test/runtime_driver_test.py -v
 
   # pubspec.yaml promises every Dart 3 SDK: keep the lowest one working.
   min-sdk:
