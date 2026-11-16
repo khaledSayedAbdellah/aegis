@@ -23,8 +23,11 @@ jobs:
           sdk: stable
       - run: dart pub get
       - run: dart analyze
-      # The github reporter turns each failing test into an annotation.
-      - run: dart test --reporter github
+      - run: dart test --file-reporter json:test-results.json
+      # Failing tests as annotations and a job summary (readable without
+      # opening the log).
+      - if: failure()
+        run: dart run tool/ci_test_failures.dart test-results.json
       # The runtime driver drives Unix tools (adb, frida) from a POSIX shell.
       - if: runner.os != 'Windows'
         run: PYTHONDONTWRITEBYTECODE=1 python3 test/runtime_driver_test.py -v
