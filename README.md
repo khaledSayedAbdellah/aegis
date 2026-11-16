@@ -18,7 +18,7 @@ Most scanners ask *"do you have RASP?"*. aegis also asks *"is it started, config
 `aegis run` writes this report as HTML and PDF next to the terminal output:
 
 ```text
-🛡  Aegis security audit  ·  aegis 0.17.0
+🛡  Aegis security audit  ·  aegis 0.17.1
 ────────────────────────────────────────────────────────────────
 Project: my_bank
 MAS profile: L2+R
@@ -102,7 +102,7 @@ Other sources, when you need them:
 
 ```bash
 # A specific released version
-dart pub global activate aegis 0.17.0
+dart pub global activate aegis 0.17.1
 
 # Your local clone: every change in the clone is used right away, no reinstall
 dart pub global activate --source path ~/path/to/aegis
@@ -690,12 +690,12 @@ resources:
     type: github
     endpoint: <your GitHub service connection>
     name: khaledSayedAbdellah/aegis
-    ref: refs/tags/v0.17.0
+    ref: refs/tags/v0.17.1
 
 steps:
 - template: ci/azure-pipelines/aegis-steps.yml@aegis
   parameters:
-    aegisVersion: 0.17.0   # installed from pub.dev; keep it equal to the ref above
+    aegisVersion: 0.17.1   # installed from pub.dev; keep it equal to the ref above
     failOn: high
 ```
 
@@ -795,6 +795,7 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-C02 | Unpinned git dependencies, `dependency_overrides` | CODE-3 |
 | AEG-C03 | Discontinued pub.dev packages (skipped with `--offline`), and Dart or npm names one letter away from popular packages | CODE-3 |
 | AEG-C04 | Code loaded from outside the app: `DexClassLoader`, `System.load` or `PathClassLoader` on external or downloaded paths, `dlopen` outside the bundle, `eval` of non-literal JavaScript; CodePush, Expo Updates and Shorebird are listed for review | CODE-4 |
+| AEG-C05 | Unsafe deserialization: data from another app, the network or shared storage reaching `ObjectInputStream`, `XMLDecoder`, XStream or `NSKeyedUnarchiver.unarchiveObject`; untyped `getSerializableExtra(name)`; Jackson default typing; `node-serialize`. Unsafe calls on the app's own data are listed for review | CODE-4 |
 
 ## Development: run from source and run the tests
 

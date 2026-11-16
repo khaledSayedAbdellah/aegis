@@ -112,6 +112,7 @@
     "score": 0,
     "covered": [
       "MASVS-AUTH/MASTG-DEMO-0090",
+      "MASVS-CODE/MASTG-DEMO-0100",
       "MASVS-CODE/MASTG-DEMO-0102",
       "MASVS-CODE/MASTG-DEMO-0136",
       "MASVS-CODE/MASTG-DEMO-0139",
@@ -154,8 +155,10 @@
       "AEG-A06": 10,
       "AEG-A11": 1,
       "AEG-A12": 6,
+      "AEG-C05": 2,
       "AEG-D06": 7,
       "AEG-D07": 4,
+      "AEG-D19": 1,
       "AEG-D20": 3,
       "AEG-N01": 6,
       "AEG-N02": 6,

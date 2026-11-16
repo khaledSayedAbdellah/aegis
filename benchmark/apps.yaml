@@ -110,8 +110,10 @@ apps:
       - {rule: AEG-A03, why: cleartext traffic demos}
       - {rule: AEG-A06, why: exported components}
       - {rule: AEG-A11, why: MASTG-DEMO-0151 deep link without autoVerify}
+      - {rule: AEG-C05, why: Intent data deserialized with ObjectInputStream (MASTG-DEMO-0100)}
       - {rule: AEG-D06, why: hardcoded keys (MASTG-DEMO-0017, 0023, 0101)}
       - {rule: AEG-D07, why: insecure random (MASTG-DEMO-0007)}
+      - {rule: AEG-D19, why: Intent file name reaching File() (MASTG-DEMO-0122)}
       - {rule: AEG-D20, why: key in plain storage (MASTG-DEMO-0101)}
       - {rule: AEG-N01, why: trust-all TrustManager}
       - {rule: AEG-N02, why: WebView file access}

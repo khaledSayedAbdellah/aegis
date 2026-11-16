@@ -1,3 +1,8 @@
+## 0.17.1
+
+* New `AEG-C05` (high): unsafe deserialization in Kotlin, Java, Swift, Objective-C and JavaScript. Data from another app (Intents, links), the network or shared storage that reaches `ObjectInputStream`, `XMLDecoder`, XStream's `fromXML` or `NSKeyedUnarchiver.unarchiveObject` is reported, and so are untyped `getSerializableExtra(name)`, Jackson default typing and `node-serialize`. A class filter (`ObjectInputFilter`, `resolveClass`) makes it safe; unsafe calls on the app's own data are listed as evidence.
+* `AEG-D19` in native code also reports Intent data that reaches a call on the line where it is assigned (`val file = File(filesDir, requested)`).
+
 ## 0.17.0
 
 * Value flow inside a function: aegis now follows `final x = ...`, reassignments, `for (... in ...)`, parameters and closures, and knows where data comes from (deep links, typed text, HTTP responses, platform channels, push messages).

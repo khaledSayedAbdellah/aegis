@@ -1379,5 +1379,14 @@
   "deepLinkActionNative": "بيانات بعتها تطبيق تاني (`{value}`) بتوصل لـ{call}() من غير تحقق.",
   "nativeInsecureRandom": "{api} بيتستخدم جنب كود حساس أمنيًا، وده ممكن يتوقّع. استخدم SecureRandom.",
   "nativeKeyboardCache": "الـ{field} بتاع بيانات حساسة سايب اقتراحات الكيبورد شغالة.",
-  "dynamicCodeMapping": "أسماء الـclasses اتقرت من {file}."
+  "dynamicCodeMapping": "أسماء الـclasses اتقرت من {file}.",
+  "deserializationTitle": "Deserialization مش آمن",
+  "deserializationPass": "البيانات اللي جاية من برّه مش بتتحوّل لأي objects",
+  "deserializationDescription": "الـJava serialization والـXMLDecoder والـNSKeyedUnarchiver من غير secure coding، وأي APIs شبههم، بيبنوا أي classes البيانات بتطلبها. لو البيانات دي جاية من تطبيق تاني أو من النت أو من ملف مشترك، يبقى المهاجم هو اللي بيختار الـobjects: يقدر يغيّر حالة التطبيق (يخلّي يوزر admin)، أو يشغّل كود عن طريق classes موجودة أصلاً في التطبيق.",
+  "deserializationFix": "ابعت بيانات عادية (JSON أو Protocol Buffers) وحوّلها للـtypes اللي انت مستنيها. ولو لازم تعمل deserialize لـobjects، حدّد الـclasses المسموحة: ObjectInputFilter أو resolveClass على Android، وunarchivedObject(ofClass:from:) مع secure coding على iOS، وgetSerializableExtra(name, Class) من Android 13 وطالع.",
+  "deserializationFlow": "`{value}` جاي من برّه التطبيق وبيوصل لـ{api}()، واللي بيبني أي classes البيانات بتطلبها.",
+  "deserializationUntypedExtra": "getSerializableExtra() من غير class بيعمل deserialize لأي object يحطّه تطبيق تاني في الـIntent.",
+  "deserializationDefaultTyping": "الـdefault typing بتاع Jackson بيخلّي الـJSON هو اللي يختار الـclass اللي يتبني.",
+  "deserializationNodeSerialize": "الـunserialize() بتاع node-serialize بيشغّل functions مكتوبة جوه البيانات.",
+  "deserializationLocal": "APIs للـdeserialization مش آمنة بتتستخدم على بيانات التطبيق نفسه (مش محسوبة): {places}. بيانات راجعة من backup أو متحطوطة من تطبيق تاني ممكن لسه توصلها."
 }

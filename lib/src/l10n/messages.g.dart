@@ -822,6 +822,30 @@ class L10n {
   String get dependencyRulesUpgradeThePackageToAFixedVersionDart => isArabic
       ? Ar.dependencyRulesUpgradeThePackageToAFixedVersionDart
       : En.dependencyRulesUpgradeThePackageToAFixedVersionDart;
+  String get deserializationDefaultTyping => isArabic
+      ? Ar.deserializationDefaultTyping
+      : En.deserializationDefaultTyping;
+  String get deserializationDescription =>
+      isArabic ? Ar.deserializationDescription : En.deserializationDescription;
+  String get deserializationFix =>
+      isArabic ? Ar.deserializationFix : En.deserializationFix;
+  String deserializationFlow({required Object? api, required Object? value}) =>
+      isArabic
+          ? Ar.deserializationFlow(api: api, value: value)
+          : En.deserializationFlow(api: api, value: value);
+  String deserializationLocal({required Object? places}) => isArabic
+      ? Ar.deserializationLocal(places: places)
+      : En.deserializationLocal(places: places);
+  String get deserializationNodeSerialize => isArabic
+      ? Ar.deserializationNodeSerialize
+      : En.deserializationNodeSerialize;
+  String get deserializationPass =>
+      isArabic ? Ar.deserializationPass : En.deserializationPass;
+  String get deserializationTitle =>
+      isArabic ? Ar.deserializationTitle : En.deserializationTitle;
+  String get deserializationUntypedExtra => isArabic
+      ? Ar.deserializationUntypedExtra
+      : En.deserializationUntypedExtra;
   String dynamicCode({required Object? api}) =>
       isArabic ? Ar.dynamicCode(api: api) : En.dynamicCode(api: api);
   String dynamicCodeApk({required Object? loader, required Object? owner}) =>
@@ -3627,6 +3651,30 @@ abstract final class En {
       "Unpinned or overridden dependencies";
   static const dependencyRulesUpgradeThePackageToAFixedVersionDart =
       "Upgrade the package to a fixed version (dart pub upgrade <package>).";
+  static const deserializationDefaultTyping =
+      "Jackson default typing lets the JSON choose which class to build.";
+  static const deserializationDescription =
+      "Java serialization, XMLDecoder, NSKeyedUnarchiver without secure coding and similar APIs build whatever classes the data names. When that data comes from another app, the network or a shared file, an attacker chooses the objects: they can change the app's state (make a user an admin), or run code through classes already in the app.";
+  static const deserializationFix =
+      "Send plain data (JSON, Protocol Buffers) and parse it into the types you expect. If you must deserialize objects, restrict the classes: ObjectInputFilter or resolveClass on Android, unarchivedObject(ofClass:from:) with secure coding on iOS, and getSerializableExtra(name, Class) on Android 13 and later.";
+  static String deserializationFlow(
+          {required Object? api, required Object? value}) =>
+      "`" +
+      value.toString() +
+      "` from outside the app reaches " +
+      api.toString() +
+      "(), which builds whatever classes the data names.";
+  static String deserializationLocal({required Object? places}) =>
+      "Unsafe deserialization APIs used on the app's own data (not counted): " +
+      places.toString() +
+      ". Data restored from a backup or copied in by another app could still reach them.";
+  static const deserializationNodeSerialize =
+      "node-serialize's unserialize() runs functions written inside the data.";
+  static const deserializationPass =
+      "Data from outside is not turned into arbitrary objects";
+  static const deserializationTitle = "Unsafe deserialization";
+  static const deserializationUntypedExtra =
+      "getSerializableExtra() without a class deserializes whatever object another app puts in the Intent.";
   static String dynamicCode({required Object? api}) =>
       "" + api.toString() + " loads code from outside the app's own package.";
   static String dynamicCodeApk(
@@ -6179,6 +6227,30 @@ abstract final class Ar {
       "مكتبات مش متثبتة على نسخة أو متعمل لها override";
   static const dependencyRulesUpgradeThePackageToAFixedVersionDart =
       "حدّث المكتبة لنسخة فيها الإصلاح (dart pub upgrade <package>).";
+  static const deserializationDefaultTyping =
+      "الـdefault typing بتاع Jackson بيخلّي الـJSON هو اللي يختار الـclass اللي يتبني.";
+  static const deserializationDescription =
+      "الـJava serialization والـXMLDecoder والـNSKeyedUnarchiver من غير secure coding، وأي APIs شبههم، بيبنوا أي classes البيانات بتطلبها. لو البيانات دي جاية من تطبيق تاني أو من النت أو من ملف مشترك، يبقى المهاجم هو اللي بيختار الـobjects: يقدر يغيّر حالة التطبيق (يخلّي يوزر admin)، أو يشغّل كود عن طريق classes موجودة أصلاً في التطبيق.";
+  static const deserializationFix =
+      "ابعت بيانات عادية (JSON أو Protocol Buffers) وحوّلها للـtypes اللي انت مستنيها. ولو لازم تعمل deserialize لـobjects، حدّد الـclasses المسموحة: ObjectInputFilter أو resolveClass على Android، وunarchivedObject(ofClass:from:) مع secure coding على iOS، وgetSerializableExtra(name, Class) من Android 13 وطالع.";
+  static String deserializationFlow(
+          {required Object? api, required Object? value}) =>
+      "`" +
+      value.toString() +
+      "` جاي من برّه التطبيق وبيوصل لـ" +
+      api.toString() +
+      "()، واللي بيبني أي classes البيانات بتطلبها.";
+  static String deserializationLocal({required Object? places}) =>
+      "APIs للـdeserialization مش آمنة بتتستخدم على بيانات التطبيق نفسه (مش محسوبة): " +
+      places.toString() +
+      ". بيانات راجعة من backup أو متحطوطة من تطبيق تاني ممكن لسه توصلها.";
+  static const deserializationNodeSerialize =
+      "الـunserialize() بتاع node-serialize بيشغّل functions مكتوبة جوه البيانات.";
+  static const deserializationPass =
+      "البيانات اللي جاية من برّه مش بتتحوّل لأي objects";
+  static const deserializationTitle = "Deserialization مش آمن";
+  static const deserializationUntypedExtra =
+      "getSerializableExtra() من غير class بيعمل deserialize لأي object يحطّه تطبيق تاني في الـIntent.";
   static String dynamicCode({required Object? api}) =>
       "" + api.toString() + " بيحمّل كود من برّه الـpackage بتاع التطبيق.";
   static String dynamicCodeApk(

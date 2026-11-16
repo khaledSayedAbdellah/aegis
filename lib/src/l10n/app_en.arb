@@ -5553,5 +5553,54 @@
         "type": "String"
       }
     }
+  },
+  "deserializationTitle": "Unsafe deserialization",
+  "@deserializationTitle": {
+    "description": "rules/deserialization_rules.dart: AEG-C05."
+  },
+  "deserializationPass": "Data from outside is not turned into arbitrary objects",
+  "@deserializationPass": {
+    "description": "rules/deserialization_rules.dart: AEG-C05."
+  },
+  "deserializationDescription": "Java serialization, XMLDecoder, NSKeyedUnarchiver without secure coding and similar APIs build whatever classes the data names. When that data comes from another app, the network or a shared file, an attacker chooses the objects: they can change the app's state (make a user an admin), or run code through classes already in the app.",
+  "@deserializationDescription": {
+    "description": "rules/deserialization_rules.dart: AEG-C05."
+  },
+  "deserializationFix": "Send plain data (JSON, Protocol Buffers) and parse it into the types you expect. If you must deserialize objects, restrict the classes: ObjectInputFilter or resolveClass on Android, unarchivedObject(ofClass:from:) with secure coding on iOS, and getSerializableExtra(name, Class) on Android 13 and later.",
+  "@deserializationFix": {
+    "description": "rules/deserialization_rules.dart: AEG-C05."
+  },
+  "deserializationFlow": "`{value}` from outside the app reaches {api}(), which builds whatever classes the data names.",
+  "@deserializationFlow": {
+    "description": "rules/deserialization_rules.dart: AEG-C05.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "api": {
+        "type": "String"
+      }
+    }
+  },
+  "deserializationUntypedExtra": "getSerializableExtra() without a class deserializes whatever object another app puts in the Intent.",
+  "@deserializationUntypedExtra": {
+    "description": "rules/deserialization_rules.dart: AEG-C05."
+  },
+  "deserializationDefaultTyping": "Jackson default typing lets the JSON choose which class to build.",
+  "@deserializationDefaultTyping": {
+    "description": "rules/deserialization_rules.dart: AEG-C05."
+  },
+  "deserializationNodeSerialize": "node-serialize's unserialize() runs functions written inside the data.",
+  "@deserializationNodeSerialize": {
+    "description": "rules/deserialization_rules.dart: AEG-C05."
+  },
+  "deserializationLocal": "Unsafe deserialization APIs used on the app's own data (not counted): {places}. Data restored from a backup or copied in by another app could still reach them.",
+  "@deserializationLocal": {
+    "description": "rules/deserialization_rules.dart: AEG-C05.",
+    "placeholders": {
+      "places": {
+        "type": "String"
+      }
+    }
   }
 }

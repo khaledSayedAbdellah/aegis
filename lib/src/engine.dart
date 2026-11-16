@@ -25,6 +25,7 @@ import 'rules/debug_tool_rules.dart';
 import 'rules/custom_rules.dart';
 import 'rules/dart_rules.dart' show InsecureRandomRule, StaticKeyRule;
 import 'rules/injection_rules.dart' show SqlInjectionRule;
+import 'rules/deserialization_rules.dart';
 import 'rules/deep_link_rules.dart' show DeepLinkActionRule, deepLinksDecided;
 import 'rules/platform_ipc_rules.dart';
 import 'rules/dependency_rules.dart' show VulnerableDependencyRule;
@@ -457,6 +458,7 @@ Future<AuditReport> runAudit(
           const InsecureRandomRule(),
           const KeyboardCacheRule(),
           const NotificationLeakRule(),
+          const UnsafeDeserializationRule(),
         ],
         // Without source, runtime protection is read from the artifact.
         if (!project.hasSource && (project.apk != null || ipa != null))
