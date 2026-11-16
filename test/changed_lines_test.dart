@@ -81,6 +81,9 @@ Future<void> f(db, String a, String b) async {
   await db.rawQuery('SELECT * FROM t WHERE b = \$b');
 }
 ''');
+    write('lib/صفحة جديدة.dart', '''
+Future<void> k(db, String d) => db.rawQuery('SELECT * FROM t WHERE d = \$d');
+''');
     write('lib/extra.dart', '''
 Future<void> g(db, String c) => db.rawQuery('SELECT * FROM t WHERE c = \$c');
 ''');
@@ -89,9 +92,14 @@ Future<void> g(db, String c) => db.rawQuery('SELECT * FROM t WHERE c = \$c');
     final all = await runAudit(root, offline: true);
     final r = await runAudit(root, offline: true, changed: changed);
     final sql = r.results.firstWhere((x) => x.meta.id == 'AEG-D11');
-    expect(sql.newFindings.map((f) => f.location),
-        unorderedEquals(['lib/main.dart:3', 'lib/extra.dart:1']));
-    expect(sql.findings, hasLength(3));
+    expect(
+        sql.newFindings.map((f) => f.location),
+        unorderedEquals([
+          'lib/main.dart:3',
+          'lib/extra.dart:1',
+          'lib/صفحة جديدة.dart:1',
+        ]));
+    expect(sql.findings, hasLength(4));
     expect(r.outsideChangeCount, greaterThanOrEqualTo(1));
     expect(r.score.value, all.score.value);
     expect(renderMarkdown(r),
@@ -103,7 +111,13 @@ Future<void> g(db, String c) => db.rawQuery('SELECT * FROM t WHERE c = \$c');
           '${x['locations'][0]['physicalLocation']['artifactLocation']['uri']}:'
               '${x['locations'][0]['physicalLocation']['region']['startLine']}'
     ];
-    expect(lines, unorderedEquals(['lib/main.dart:3', 'lib/extra.dart:1']));
+    expect(
+        lines,
+        unorderedEquals([
+          'lib/main.dart:3',
+          'lib/extra.dart:1',
+          'lib/صفحة جديدة.dart:1',
+        ]));
   });
 
   test('an unknown ref is explained', () {
@@ -111,6 +125,8 @@ Future<void> g(db, String c) => db.rawQuery('SELECT * FROM t WHERE c = \$c');
     addTearDown(() => dir.deleteSync(recursive: true));
     Process.runSync('git', ['init', '-q'], workingDirectory: dir.path);
     expect(() => ChangedLines.load(dir.path, 'no-such-branch'),
+        throwsA(isA<FormatException>()));
+    expect(() => ChangedLines.load(dir.path, '--output=x'),
         throwsA(isA<FormatException>()));
   });
 }

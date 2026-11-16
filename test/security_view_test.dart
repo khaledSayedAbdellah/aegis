@@ -64,4 +64,22 @@ void main() {
     expect(SecurityView([], 'ar').html(), isEmpty);
     expect(SecurityView([], 'en').markdown(), isEmpty);
   });
+
+  test('evidence from any rule renders, even one with no extra metadata', () {
+    final view = SecurityView(
+        [
+          SecurityEvidence('AEG-C05', 'ios/Runner/A.swift:3',
+              const Bilingual('local unarchive', 'local unarchive')),
+          SecurityEvidence('X-UNKNOWN', '.', const Bilingual('x', 'x')),
+        ],
+        'en',
+        titles: const {
+          'AEG-C05':
+              Bilingual('Unsafe deserialization', 'Unsafe deserialization')
+        });
+    expect(view.html(), contains('Unsafe deserialization'));
+    expect(view.html(), contains('X-UNKNOWN'));
+    expect(view.markdown(), contains('X-UNKNOWN'));
+    expect(view.console(), contains('X-UNKNOWN'));
+  });
 }

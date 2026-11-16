@@ -140,6 +140,20 @@ class AppDelegate {
     ]);
   });
 
+  test('building query parameters is not link data', () async {
+    expect(await found(r'''
+void init() => uriLinkStream.listen((uri) => print(uri));
+Future<void> load(http, dio, String base) async {
+  final params = {'page': '1'};
+  await http.get(Uri.https('api.example.com', '/items', params));
+  await http.get(Uri.parse(base).replace(queryParameters: {'page': '1'}));
+  final queryParameters = {'q': 'x'};
+  await dio.get('/items', queryParameters: queryParameters);
+  await http.get(Uri.https('api.example.com', '/x', queryParameters));
+}
+'''), isEmpty);
+  });
+
   test('route names from Flutter deep linking', () async {
     expect(await found(r'''
 final app = MaterialApp(onGenerateRoute: (settings) {
@@ -150,9 +164,60 @@ final app = MaterialApp(onGenerateRoute: (settings) {
 '''), [startsWith('3: Deep-link data')]);
   });
 
+  test('native: explicit Intents pass, Java getIntent() is a source', () async {
+    final r = await audit({
+      'android/app/src/main/kotlin/com/example/Main.kt': '''
+class Trampoline : Activity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val id = intent.getStringExtra("order_id")
+        startActivity(Intent(this, OrderActivity::class.java).putExtra("id", id))
+        val forward = Intent(this, OrderActivity::class.java).putExtra("id", id)
+        startActivity(forward)
+    }
+    fun redirect() {
+        val next = intent.getParcelableExtra<Intent>("next")
+        startActivity(next)
+    }
+}
+''',
+      'android/app/src/main/java/com/example/Web.java': '''
+class Web extends Activity {
+    protected void onCreate(Bundle b) {
+        Uri data = getIntent().getData();
+        webView.loadUrl(data.toString());
+    }
+}
+''',
+    });
+    expect(
+        result(r, 'AEG-D19').findings.map((f) => '${f.file}:${f.line}'),
+        unorderedEquals([
+          'android/app/src/main/kotlin/com/example/Main.kt:10',
+          'android/app/src/main/java/com/example/Web.java:4',
+        ]));
+  });
+
   test('no link handling: not applicable, and AEG-M08 stays', () async {
     final r = await audit({'lib/main.dart': 'void main() {}'});
     expect(result(r, 'AEG-D19').status, RuleStatus.notApplicable);
+    expect(r.manual.map((m) => m.id), contains('AEG-M08'));
+  });
+
+  test('AEG-M08 stays when no link API is used', () async {
+    final r = await audit({
+      'lib/main.dart': r'''
+Future<void> f(http, Uri uri) async {
+  final page = uri.queryParameters['page'];
+  await http.get(Uri.parse('https://api.example.com/items?page=$page'));
+}
+''',
+      'android/app/src/main/kotlin/com/example/Main.kt': '''
+class Main : Activity() {
+    fun go() { val id = intent.getStringExtra("id") }
+}
+''',
+    });
+    expect(result(r, 'AEG-D19').counts, isTrue);
     expect(r.manual.map((m) => m.id), contains('AEG-M08'));
   });
 
@@ -163,6 +228,12 @@ void init() => uriLinkStream.listen((uri) => print(uri));
     final r = await audit({'lib/main.dart': links});
     expect(result(r, 'AEG-D19').status, RuleStatus.passed);
     expect(r.manual.map((m) => m.id), isNot(contains('AEG-M08')));
+    expect(
+        r.securityEvidence
+            .where((e) => e.ruleId == 'AEG-D19')
+            .map((e) => e.detail.en)
+            .join(),
+        contains('uriLinkStream'));
     final push = await audit({
       'lib/main.dart': '$links\n'
           'void push() => FirebaseMessaging.onMessage.listen((m) {});\n',

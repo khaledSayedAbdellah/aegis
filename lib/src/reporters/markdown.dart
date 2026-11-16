@@ -85,7 +85,8 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
   if (r.iosStatic != null) {
     b.write(IosStaticView(r.iosStatic!, lang).markdown());
   }
-  b.write(SecurityView(r.securityEvidence, lang).markdown());
+  b.write(SecurityView(r.securityEvidence, lang,
+      titles: {for (final x in r.results) x.meta.id: x.meta.title}).markdown());
 
   final probe = ProbeView.of(r, lang);
   if (probe != null) {

@@ -5602,5 +5602,14 @@
         "type": "String"
       }
     }
+  },
+  "deepLinkReplacesManual": "Deep links are read with {apis}; aegis followed them to where they are used, so manual check AEG-M08 is not listed.",
+  "@deepLinkReplacesManual": {
+    "description": "rules/deep_link_rules.dart: AEG-D19 replaces AEG-M08.",
+    "placeholders": {
+      "apis": {
+        "type": "String"
+      }
+    }
   }
 }

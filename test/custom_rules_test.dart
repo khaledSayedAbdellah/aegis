@@ -63,6 +63,8 @@ void main() {
       'android/app/src/main/kotlin/Main.kt':
           'val u = "http://cdn.example.com"\n',
       'build/out.txt': 'http://ignored.example.com',
+      'aegis-report.md': 'http://report.example.com',
+      'aegis-baseline.json': '{"note": "http://baseline.example.com"}',
       'test/a_test.dart': "const u = 'http://test.example.com';",
     });
     final r = await runAudit(root, offline: true);
@@ -93,6 +95,32 @@ void main() {
     final http = again.results.firstWhere((x) => x.meta.id == 'X-HTTP-URL');
     expect(http.findings, isNotEmpty);
     expect(http.findings.every((f) => f.baselined), isTrue);
+  });
+
+  test('a pattern rule without files skips aegis\'s own files', () async {
+    final dir = Directory.systemTemp.createTempSync('aegis_custom_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    ({
+      'pubspec.yaml': 'name: app\n',
+      'aegis.yaml': '''
+custom_rules:
+  - {id: X-TODO, title: TODO left, severity: low, pattern: "TODO", message: "{match}", fix: Remove it.}
+''',
+      'lib/a.dart': '// TODO: remove\n',
+      'aegis-report.md': 'TODO',
+      'aegis-baseline.json': '{"message": "TODO"}',
+    }).forEach((path, content) {
+      final f = File(p.join(dir.path, path));
+      f.parent.createSync(recursive: true);
+      f.writeAsStringSync(content);
+    });
+    final r = await runAudit(dir.path, offline: true);
+    expect(
+        r.results
+            .firstWhere((x) => x.meta.id == 'X-TODO')
+            .findings
+            .map((f) => f.file),
+        ['lib/a.dart']);
   });
 
   test('bad entries are explained', () {

@@ -82,6 +82,26 @@ class Restore {
         contains('ios/Runner/Restore.swift:11'));
   });
 
+  test('every report format renders evidence from AEG-C05 and AEG-D19',
+      () async {
+    final r = await run({
+      'lib/main.dart':
+          'void init() => uriLinkStream.listen((uri) => print(uri));',
+      'ios/Runner/Cache.swift': '''
+func cached() { let old = NSKeyedUnarchiver.unarchiveObject(withFile: path) }
+''',
+    });
+    expect(r.securityEvidence.map((e) => e.ruleId),
+        containsAll(['AEG-C05', 'AEG-D19']));
+    for (final lang in ['en', 'ar']) {
+      expect(renderHtml(r, lang: lang), contains('AEG-C05'));
+      expect(renderMarkdown(r, lang: lang), contains('AEG-C05'));
+      expect(ConsoleReporter(lang: lang, color: false).render(r),
+          contains('AEG-C05'));
+    }
+    expect(renderJson(r), contains('AEG-C05'));
+  });
+
   test('React Native: node-serialize', () async {
     final r = await run({
       'package.json': '{"dependencies": {"react-native": "0.76.0"}}',

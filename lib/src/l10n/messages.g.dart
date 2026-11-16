@@ -792,6 +792,9 @@ class L10n {
       isArabic ? Ar.deepLinkActionPass : En.deepLinkActionPass;
   String get deepLinkActionTitle =>
       isArabic ? Ar.deepLinkActionTitle : En.deepLinkActionTitle;
+  String deepLinkReplacesManual({required Object? apis}) => isArabic
+      ? Ar.deepLinkReplacesManual(apis: apis)
+      : En.deepLinkReplacesManual(apis: apis);
   String get dependencyRulesALockedPackageVersionHasAPublishedAdvisory =>
       isArabic
           ? Ar.dependencyRulesALockedPackageVersionHasAPublishedAdvisory
@@ -3633,6 +3636,10 @@ abstract final class En {
       "Deep-link data is checked before it is used";
   static const deepLinkActionTitle =
       "Deep-link data reaches a sensitive action unchecked";
+  static String deepLinkReplacesManual({required Object? apis}) =>
+      "Deep links are read with " +
+      apis.toString() +
+      "; aegis followed them to where they are used, so manual check AEG-M08 is not listed.";
   static const dependencyRulesALockedPackageVersionHasAPublishedAdvisory =
       "A locked package version has a published advisory in the OSV database.";
   static const dependencyRulesDependencyWithKnownVulnerabilities =
@@ -6209,6 +6216,10 @@ abstract final class Ar {
       "بيانات الـdeep links بتتراجع قبل ما تتستخدم";
   static const deepLinkActionTitle =
       "بيانات من deep link بتوصل لعملية حساسة من غير تحقق";
+  static String deepLinkReplacesManual({required Object? apis}) =>
+      "الـdeep links بتتقري بـ" +
+      apis.toString() +
+      "؛ aegis تتبّعها لحد ما بتتستخدم، فالـmanual check AEG-M08 مش متعرض.";
   static const dependencyRulesALockedPackageVersionHasAPublishedAdvisory =
       "فيه نسخة مكتبة في pubspec.lock عليها ثغرة منشورة في قاعدة بيانات OSV.";
   static const dependencyRulesDependencyWithKnownVulnerabilities =

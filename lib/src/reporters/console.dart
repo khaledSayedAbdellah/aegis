@@ -131,7 +131,9 @@ class ConsoleReporter {
     if (r.iosStatic != null) {
       b.write(IosStaticView(r.iosStatic!, lang).console());
     }
-    b.write(SecurityView(r.securityEvidence, lang).console());
+    b.write(SecurityView(r.securityEvidence, lang,
+            titles: {for (final x in r.results) x.meta.id: x.meta.title})
+        .console());
 
     final probe = ProbeView.of(r, lang);
     if (probe != null) {

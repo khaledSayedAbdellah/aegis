@@ -1,3 +1,15 @@
+## 0.17.2
+
+* Fixed: the HTML, Markdown and console reports crashed when evidence came from a rule without extra metadata (`AEG-B17` library loaders, `AEG-C04` update tools, `AEG-C05` local unarchiving), since 0.16.0. The benchmark now renders every report format for every app.
+* `AEG-D19` no longer treats building query parameters as link data (`replace(queryParameters: ...)`, a variable named `queryParameters`); only `uri.queryParameters` read from a Uri counts.
+* Value flow takes a called function from the calling file first, keeps `_private` functions to their own file, and leaves a name declared in several files unknown. Before, a same-named function elsewhere could hide an injection.
+* `AEG-D08` follows a logged variable only when its text was built from a secret (`'password=$password'`, `+`, or a project function that returns it pasted in), not when a secret was only an argument (`signIn(email, password)`) or became a number or a yes/no.
+* Manual check `AEG-M08` is replaced by `AEG-D19` only when the Dart code reads links through a link API (`uni_links`, `app_links`, go_router, `onGenerateRoute`), and the report says so in `AEG-D19`'s evidence.
+* `--changed-since` reads file names outside ASCII correctly (git's quoted paths), and refuses a ref that starts with `-`.
+* Native `AEG-D19`: handing data to one of the app's own screens (`Intent(this, X::class.java)`) is not reported; Java's `getIntent().getData()`, `getDataString()` and `getExtras()` are sources.
+* Custom `pattern` rules no longer match `aegis.yaml`, the baseline or aegis's reports.
+* Releases wait until pub.dev really serves the new version before the GitHub Action is updated, and the action retries the install for about five minutes.
+
 ## 0.17.1
 
 * New `AEG-C05` (high): unsafe deserialization in Kotlin, Java, Swift, Objective-C and JavaScript. Data from another app (Intents, links), the network or shared storage that reaches `ObjectInputStream`, `XMLDecoder`, XStream's `fromXML` or `NSKeyedUnarchiver.unarchiveObject` is reported, and so are untyped `getSerializableExtra(name)`, Jackson default typing and `node-serialize`. A class filter (`ObjectInputFilter`, `resolveClass`) makes it safe; unsafe calls on the app's own data are listed as evidence.

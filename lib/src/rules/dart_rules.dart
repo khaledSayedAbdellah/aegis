@@ -866,11 +866,13 @@ class SensitiveLoggingRule extends Rule {
             }
           }
         }
-        // Then what the logged variables were built from in this function:
-        // `final line = format(password: password); log(line)`.
+        // Then a logged variable whose text was built from a secret in this
+        // function: `final line = 'password=$password'`, or a project
+        // function that returns it pasted in (`format(password: password)`).
         if (!idents.any(isSecretName) && c.close > c.open + 1) {
-          idents.addAll(
-              flow.namesBehind(f.text(c.open + 1, c.close - 1), c.open));
+          final behind =
+              _secretBehind(flow, f, f.text(c.open + 1, c.close - 1), c.open);
+          if (behind != null) idents.add(behind);
         }
         final hit = idents.firstWhere(isSecretName, orElse: () => '');
         if (hit.isEmpty) continue;
@@ -894,6 +896,58 @@ class SensitiveLoggingRule extends Rule {
       }
     }
     return RuleCheck(out);
+  }
+}
+
+/// A secret name pasted into the text of a variable behind [text], or
+/// null. Values that can't hold text (numbers, comparisons) and calls that
+/// only take the secret as an argument (`signIn(email, password)`) don't
+/// count.
+String? _secretBehind(ValueFlow flow, DartFile f, String text, int at,
+    [int depth = 0]) {
+  if (depth > 4) return null;
+  for (final name in flow.roots(text)) {
+    for (final d in flow.definitions(name, at)) {
+      final def = f.text(d.start, d.end);
+      if (flow.origin(def, d.start).clean) continue;
+      final pasted = _pasted(def).where(isSecretName).firstOrNull;
+      if (pasted != null) return pasted;
+      for (final m in RegExp(r'\b(\w+)\s*\(').allMatches(def)) {
+        final fn = flow.functions?.call(m[1]!, f);
+        if (fn == null) continue;
+        final (file, start, end) = fn;
+        final secret = _pasted(file.text(start, end))
+            .where(isSecretName)
+            .where((s) => RegExp('\\b${RegExp.escape(s)}\\b').hasMatch(def))
+            .firstOrNull;
+        if (secret != null) return secret;
+      }
+      final deeper = _secretBehind(flow, f, def, d.start, depth + 1);
+      if (deeper != null) return deeper;
+    }
+  }
+  return null;
+}
+
+/// Names pasted into string text: `'a=$a ${b.c}'`, or joined to a literal
+/// with `+`.
+Iterable<String> _pasted(String text) sync* {
+  final file = DartFile('', text);
+  var hasLiteral = false, joined = false;
+  for (final t in file.tokens) {
+    if (t.isString) {
+      hasLiteral = true;
+      if (!t.interpolated) continue;
+      for (final e in interpolatedExpressions(t.value ?? '')) {
+        yield* RegExp(r'[A-Za-z_]\w*').allMatches(e).map((m) => m[0]!);
+      }
+    }
+    if (t.isPunct('+')) joined = true;
+  }
+  if (hasLiteral && joined) {
+    for (final t in file.tokens) {
+      if (t.isIdent) yield t.text;
+    }
   }
 }
 

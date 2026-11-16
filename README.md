@@ -18,7 +18,7 @@ Most scanners ask *"do you have RASP?"*. aegis also asks *"is it started, config
 `aegis run` writes this report as HTML and PDF next to the terminal output:
 
 ```text
-🛡  Aegis security audit  ·  aegis 0.17.1
+🛡  Aegis security audit  ·  aegis 0.17.2
 ────────────────────────────────────────────────────────────────
 Project: my_bank
 MAS profile: L2+R
@@ -102,7 +102,7 @@ Other sources, when you need them:
 
 ```bash
 # A specific released version
-dart pub global activate aegis 0.17.1
+dart pub global activate aegis 0.17.2
 
 # Your local clone: every change in the clone is used right away, no reinstall
 dart pub global activate --source path ~/path/to/aegis
@@ -690,12 +690,12 @@ resources:
     type: github
     endpoint: <your GitHub service connection>
     name: khaledSayedAbdellah/aegis
-    ref: refs/tags/v0.17.1
+    ref: refs/tags/v0.17.2
 
 steps:
 - template: ci/azure-pipelines/aegis-steps.yml@aegis
   parameters:
-    aegisVersion: 0.17.1   # installed from pub.dev; keep it equal to the ref above
+    aegisVersion: 0.17.2   # installed from pub.dev; keep it equal to the ref above
     failOn: high
 ```
 
@@ -788,7 +788,7 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-D15 | Password, PIN or card field with keyboard suggestions and autocorrect on (keyboard cache): Flutter, Jetpack Compose and XML `EditText` | STORAGE-2 |
 | AEG-D16 | Token, password or key copied to the clipboard (Dart, Swift/Objective-C, Kotlin/Java) | PLATFORM-3 |
 | AEG-D17 | Notifications that may show codes, balances or tokens, from Flutter, Android and iOS code (listed for review) | PLATFORM-3 |
-| AEG-D19 | Deep-link data (`uni_links`, `app_links`, go_router `state`, Flutter route names) that reaches `launchUrl`, a WebView, a file path or an HTTP request without an `if`/`switch` check, also through helpers that return it; in Kotlin, Java and Swift, Intent extras and incoming URLs that reach `loadUrl`, `startActivity`, files or a WebView; when it can decide and no push payloads are handled, it replaces manual check AEG-M08 | PLATFORM-1 |
+| AEG-D19 | Deep-link data (`uni_links`, `app_links`, go_router `state`, Flutter route names) that reaches `launchUrl`, a WebView, a file path or an HTTP request without an `if`/`switch` check, also through helpers that return it; in Kotlin, Java and Swift, Intent extras and incoming URLs that reach `loadUrl`, `startActivity`, files or a WebView; when the Dart code reads links through a link API (`uni_links`, `app_links`, go_router, `onGenerateRoute`) and handles no push payloads, it replaces manual check AEG-M08 and says so in its evidence | PLATFORM-1 |
 | AEG-D18 | `flutter_secure_storage` items that can leave the device (not `_this_device`, or synchronizable) | STORAGE-1 |
 | AEG-D20 | Generated crypto keys or raw key bytes written to SharedPreferences, Hive, `UserDefaults` or files (Dart and native) | STORAGE-1 |
 | AEG-C01 | Dependency with known vulnerabilities (OSV): Dart packages from `pubspec.lock`; Maven from Gradle files, version catalogs, `gradle.lockfile` and the Android code of Flutter plugins; npm from `package-lock.json` / `yarn.lock`; Swift packages from `Package.resolved`. CocoaPods has no OSV data and is listed as not checked. Skipped with `--offline` | CODE-3 |

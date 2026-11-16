@@ -297,8 +297,16 @@ class CustomRule extends Rule {
 
   List<Finding> _pattern(Project project) {
     final out = <Finding>[];
-    final files = project.findFiles(
-        '', (rel) => !_skippedDir.hasMatch(rel) && _wanted(rel));
+    // aegis's own files: the rules themselves, the baseline, the reports.
+    final own = {
+      'aegis.yaml',
+      project.config.baseline ?? 'aegis-baseline.json',
+    };
+    bool aegisFile(String rel) =>
+        own.contains(rel) ||
+        RegExp(r'(?:^|/)aegis-report\.[a-z]+$').hasMatch(rel);
+    final files = project.findFiles('',
+        (rel) => !_skippedDir.hasMatch(rel) && !aegisFile(rel) && _wanted(rel));
     for (final rel in files..sort()) {
       final file = File(p.join(project.root, rel));
       String text;

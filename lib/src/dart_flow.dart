@@ -55,7 +55,9 @@ final _sources = <SourceKind, RegExp>{
   SourceKind.link: RegExp(
       r'\b(?:getInitial(?:App)?Link(?:String)?|getInitialUri|getLatest(?:App)?Link(?:String)?|getLatestUri)\s*\(|'
       r'\bstate\.(?:uri|pathParameters|queryParameters|location|matchedLocation|fullPath)\b|'
-      r'\b(?:queryParameters(?:All)?|pathParameters)\b'),
+      // Read from a Uri (`uri.queryParameters`), not a variable or a named
+      // argument with that name (`replace(queryParameters: {...})`).
+      r'\??\.(?:queryParameters(?:All)?|pathParameters)\b(?!\s*:)'),
   SourceKind.input: RegExp(r'\b\w*[cC]ontroller\.(?:value\.)?text\b'),
   SourceKind.network:
       RegExp(r'\b\w*(?:[rR]esponse|[rR]esp|res)\.(?:body|bodyBytes|data)\b'),
@@ -477,7 +479,7 @@ class ValueFlow {
   Origin? _callOrigin(String name, int depth, Set<String> seen) {
     final key = '()$name';
     if (seen.contains(key)) return Origin.unknown;
-    final found = functions?.call(name);
+    final found = functions?.call(name, f);
     if (found == null) return null;
     final (file, start, end) = found;
     final flow =
@@ -570,6 +572,9 @@ class ValueFlow {
   }
 
   /// Variable names read by [e]: not members, calls or constants.
+  /// Variable names read by [e]: not members, calls or constants.
+  Iterable<String> roots(String e) => _roots(e);
+
   Iterable<String> _roots(String e) sync* {
     final toks = DartFile('', e).tokens;
     for (var i = 0; i < toks.length; i++) {
@@ -651,22 +656,34 @@ enum _Brace { function, block, type }
 
 /// Finds a function by name: its file and the token range of its body (from
 /// `{` or `=>`).
-typedef FunctionLookup = (DartFile, int, int)? Function(String name);
+/// [from] is the file the call is in.
+typedef FunctionLookup = (DartFile, int, int)? Function(
+    String name, DartFile from);
 
 final _lookups = Expando<FunctionLookup>();
 
-/// A [FunctionLookup] over [files], built once per list.
+/// A [FunctionLookup] over [files], built once per list. The calling file
+/// comes first; a private name (`_x`) is looked up only there; a name
+/// declared in more than one other file is ambiguous and stays unknown.
 FunctionLookup projectFunctions(List<DartFile> files) =>
     _lookups[files] ??= () {
-      final cache = <String, (DartFile, int, int)?>{};
-      return (String name) => cache.putIfAbsent(name, () {
-            for (final file in files) {
-              if (!file.source.contains(name)) continue;
-              final body = file.functionBody(name);
-              if (body != null) return (file, body.start, body.end);
-            }
-            return null;
-          });
+      final elsewhere = <String, (DartFile, int, int)?>{};
+      return (String name, DartFile from) {
+        final own = from.functionBody(name);
+        if (own != null) return (from, own.start, own.end);
+        if (name.startsWith('_')) return null;
+        return elsewhere.putIfAbsent(name, () {
+          (DartFile, int, int)? found;
+          for (final file in files) {
+            if (!file.source.contains(name)) continue;
+            final body = file.functionBody(name);
+            if (body == null) continue;
+            if (found != null) return null; // Declared twice: ambiguous.
+            found = (file, body.start, body.end);
+          }
+          return found;
+        });
+      };
     }();
 
 /// `x != null`, `null == x`, `x.isEmpty`, `x?.isNotEmpty == true`.

@@ -29,8 +29,13 @@ class ChangedLines {
   /// (or against [ref] itself when there is no merge base, as in a shallow
   /// clone), plus untracked files.
   static ChangedLines load(String root, String ref) {
-    ProcessResult git(List<String> args) =>
-        Process.runSync('git', ['-C', root, ...args]);
+    if (ref.startsWith('-')) {
+      throw FormatException('"$ref" is not a git ref.');
+    }
+    // core.quotePath=false: names outside ASCII come back as they are, not
+    // as "\330\265..." escapes.
+    ProcessResult git(List<String> args) => Process.runSync(
+        'git', ['-C', root, '-c', 'core.quotePath=false', ...args]);
     final verify = git(['rev-parse', '--verify', '--quiet', '$ref^{commit}']);
     if (verify.exitCode != 0) {
       throw FormatException(

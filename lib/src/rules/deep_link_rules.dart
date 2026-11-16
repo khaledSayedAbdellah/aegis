@@ -6,6 +6,7 @@ import '../dart_scanner.dart';
 import '../l10n/messages.g.dart';
 import '../model.dart';
 import '../project.dart';
+import '../security/evidence.dart';
 import '../security/native_analysis.dart' show withoutComments;
 import '../security/native_flow.dart';
 import 'rule.dart';
@@ -13,8 +14,19 @@ import 'rule.dart';
 /// Code that reads deep links: `uni_links`, `app_links`, go_router.
 final _readsLinks = RegExp(
     r'\b(?:uriLinkStream|linkStream|stringLinkStream|allUriLinkStream|allStringLinkStream|getInitial(?:App)?Link|getInitialUri|getLatest(?:App)?Link|getLatestUri)\b|'
-    r'\bstate\.(?:uri|pathParameters|queryParameters)\b|\b(?:queryParameters|pathParameters)\b|'
+    r'\bstate\.(?:uri|pathParameters|queryParameters)\b|\??\.(?:queryParameters|pathParameters)\b(?!\s*:)|'
     r'\bonGenerateRoute\s*:');
+
+/// The link APIs whose use lets AEG-D19 stand in for manual check AEG-M08.
+final _linkApi = RegExp(
+    r'\b(uriLinkStream|linkStream|stringLinkStream|allUriLinkStream|allStringLinkStream|getInitial(?:App)?Link|getInitialUri|getLatest(?:App)?Link|getLatestUri)\b|'
+    r'\b(GoRouter|GoRoute)\s*\(|\b(onGenerateRoute)\s*:');
+
+/// The link APIs the Dart code uses, by name.
+Set<String> linkApis(Project project) => {
+      for (final f in project.dartFiles)
+        for (final m in _linkApi.allMatches(f.source)) m[1] ?? m[2] ?? m[3]!
+    };
 
 /// Wrappers that check or clean the value they are given.
 final _guard = RegExp(
@@ -96,6 +108,17 @@ class DeepLinkActionRule extends Rule {
             messageAr: Ar.deepLinkAction(value: value, call: c.name)));
       }
     }
+    final apis = linkApis(project);
+    if (apis.isNotEmpty && !handlesPushPayloads(project)) {
+      final list = (apis.toList()..sort()).join(', ');
+      project.securityEvidence.add(SecurityEvidence(
+          meta.id,
+          '.',
+          Bilingual(En.deepLinkReplacesManual(apis: list),
+              Ar.deepLinkReplacesManual(apis: list)),
+          status: 'facts',
+          data: {'linkApis': apis.toList()..sort()}));
+    }
     final native = _native(project);
     out.addAll(native.$1);
     if (!readsLinks && !native.$2) {
@@ -112,6 +135,29 @@ final _nativeSink = RegExp(
     r'sendBroadcast|startService|File|FileInputStream|FileOutputStream|'
     r'evaluateJavaScript|loadHTMLString|load|open)\s*\(');
 
+/// Whether the Intent passed on [line] names its target class, inline or
+/// where the variable passed was declared.
+bool _explicitIntent(String code, String line) {
+  final explicit = RegExp(
+      r'::class\.java|\.class\s*\)|setClass(?:Name)?\s*\(|setComponent\s*\(|ComponentName\s*\(');
+  final call =
+      RegExp(r'\b(?:startActivity|sendBroadcast|startService)\s*\((.*)')
+          .firstMatch(line);
+  if (call == null) return false;
+  final args = call[1]!;
+  if (explicit.hasMatch(args)) return true;
+  final name = RegExp(r'^\s*(\w+)\s*[),]').firstMatch(args)?[1];
+  if (name == null) return false;
+  final decl = RegExp(
+          '(?:val|var|Intent)\\s+${RegExp.escape(name)}\\s*(?::\\s*Intent\\??\\s*)?=\\s*([^\\n]*)')
+      .allMatches(code)
+      .lastOrNull;
+  if (decl == null) return false;
+  // An Intent read from another app's Intent is not explicit, whatever it says.
+  if (RegExp(r'getParcelableExtra').hasMatch(decl[1]!)) return false;
+  return explicit.hasMatch(decl[1]!);
+}
+
 /// Returns the findings and whether any native code reads links or Intents.
 (List<Finding>, bool) _native(Project project) {
   final out = <Finding>[];
@@ -125,13 +171,22 @@ final _nativeSink = RegExp(
     }
     reads = true;
     for (final hit in nativeFlows(code,
-        sources: nativeLinkSource,
-        sinks: _nativeSink,
-        // `load` and `open` are only sinks in Swift WebViews and UIApplication.
-        accept: (call, line) =>
-            (call != 'load' && call != 'open') ||
-            RegExp(r'(?:webView|\.shared)\s*\.\s*(?:load|open)\s*\(|load\(\s*URLRequest')
-                .hasMatch(line))) {
+        sources: nativeLinkSource, sinks: _nativeSink, accept: (call, line) {
+      // `load` and `open` are only sinks in Swift WebViews and
+      // UIApplication.
+      if (call == 'load' || call == 'open') {
+        return RegExp(
+                r'(?:webView|\.shared)\s*\.\s*(?:load|open)\s*\(|load\(\s*URLRequest')
+            .hasMatch(line);
+      }
+      // Handing data to one of the app's own screens is not a redirect;
+      // an Intent that came from outside, or an implicit one, is.
+      if (const {'startActivity', 'sendBroadcast', 'startService'}
+          .contains(call)) {
+        return !_explicitIntent(code, line);
+      }
+      return true;
+    })) {
       final value = shorten(hit.value, 40);
       out.add(Finding(
           ruleId: 'AEG-D19',
@@ -153,11 +208,14 @@ bool handlesPushPayloads(Project project) => project.dartFiles.any((f) =>
     RegExp(r'\b(?:onMessage|onMessageOpenedApp|getInitialMessage|onBackgroundMessage)\b')
         .hasMatch(f.source));
 
-/// Whether the AEG-D19 result settles the manual deep-link check AEG-M08.
+/// Whether the AEG-D19 result settles the manual deep-link check AEG-M08:
+/// it ran to the end, the Dart code reads links through a link API it
+/// follows, and no push payloads (which it does not follow) are handled.
 bool deepLinksDecided(List<RuleResult> results, Project project) {
   final d19 = results.where((r) => r.meta.id == 'AEG-D19').firstOrNull;
   return d19 != null &&
       d19.counts &&
       !d19.incomplete &&
+      linkApis(project).isNotEmpty &&
       !handlesPushPayloads(project);
 }

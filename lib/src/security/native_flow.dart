@@ -6,6 +6,7 @@ library;
 /// What an Intent or a link brings from another app.
 final nativeLinkSource = RegExp(
     r'\bintent\??\.(?:data|dataString|extras|getData\(\)|getDataString\(\)|getExtras\(\))|'
+    r'\bgetIntent\s*\(\s*\)\s*\.\s*(?:getData|getDataString|getExtras)\s*\(|'
     r'\bget(?:String|Parcelable|Serializable|CharSequence|ByteArray)Extra\s*[(<]|'
     r'\.getQueryParameter(?:s|Names)?\s*\(|'
     // Swift: `open url: URL`, `.onOpenURL { url in`, Universal Links.

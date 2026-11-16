@@ -1,20 +1,33 @@
 import 'dart:convert';
+import '../model.dart';
 import '../security/evidence.dart';
 import '../security/metadata.dart';
 import '../l10n/messages.g.dart';
 
 class SecurityView {
-  SecurityView(this.evidence, this.lang);
+  SecurityView(this.evidence, this.lang, {this.titles = const {}});
   final List<SecurityEvidence> evidence;
   final String lang;
+
+  /// Titles of the rules that ran, by id: evidence can come from any rule.
+  final Map<String, Bilingual> titles;
   L10n get t => L10n(lang);
   String status(SecurityEvidence e) => switch (e.status) {
         'unavailable' => t.extUnavailable,
         'facts' => t.extFacts,
         _ => t.extObserved,
       };
-  String title(String id) =>
-      id == 'AEG-P01' ? t.raspEvidenceTitle : extendedMeta(id).title.of(lang);
+  String title(String id) {
+    if (id == 'AEG-P01') return t.raspEvidenceTitle;
+    final known = titles[id];
+    if (known != null) return known.of(lang);
+    try {
+      return extendedMeta(id).title.of(lang);
+    } on ArgumentError {
+      return id;
+    }
+  }
+
   String safe(String s) => s.replaceAll(RegExp(r'[\x00-\x1f\x7f-\x9f]'), ' ');
   String console() => evidence.isEmpty
       ? ''

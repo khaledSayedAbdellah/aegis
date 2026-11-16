@@ -219,7 +219,9 @@ ${cats.toString()}
 </section>
 ${compact ? '' : '''${probe.toString()}
 ${r.iosStatic == null ? '' : IosStaticView(r.iosStatic!, lang).html()}
-${SecurityView(r.securityEvidence, lang).html()}
+${SecurityView(r.securityEvidence, lang, titles: {
+                  for (final x in r.results) x.meta.id: x.meta.title
+                }).html()}
 $incomplete'''}
 <h2>✗ ${_e(failedTitle)} (${newFailed.length})</h2>
 ${newFailed.isEmpty ? '<p>${_e(emptyText)}</p>' : ''}${failed.toString()}

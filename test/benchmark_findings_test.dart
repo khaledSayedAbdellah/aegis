@@ -38,6 +38,23 @@ void login(String password, String token) {
         ['lib/main.dart:6']);
   });
 
+  test('AEG-D08 ignores logs that only came near a secret', () async {
+    expect(
+        await found('AEG-D08', {
+          'lib/main.dart': r'''
+Future<void> login(auth, String email, String password) async {
+  final result = await auth.signIn(email, password);
+  debugPrint('signed in: $result');
+  final ok = password.length > 8;
+  print('valid: $ok');
+  final note = 'user ' + email + ' pw ' + password;
+  print(note);
+}
+''',
+        }),
+        ['lib/main.dart:7']);
+  });
+
   test('AEG-D16 names the controller, not .text', () async {
     expect(
         await found('AEG-D16', {

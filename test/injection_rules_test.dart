@@ -91,6 +91,28 @@ Future<void> f(web, TextEditingController nameController) async {
     });
   });
 
+  test('AEG-D11: a call takes the function of its own file', () async {
+    final r = await audit({
+      'lib/a.dart': "String currentName() => 'fixed';\n",
+      'lib/b.dart': r'''
+class Screen {
+  String currentName() => nameController.text;
+  Future<void> f(db) async {
+    await db.rawQuery("SELECT * FROM users WHERE name = '${currentName()}'");
+  }
+}
+''',
+      // Declared in two other files: ambiguous, so unknown (reported).
+      'lib/c.dart': "String label() => 'x';\n",
+      'lib/e.dart': 'String label() => nameController.text;\n',
+      'lib/d.dart': r'''
+Future<void> g(db) => db.rawQuery("SELECT * FROM t WHERE l = '${label()}'");
+''',
+    });
+    expect(result(r, 'AEG-D11').findings.map((f) => '${f.file}:${f.line}'),
+        unorderedEquals(['lib/b.dart:4', 'lib/d.dart:1']));
+  });
+
   group('AEG-D12 WebView', () {
     test('values pasted into JavaScript or HTML are reported', () async {
       expect(await found('AEG-D12', r'''

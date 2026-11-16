@@ -40,14 +40,15 @@ if [ -z "${AEGIS_SKIP_INSTALL:-}" ]; then
   # Retried: pub.dev can be briefly unreachable, or still publishing a
   # version that was just released.
   installed=1
-  for attempt in 1 2 3 4; do
+  for attempt in 1 2 3 4 5 6 7 8; do
     if [ -n "${AEGIS_VERSION:-}" ]; then
       "$dart" pub global activate aegis "$AEGIS_VERSION" && installed=0
     else
       "$dart" pub global activate aegis && installed=0
     fi
     [ "$installed" -eq 0 ] && break
-    [ "$attempt" -lt 4 ] && echo "Retrying in $((attempt * 20)) seconds." && sleep $((attempt * 20))
+    # About five minutes in all.
+    [ "$attempt" -lt 8 ] && echo "Retrying in 40 seconds." && sleep 40
   done
   echo "::endgroup::"
   if [ "$installed" -ne 0 ]; then

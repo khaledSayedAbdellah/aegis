@@ -120,6 +120,20 @@ Future<void> main(List<String> argv) async {
         apkPath: app.apk == null ? null : p.join(app.dir, app.apk!),
         ipaPath: app.ipa == null ? null : p.join(app.dir, app.ipa!));
     empty?.deleteSync(recursive: true);
+    // Every report format must render (the JSON alone hid a crash in the
+    // HTML evidence view until 0.17.2).
+    for (final lang in const ['en', 'ar']) {
+      try {
+        renderHtml(report, lang: lang);
+        renderMarkdown(report, lang: lang);
+        ConsoleReporter(lang: lang, color: false).render(report);
+        renderSarif(report);
+        renderJson(report);
+      } catch (e) {
+        stdout.writeln('  report failed to render ($lang): $e');
+        problems.add('${app.name}: report failed to render ($lang)');
+      }
+    }
     final failed = {
       for (final r in report.failed) r.meta.id: r.findings.length,
     };
