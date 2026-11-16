@@ -1,3 +1,15 @@
+## Unreleased
+
+* New rules for sign-in and platform IPC:
+  * `AEG-P13` (high): unsafe OAuth flows: the implicit flow (`response_type=token`), a `client_secret` sent from the app, and a code flow without PKCE when `flutter_web_auth` drives it by hand.
+  * `AEG-A15` (medium): `PendingIntent` that is mutable (`FLAG_MUTABLE`, or no flag below targetSdk 31) and wraps an Intent without an explicit target.
+  * `AEG-A16` (medium): FileProvider paths that share the whole storage (`<root-path>`, or `path="."`, `"/"`, `""`).
+  * `AEG-A17` (low): task hijacking setups (custom `taskAffinity` with `singleTask`, or `allowTaskReparenting`) while minSdk is below 30.
+  * `AEG-B15` (high): an APK signed with the v1 scheme only while it supports Android before 7.0 (Janus, CVE-2017-13156). App bundles are skipped.
+  * `AEG-I14` (low): the app's own iOS code uses a required-reason API without `PrivacyInfo.xcprivacy` (source and IPA).
+  * `AEG-C04` (high): code loaded from outside the app: dex loaders, `System.load` and `PathClassLoader` on external or downloaded paths, `dlopen` outside the app bundle, and `eval` of non-literal JavaScript.
+* `AEG-P01` also lists emulator and app-virtualization (cloner) checks in its evidence. They are extras and not required for a pass.
+
 ## 0.15.0
 
 * `AEG-C01` also looks up native dependencies in OSV: Maven libraries from Gradle files, version catalogs, `gradle.lockfile` and the Android code of the app's Flutter plugins; npm packages from `package-lock.json` and `yarn.lock`; Swift packages from `Package.resolved`. OSV has no CocoaPods data, so a `Podfile.lock` is listed as not checked. Dart findings keep their message. `AEG-C01` now also runs for native Android and iOS projects.

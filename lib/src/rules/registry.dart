@@ -9,6 +9,7 @@ import 'platform_protection_rules.dart';
 import 'native_security_rules.dart';
 import 'native_library_rules.dart';
 import 'package_hygiene_rules.dart';
+import 'platform_ipc_rules.dart';
 import 'native_source_rules.dart';
 import 'source_coverage_rule.dart';
 import 'elf_rules.dart';
@@ -36,6 +37,7 @@ const List<Rule> allRules = [
   ...assertRules,
   ...uiLeakRules,
   PackageHygieneRule(),
+  ...platformIpcRules,
 ];
 
 /// Rules that read a compiled APK (used with --apk).
@@ -43,6 +45,7 @@ const List<Rule> apkRules = [
   ...binaryRules,
   DebugToolApkRule(),
   OldNativeLibraryApkRule(),
+  V1OnlySignatureRule(),
 ];
 
 // Run once for either source or artifact. Each rule selects the authoritative

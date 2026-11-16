@@ -339,6 +339,7 @@ The report also prints the **signing certificate SHA-256 in Base64**, the exact 
 | AEG-B11 | Old targetSdk / minSdk in the final manifest | CODE-1 |
 | AEG-B13 | Chucker, Stetho, Flipper or LeakCanary inside the APK (not their no-op versions) | RESILIENCE-4 |
 | AEG-B14 | Outdated C libraries inside the APK: end-of-life OpenSSL (supported: 3.5, 4.0, 4.1), zlib before 1.2.13, libpng before 1.6.37, libcurl before 8.4.0, SQLite before 3.39.2 (dated by its source id); `libflutter.so` is skipped | CODE-3 |
+| AEG-B15 | APK signed with the v1 scheme only while supporting Android before 7.0 (Janus); app bundles are skipped | RESILIENCE-2 |
 
 aegis reads APKs and AABs itself (zip, binary XML, protobuf XML, v1/v2/v3 signatures) in pure Dart, with no external tools.
 
@@ -663,7 +664,7 @@ Run `aegis --list-rules` for the full list. [MASWE coverage](doc/maswe-coverage.
 
 * a Dart package that the code imports: a known RASP package (freerasp, safe_device, flutter_jailbreak_detection and others), a package whose name says it (`root`, `jailbreak`, `rasp`, `integrity`, `anti_debug`...), or any package whose own Android or iOS code checks for root or jailbreak;
 * a native SDK declared in Gradle, CocoaPods, Swift Package Manager or `package.json` and used by the native code: freeRASP (Talsec), RootBeer, IOSSecuritySuite, DTTJailbreakDetection, Approov, Zimperium, or the build-time protectors DexGuard and DexProtector;
-* the app's own checks in Dart, Kotlin/Java or Swift/Objective-C, recognized by what they look for (su binaries and root apps, jailbreak files and URL schemes, `TracerPid`/`isDebuggerConnected`/`PT_DENY_ATTACH`, Frida/Xposed/Substrate). Comments don't count, and neither do names alone such as `isRooted()`. Own checks must cover root or jailbreak, debuggers and hooking; with only some of them the rule says which are missing.
+* the app's own checks in Dart, Kotlin/Java or Swift/Objective-C, recognized by what they look for (su binaries and root apps, jailbreak files and URL schemes, `TracerPid`/`isDebuggerConnected`/`PT_DENY_ATTACH`, Frida/Xposed/Substrate). Comments don't count, and neither do names alone such as `isRooted()`. Own checks must cover root or jailbreak, debuggers and hooking; with only some of them the rule says which are missing. Emulator and app-virtualization (cloner) checks are listed too, as extras.
 
 A package or SDK that is declared but never used does not count, and the report says so. Everything found is listed in the report's evidence section.
 
@@ -696,6 +697,7 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-P09 | No screenshot protection *(L2)* | PLATFORM-3 |
 | AEG-P10 | Release build commands without `--obfuscate` *(R)* | RESILIENCE-3 |
 | AEG-P12 | Firebase security rules open to anyone (Firestore, Storage, Realtime Database), including test-mode rules not yet expired | AUTH-1 |
+| AEG-P13 | Unsafe OAuth: implicit flow (`response_type=token`), a `client_secret` in the app, a code flow without PKCE with `flutter_web_auth` | AUTH-1 |
 | AEG-P15 | Firebase security rules broader than needed: any signed-in user on all data, or anonymous writes to a path | AUTH-1 |
 | AEG-P14 | Card and identity number fields readable by accessibility services (listed for review) | PLATFORM-3 |
 | AEG-A01 | Android app debuggable | RESILIENCE-4 |
@@ -708,6 +710,9 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-A08 | Release signed with the debug key | RESILIENCE-2 |
 | AEG-A09 | Signing secrets exposed | STORAGE-1 |
 | AEG-A10 | minSdk below 24 | CODE-1 |
+| AEG-A15 | `PendingIntent` that is mutable (`FLAG_MUTABLE`, or no flag below targetSdk 31) and wraps an Intent without an explicit target | PLATFORM-1 |
+| AEG-A16 | FileProvider `<root-path>`, or `external-path` / `files-path` with `path="."`, `"/"` or `""` | PLATFORM-1 |
+| AEG-A17 | Exported activity with a custom `taskAffinity` and `singleTask`, or `allowTaskReparenting`, with minSdk below 30 (StrandHogg) | PLATFORM-1 |
 | AEG-I01 | ATS disabled | NETWORK-1 |
 | AEG-I02 | Insecure ATS exception | NETWORK-1 |
 | AEG-I03 | `get-task-allow` entitlement | RESILIENCE-4 |
@@ -718,6 +723,7 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-I08 | Executable stack / initial W+X segments | CODE-4 |
 | AEG-I09 | Retained source debug entries (MAS-R) | RESILIENCE-3 |
 | AEG-I13 | The same outdated C libraries inside an IPA's binaries (not `Flutter.framework`) | CODE-3 |
+| AEG-I14 | The app's own iOS code uses a required-reason API (UserDefaults, file timestamps, disk space, boot time) without `PrivacyInfo.xcprivacy` | PRIVACY-1 |
 | AEG-D01 | Hardcoded secret (known formats, JWT/Supabase service role, high-entropy values) | STORAGE-1 |
 | AEG-D02 | Cleartext traffic in code: `http://`, `ws://`, `ftp://`, `mqtt://` URLs, gRPC `ChannelCredentials.insecure()`, MQTT clients without `secure = true` | NETWORK-1 |
 | AEG-D03 | TLS validation disabled | NETWORK-1 |
@@ -740,6 +746,7 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-C01 | Dependency with known vulnerabilities (OSV): Dart packages from `pubspec.lock`; Maven from Gradle files, version catalogs, `gradle.lockfile` and the Android code of Flutter plugins; npm from `package-lock.json` / `yarn.lock`; Swift packages from `Package.resolved`. CocoaPods has no OSV data and is listed as not checked. Skipped with `--offline` | CODE-3 |
 | AEG-C02 | Unpinned git dependencies, `dependency_overrides` | CODE-3 |
 | AEG-C03 | Discontinued pub.dev packages (skipped with `--offline`), and Dart or npm names one letter away from popular packages | CODE-3 |
+| AEG-C04 | Code loaded from outside the app: `DexClassLoader`, `System.load` or `PathClassLoader` on external or downloaded paths, `dlopen` outside the bundle, `eval` of non-literal JavaScript | CODE-4 |
 
 ## Development: run from source and run the tests
 

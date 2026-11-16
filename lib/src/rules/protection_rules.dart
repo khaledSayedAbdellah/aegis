@@ -210,8 +210,14 @@ class RaspPresenceRule extends Rule {
         platform == raspAndroid ? 'Android' : 'iOS';
     String labels(Iterable<String> platforms) =>
         [raspAndroid, raspIos].where(platforms.contains).map(label).join(', ');
-    String checks(Iterable<String> checks) =>
-        [raspRoot, raspJailbreak, raspDebugger, raspHooking]
+    String checks(Iterable<String> checks) => [
+          raspRoot,
+          raspJailbreak,
+          raspDebugger,
+          raspHooking,
+          raspEmulator,
+          raspVirtualization
+        ]
             .where(checks.contains)
             .map((c) => c == raspHooking ? 'hooking (Frida/Xposed)' : c)
             .join(', ');

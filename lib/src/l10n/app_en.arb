@@ -5205,5 +5205,185 @@
         "type": "String"
       }
     }
+  },
+  "oauthTitle": "Unsafe OAuth sign-in flow",
+  "@oauthTitle": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "oauthPass": "OAuth sign-in uses the authorization code flow with PKCE",
+  "@oauthPass": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "oauthDescription": "Mobile apps can't keep a secret and share the redirect with other apps. The implicit flow puts the token in the redirect URL, a client secret in the app is public, and a code flow without PKCE lets another app that claims the same scheme take the code.",
+  "@oauthDescription": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "oauthFix": "Use the authorization code flow with PKCE (`flutter_appauth`, or `code_challenge` with S256), keep client secrets on your server, and prefer https App Links / Universal Links for the redirect.",
+  "@oauthFix": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "oauthImplicit": "Implicit OAuth flow (response_type=token): the access token comes back in the redirect URL, where other apps and logs can read it.",
+  "@oauthImplicit": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "oauthClientSecret": "A client_secret is sent from the app. Anything inside the app can be extracted, so the secret is public.",
+  "@oauthClientSecret": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "oauthNoPkce": "Authorization code flow without PKCE (no code_challenge): another app that registers the same redirect scheme can take the code.",
+  "@oauthNoPkce": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "pendingIntentTitle": "Mutable PendingIntent with an implicit Intent",
+  "@pendingIntentTitle": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "pendingIntentPass": "PendingIntents are immutable or explicit",
+  "@pendingIntentPass": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "pendingIntentDescription": "An app that receives a mutable PendingIntent can fill in its Intent. If that Intent names no target component, it can be sent, with your app's identity and permissions, to any component of your app, including unexported ones.",
+  "@pendingIntentDescription": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "pendingIntentFix": "Add `PendingIntent.FLAG_IMMUTABLE`, or when it must be mutable (inline replies, bubbles), make the wrapped Intent explicit with `setClass` / `setComponent`.",
+  "@pendingIntentFix": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "pendingIntentMutable": "A FLAG_MUTABLE PendingIntent wraps an Intent with no explicit target, so the app that receives it can redirect it to your app's components.",
+  "@pendingIntentMutable": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "pendingIntentNoFlag": "A PendingIntent without FLAG_IMMUTABLE wraps an Intent with no explicit target; with targetSdk below 31 it is mutable.",
+  "@pendingIntentNoFlag": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "fileProviderTitle": "FileProvider shares too much",
+  "@fileProviderTitle": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "fileProviderPass": "FileProvider paths are narrow",
+  "@fileProviderPass": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "fileProviderDescription": "FileProvider paths decide which files other apps can be handed. A root path or a path of `.` or `/` covers the whole app storage or device, so a mistaken or malicious URI can expose databases, tokens and other private files.",
+  "@fileProviderDescription": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "fileProviderFix": "Share one dedicated folder, for example `<cache-path name=\"shared\" path=\"shared/\"/>`, and copy only the files you mean to share into it.",
+  "@fileProviderFix": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "fileProvider": "FileProvider shares <{element} path=\"{path}\">, which covers far more than the files you mean to share.",
+  "@fileProvider": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules.",
+    "placeholders": {
+      "element": {
+        "type": "String"
+      },
+      "path": {
+        "type": "String"
+      }
+    }
+  },
+  "taskHijackTitle": "Activity can be hijacked through its task",
+  "@taskHijackTitle": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "taskHijackPass": "Activities keep their task to themselves",
+  "@taskHijackPass": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "taskHijackDescription": "A custom taskAffinity with singleTask, or allowTaskReparenting, lets another app put its screens inside your app's task on Android before 11 (StrandHogg), so a fake login screen appears as part of your app.",
+  "@taskHijackDescription": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "taskHijackFix": "Set `android:taskAffinity=\"\"` on exported activities, avoid `allowTaskReparenting`, or raise `minSdk` to 30.",
+  "@taskHijackFix": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "taskHijack": "{activity} uses a custom taskAffinity with singleTask, or allowTaskReparenting, so another app can join its task on Android before 11.",
+  "@taskHijack": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules.",
+    "placeholders": {
+      "activity": {
+        "type": "String"
+      }
+    }
+  },
+  "v1OnlyTitle": "APK signed with the v1 scheme only",
+  "@v1OnlyTitle": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "v1OnlyPass": "APK uses a v2 or v3 signature",
+  "@v1OnlyPass": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "v1OnlyDescription": "Android 5 to 7 accept an APK with only a v1 (JAR) signature, and the Janus flaw lets a modified APK keep that signature. Users of those versions can be given a tampered app that looks genuine.",
+  "@v1OnlyDescription": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "v1OnlyFix": "Sign with apksigner and the v2 or v3 scheme (the Android Gradle Plugin does by default), or raise `minSdk` to 24.",
+  "@v1OnlyFix": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "v1Only": "The APK has only a v1 signature and supports Android before 7.0 (minSdk {minSdk}), where a modified APK can keep it (Janus, CVE-2017-13156).",
+  "@v1Only": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules.",
+    "placeholders": {
+      "minSdk": {
+        "type": "String"
+      }
+    }
+  },
+  "privacyManifestTitle": "iOS privacy manifest missing",
+  "@privacyManifestTitle": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "privacyManifestPass": "The app declares its required-reason API use",
+  "@privacyManifestPass": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "privacyManifestDescription": "Since 2024 Apple requires a PrivacyInfo.xcprivacy that declares why the app's own code uses certain APIs (UserDefaults, file timestamps, disk space, system boot time). Uploads without it are rejected, and the declarations are what users see as the app's data use.",
+  "@privacyManifestDescription": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "privacyManifestFix": "Add `PrivacyInfo.xcprivacy` to the Runner target in Xcode and declare each required-reason API category with its reason code. Plugins ship their own manifests.",
+  "@privacyManifestFix": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "privacyManifest": "The app's own code uses {api}, a required-reason API, but has no PrivacyInfo.xcprivacy.",
+  "@privacyManifest": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules.",
+    "placeholders": {
+      "api": {
+        "type": "String"
+      }
+    }
+  },
+  "dynamicCodeTitle": "Code loaded from outside the app",
+  "@dynamicCodeTitle": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "dynamicCodePass": "The app loads only its own code",
+  "@dynamicCodePass": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "dynamicCodeDescription": "Code loaded at run time from storage, a download or a string skips the store review and the app's signature. Whoever can write that file or string, another app, a network attacker or a malicious update server, runs code as your app.",
+  "@dynamicCodeDescription": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "dynamicCodeFix": "Ship code inside the app, use Play Feature Delivery for optional modules, and never `eval` data. If code must be downloaded, verify its signature before loading it and keep it in private storage.",
+  "@dynamicCodeFix": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules."
+  },
+  "dynamicCode": "{api} loads code from outside the app's own package.",
+  "@dynamicCode": {
+    "description": "rules/platform_ipc_rules.dart: phase 4 rules.",
+    "placeholders": {
+      "api": {
+        "type": "String"
+      }
+    }
   }
 }

@@ -21,6 +21,7 @@ import 'project/native_files.dart';
 import 'rules/android_rules.dart';
 import 'rules/backend_rules.dart';
 import 'rules/debug_tool_rules.dart';
+import 'rules/platform_ipc_rules.dart';
 import 'rules/dependency_rules.dart' show VulnerableDependencyRule;
 import 'rules/ui_leak_rules.dart' show ClipboardRule, PlainKeyStorageRule;
 import 'rules/platform_security_rules.dart';
@@ -426,6 +427,11 @@ Future<AuditReport> runAudit(
           const ClipboardRule(),
           const PlainKeyStorageRule(),
           const VulnerableDependencyRule(),
+          const PendingIntentRule(),
+          const FileProviderPathsRule(),
+          const TaskHijackingRule(),
+          const PrivacyManifestRule(),
+          const DynamicCodeLoadingRule(),
         ],
         // Without source, runtime protection is read from the artifact.
         if (!project.hasSource && (project.apk != null || ipa != null))
@@ -435,6 +441,7 @@ Future<AuditReport> runAudit(
         if (project.apk != null) ...apkRules,
         if (ipa != null) ...[
           if (!project.hasSource) ...iosRules,
+          if (!project.hasSource) const PrivacyManifestRule(),
           ...ipaRules,
         ],
         // Only in a run that tried the probe (aegis run --mode apk|aab).

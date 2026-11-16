@@ -803,6 +803,15 @@ class L10n {
   String get dependencyRulesUpgradeThePackageToAFixedVersionDart => isArabic
       ? Ar.dependencyRulesUpgradeThePackageToAFixedVersionDart
       : En.dependencyRulesUpgradeThePackageToAFixedVersionDart;
+  String dynamicCode({required Object? api}) =>
+      isArabic ? Ar.dynamicCode(api: api) : En.dynamicCode(api: api);
+  String get dynamicCodeDescription =>
+      isArabic ? Ar.dynamicCodeDescription : En.dynamicCodeDescription;
+  String get dynamicCodeFix => isArabic ? Ar.dynamicCodeFix : En.dynamicCodeFix;
+  String get dynamicCodePass =>
+      isArabic ? Ar.dynamicCodePass : En.dynamicCodePass;
+  String get dynamicCodeTitle =>
+      isArabic ? Ar.dynamicCodeTitle : En.dynamicCodeTitle;
   String get extA11Description =>
       isArabic ? Ar.extA11Description : En.extA11Description;
   String get extA11Fix => isArabic ? Ar.extA11Fix : En.extA11Fix;
@@ -946,6 +955,18 @@ class L10n {
   String get extT01Pass => isArabic ? Ar.extT01Pass : En.extT01Pass;
   String get extT01Title => isArabic ? Ar.extT01Title : En.extT01Title;
   String get extUnavailable => isArabic ? Ar.extUnavailable : En.extUnavailable;
+  String fileProvider({required Object? element, required Object? path}) =>
+      isArabic
+          ? Ar.fileProvider(element: element, path: path)
+          : En.fileProvider(element: element, path: path);
+  String get fileProviderDescription =>
+      isArabic ? Ar.fileProviderDescription : En.fileProviderDescription;
+  String get fileProviderFix =>
+      isArabic ? Ar.fileProviderFix : En.fileProviderFix;
+  String get fileProviderPass =>
+      isArabic ? Ar.fileProviderPass : En.fileProviderPass;
+  String get fileProviderTitle =>
+      isArabic ? Ar.fileProviderTitle : En.fileProviderTitle;
   String get i18nAegisSecurityAudit =>
       isArabic ? Ar.i18nAegisSecurityAudit : En.i18nAegisSecurityAudit;
   String get i18nApk => isArabic ? Ar.i18nApk : En.i18nApk;
@@ -1688,6 +1709,15 @@ class L10n {
       isArabic ? Ar.notificationLeakPass : En.notificationLeakPass;
   String get notificationLeakTitle =>
       isArabic ? Ar.notificationLeakTitle : En.notificationLeakTitle;
+  String get oauthClientSecret =>
+      isArabic ? Ar.oauthClientSecret : En.oauthClientSecret;
+  String get oauthDescription =>
+      isArabic ? Ar.oauthDescription : En.oauthDescription;
+  String get oauthFix => isArabic ? Ar.oauthFix : En.oauthFix;
+  String get oauthImplicit => isArabic ? Ar.oauthImplicit : En.oauthImplicit;
+  String get oauthNoPkce => isArabic ? Ar.oauthNoPkce : En.oauthNoPkce;
+  String get oauthPass => isArabic ? Ar.oauthPass : En.oauthPass;
+  String get oauthTitle => isArabic ? Ar.oauthTitle : En.oauthTitle;
   String oldLibrary(
           {required Object? advisory,
           required Object? artifact,
@@ -1915,6 +1945,18 @@ class L10n {
   String get passTitlesWebviewsAreLockedDown => isArabic
       ? Ar.passTitlesWebviewsAreLockedDown
       : En.passTitlesWebviewsAreLockedDown;
+  String get pendingIntentDescription =>
+      isArabic ? Ar.pendingIntentDescription : En.pendingIntentDescription;
+  String get pendingIntentFix =>
+      isArabic ? Ar.pendingIntentFix : En.pendingIntentFix;
+  String get pendingIntentMutable =>
+      isArabic ? Ar.pendingIntentMutable : En.pendingIntentMutable;
+  String get pendingIntentNoFlag =>
+      isArabic ? Ar.pendingIntentNoFlag : En.pendingIntentNoFlag;
+  String get pendingIntentPass =>
+      isArabic ? Ar.pendingIntentPass : En.pendingIntentPass;
+  String get pendingIntentTitle =>
+      isArabic ? Ar.pendingIntentTitle : En.pendingIntentTitle;
   String plainEntityField(
           {required Object? entity,
           required Object? field,
@@ -2082,6 +2124,16 @@ class L10n {
       : En.platformWeakRuntime(fact: fact);
   String get platformYes => isArabic ? Ar.platformYes : En.platformYes;
   String get podsNotChecked => isArabic ? Ar.podsNotChecked : En.podsNotChecked;
+  String privacyManifest({required Object? api}) =>
+      isArabic ? Ar.privacyManifest(api: api) : En.privacyManifest(api: api);
+  String get privacyManifestDescription =>
+      isArabic ? Ar.privacyManifestDescription : En.privacyManifestDescription;
+  String get privacyManifestFix =>
+      isArabic ? Ar.privacyManifestFix : En.privacyManifestFix;
+  String get privacyManifestPass =>
+      isArabic ? Ar.privacyManifestPass : En.privacyManifestPass;
+  String get privacyManifestTitle =>
+      isArabic ? Ar.privacyManifestTitle : En.privacyManifestTitle;
   String get probeControlDead =>
       isArabic ? Ar.probeControlDead : En.probeControlDead;
   String probeFailed({required Object? reason}) => isArabic
@@ -2790,6 +2842,15 @@ class L10n {
       isArabic ? Ar.sqlInjectionPass : En.sqlInjectionPass;
   String get sqlInjectionTitle =>
       isArabic ? Ar.sqlInjectionTitle : En.sqlInjectionTitle;
+  String taskHijack({required Object? activity}) => isArabic
+      ? Ar.taskHijack(activity: activity)
+      : En.taskHijack(activity: activity);
+  String get taskHijackDescription =>
+      isArabic ? Ar.taskHijackDescription : En.taskHijackDescription;
+  String get taskHijackFix => isArabic ? Ar.taskHijackFix : En.taskHijackFix;
+  String get taskHijackPass => isArabic ? Ar.taskHijackPass : En.taskHijackPass;
+  String get taskHijackTitle =>
+      isArabic ? Ar.taskHijackTitle : En.taskHijackTitle;
   String get toolAndroidSdk => isArabic ? Ar.toolAndroidSdk : En.toolAndroidSdk;
   String toolAvd({required Object? avd}) =>
       isArabic ? Ar.toolAvd(avd: avd) : En.toolAvd(avd: avd);
@@ -2821,6 +2882,13 @@ class L10n {
       isArabic
           ? Ar.toolsMissing(command: command, count: count)
           : En.toolsMissing(command: command, count: count);
+  String v1Only({required Object? minSdk}) =>
+      isArabic ? Ar.v1Only(minSdk: minSdk) : En.v1Only(minSdk: minSdk);
+  String get v1OnlyDescription =>
+      isArabic ? Ar.v1OnlyDescription : En.v1OnlyDescription;
+  String get v1OnlyFix => isArabic ? Ar.v1OnlyFix : En.v1OnlyFix;
+  String get v1OnlyPass => isArabic ? Ar.v1OnlyPass : En.v1OnlyPass;
+  String get v1OnlyTitle => isArabic ? Ar.v1OnlyTitle : En.v1OnlyTitle;
   String webInjection({required Object? call, required Object? value}) =>
       isArabic
           ? Ar.webInjection(call: call, value: value)
@@ -3472,6 +3540,14 @@ abstract final class En {
       "Unpinned or overridden dependencies";
   static const dependencyRulesUpgradeThePackageToAFixedVersionDart =
       "Upgrade the package to a fixed version (dart pub upgrade <package>).";
+  static String dynamicCode({required Object? api}) =>
+      "" + api.toString() + " loads code from outside the app's own package.";
+  static const dynamicCodeDescription =
+      "Code loaded at run time from storage, a download or a string skips the store review and the app's signature. Whoever can write that file or string, another app, a network attacker or a malicious update server, runs code as your app.";
+  static const dynamicCodeFix =
+      "Ship code inside the app, use Play Feature Delivery for optional modules, and never `eval` data. If code must be downloaded, verify its signature before loading it and keep it in private storage.";
+  static const dynamicCodePass = "The app loads only its own code";
+  static const dynamicCodeTitle = "Code loaded from outside the app";
   static const extA11Description =
       "Review HTTP(S) verification and broad link filters.";
   static const extA11Fix =
@@ -3657,6 +3733,19 @@ abstract final class En {
       "No flagged condition in the inspected scope: Tracker SDK inventory";
   static const extT01Title = "Tracker SDK inventory";
   static const extUnavailable = "Inspection incomplete";
+  static String fileProvider(
+          {required Object? element, required Object? path}) =>
+      "FileProvider shares <" +
+      element.toString() +
+      " path=\"" +
+      path.toString() +
+      "\">, which covers far more than the files you mean to share.";
+  static const fileProviderDescription =
+      "FileProvider paths decide which files other apps can be handed. A root path or a path of `.` or `/` covers the whole app storage or device, so a mistaken or malicious URI can expose databases, tokens and other private files.";
+  static const fileProviderFix =
+      "Share one dedicated folder, for example `<cache-path name=\"shared\" path=\"shared/\"/>`, and copy only the files you mean to share into it.";
+  static const fileProviderPass = "FileProvider paths are narrow";
+  static const fileProviderTitle = "FileProvider shares too much";
   static const i18nAegisSecurityAudit = "Aegis security audit";
   static const i18nApk = "APK";
   static const i18nAppBundleAab = "App bundle (AAB)";
@@ -4269,6 +4358,19 @@ abstract final class En {
       "Keep codes and amounts out of the notification text, or set `visibility: NotificationVisibility.secret` (or `private` with a public version) in `AndroidNotificationDetails`.";
   static const notificationLeakPass = "Notifications don't show sensitive data";
   static const notificationLeakTitle = "Sensitive data shown in notifications";
+  static const oauthClientSecret =
+      "A client_secret is sent from the app. Anything inside the app can be extracted, so the secret is public.";
+  static const oauthDescription =
+      "Mobile apps can't keep a secret and share the redirect with other apps. The implicit flow puts the token in the redirect URL, a client secret in the app is public, and a code flow without PKCE lets another app that claims the same scheme take the code.";
+  static const oauthFix =
+      "Use the authorization code flow with PKCE (`flutter_appauth`, or `code_challenge` with S256), keep client secrets on your server, and prefer https App Links / Universal Links for the redirect.";
+  static const oauthImplicit =
+      "Implicit OAuth flow (response_type=token): the access token comes back in the redirect URL, where other apps and logs can read it.";
+  static const oauthNoPkce =
+      "Authorization code flow without PKCE (no code_challenge): another app that registers the same redirect scheme can take the code.";
+  static const oauthPass =
+      "OAuth sign-in uses the authorization code flow with PKCE";
+  static const oauthTitle = "Unsafe OAuth sign-in flow";
   static String oldLibrary(
           {required Object? advisory,
           required Object? artifact,
@@ -4432,6 +4534,17 @@ abstract final class En {
   static const passTitlesTlsCertificatesAreValidated =
       "TLS certificates are validated";
   static const passTitlesWebviewsAreLockedDown = "WebViews are locked down";
+  static const pendingIntentDescription =
+      "An app that receives a mutable PendingIntent can fill in its Intent. If that Intent names no target component, it can be sent, with your app's identity and permissions, to any component of your app, including unexported ones.";
+  static const pendingIntentFix =
+      "Add `PendingIntent.FLAG_IMMUTABLE`, or when it must be mutable (inline replies, bubbles), make the wrapped Intent explicit with `setClass` / `setComponent`.";
+  static const pendingIntentMutable =
+      "A FLAG_MUTABLE PendingIntent wraps an Intent with no explicit target, so the app that receives it can redirect it to your app's components.";
+  static const pendingIntentNoFlag =
+      "A PendingIntent without FLAG_IMMUTABLE wraps an Intent with no explicit target; with targetSdk below 31 it is mutable.";
+  static const pendingIntentPass = "PendingIntents are immutable or explicit";
+  static const pendingIntentTitle =
+      "Mutable PendingIntent with an implicit Intent";
   static String plainEntityField(
           {required Object? entity,
           required Object? field,
@@ -4602,6 +4715,17 @@ abstract final class En {
   static const platformYes = "yes";
   static const podsNotChecked =
       "CocoaPods pods are not checked for known vulnerabilities: OSV has no CocoaPods data. Pods that are also Swift packages are checked through Package.resolved.";
+  static String privacyManifest({required Object? api}) =>
+      "The app's own code uses " +
+      api.toString() +
+      ", a required-reason API, but has no PrivacyInfo.xcprivacy.";
+  static const privacyManifestDescription =
+      "Since 2024 Apple requires a PrivacyInfo.xcprivacy that declares why the app's own code uses certain APIs (UserDefaults, file timestamps, disk space, system boot time). Uploads without it are rejected, and the declarations are what users see as the app's data use.";
+  static const privacyManifestFix =
+      "Add `PrivacyInfo.xcprivacy` to the Runner target in Xcode and declare each required-reason API category with its reason code. Plugins ship their own manifests.";
+  static const privacyManifestPass =
+      "The app declares its required-reason API use";
+  static const privacyManifestTitle = "iOS privacy manifest missing";
   static const probeControlDead =
       "The app did not stay alive during the control launch.";
   static String probeFailed({required Object? reason}) =>
@@ -5206,6 +5330,16 @@ abstract final class En {
   static const sqlInjectionPass = "SQL queries pass values as arguments";
   static const sqlInjectionTitle =
       "SQL query built from variables (SQL injection)";
+  static String taskHijack({required Object? activity}) =>
+      "" +
+      activity.toString() +
+      " uses a custom taskAffinity with singleTask, or allowTaskReparenting, so another app can join its task on Android before 11.";
+  static const taskHijackDescription =
+      "A custom taskAffinity with singleTask, or allowTaskReparenting, lets another app put its screens inside your app's task on Android before 11 (StrandHogg), so a fake login screen appears as part of your app.";
+  static const taskHijackFix =
+      "Set `android:taskAffinity=\"\"` on exported activities, avoid `allowTaskReparenting`, or raise `minSdk` to 30.";
+  static const taskHijackPass = "Activities keep their task to themselves";
+  static const taskHijackTitle = "Activity can be hijacked through its task";
   static const toolAndroidSdk = "Android SDK";
   static String toolAvd({required Object? avd}) =>
       "AVD \"" + avd.toString() + "\"";
@@ -5233,6 +5367,16 @@ abstract final class En {
       " tool(s) to install: run \"" +
       command.toString() +
       "\".";
+  static String v1Only({required Object? minSdk}) =>
+      "The APK has only a v1 signature and supports Android before 7.0 (minSdk " +
+      minSdk.toString() +
+      "), where a modified APK can keep it (Janus, CVE-2017-13156).";
+  static const v1OnlyDescription =
+      "Android 5 to 7 accept an APK with only a v1 (JAR) signature, and the Janus flaw lets a modified APK keep that signature. Users of those versions can be given a tampered app that looks genuine.";
+  static const v1OnlyFix =
+      "Sign with apksigner and the v2 or v3 scheme (the Android Gradle Plugin does by default), or raise `minSdk` to 24.";
+  static const v1OnlyPass = "APK uses a v2 or v3 signature";
+  static const v1OnlyTitle = "APK signed with the v1 scheme only";
   static String webInjection({required Object? call, required Object? value}) =>
       "`" +
       value.toString() +
@@ -5868,6 +6012,14 @@ abstract final class Ar {
       "مكتبات مش متثبتة على نسخة أو متعمل لها override";
   static const dependencyRulesUpgradeThePackageToAFixedVersionDart =
       "حدّث المكتبة لنسخة فيها الإصلاح (dart pub upgrade <package>).";
+  static String dynamicCode({required Object? api}) =>
+      "" + api.toString() + " بيحمّل كود من برّه الـpackage بتاع التطبيق.";
+  static const dynamicCodeDescription =
+      "الكود اللي بيتحمّل وقت التشغيل من التخزين أو من تحميل أو من نص بيعدّي من غير مراجعة المتجر ومن غير توقيع التطبيق. وأي حد يقدر يكتب الملف أو النص ده، سواء تطبيق تاني أو مهاجم على الشبكة أو سيرفر تحديثات ضار، بيشغّل كود بصفة تطبيقك.";
+  static const dynamicCodeFix =
+      "خلّي الكود جوّه التطبيق، واستخدم Play Feature Delivery للأجزاء الاختيارية، وماتعملش `eval` لأي بيانات. ولو الكود لازم يتنزّل، اتأكد من توقيعه قبل ما تحمّله، وخزّنه في التخزين الخاص بالتطبيق.";
+  static const dynamicCodePass = "التطبيق بيحمّل الكود بتاعه بس";
+  static const dynamicCodeTitle = "كود بيتحمّل من برّه التطبيق";
   static const extA11Description =
       "راجع التحقق من روابط HTTP(S) ومرشحات الروابط الواسعة.";
   static const extA11Fix =
@@ -6048,6 +6200,19 @@ abstract final class Ar {
       "لم تظهر الحالة المستهدفة ضمن نطاق الفحص: جرد SDKs الخاصة بالتتبع";
   static const extT01Title = "جرد SDKs الخاصة بالتتبع";
   static const extUnavailable = "الفحص غير مكتمل";
+  static String fileProvider(
+          {required Object? element, required Object? path}) =>
+      "الـFileProvider بيشارك <" +
+      element.toString() +
+      " path=\"" +
+      path.toString() +
+      "\">، وده بيغطي ملفات أكتر بكتير من اللي محتاج تشاركه.";
+  static const fileProviderDescription =
+      "مسارات الـFileProvider بتحدد الملفات اللي ممكن تتدّي لتطبيقات تانية. الـroot-path أو مسار زي `.` أو `/` بيغطي كل تخزين التطبيق أو الجهاز، فأي URI غلط أو مقصود ممكن يكشف قواعد البيانات والـtokens والملفات الخاصة.";
+  static const fileProviderFix =
+      "شارك فولدر واحد مخصص، زي `<cache-path name=\"shared\" path=\"shared/\"/>`، وانسخ فيه بس الملفات اللي عايز تشاركها.";
+  static const fileProviderPass = "مسارات الـFileProvider محدودة";
+  static const fileProviderTitle = "الـFileProvider بيشارك أكتر من اللازم";
   static const i18nAegisSecurityAudit = "تقرير Aegis الأمني";
   static const i18nApk = "الـ APK";
   static const i18nAppBundleAab = "الـ App Bundle (AAB)";
@@ -6654,6 +6819,19 @@ abstract final class Ar {
       "خلّي الأكواد والمبالغ برّه نص الإشعار، أو حط `visibility: NotificationVisibility.secret` (أو `private` مع نسخة public) في `AndroidNotificationDetails`.";
   static const notificationLeakPass = "الإشعارات مش بتعرض بيانات حساسة";
   static const notificationLeakTitle = "بيانات حساسة بتظهر في الإشعارات";
+  static const oauthClientSecret =
+      "التطبيق بيبعت client_secret. أي حاجة جوّه التطبيق ممكن تتطلّع، فالسر ده مكشوف.";
+  static const oauthDescription =
+      "التطبيقات مش بتقدر تخبّي سر، والـredirect ممكن تطبيقات تانية تستقبله. الـimplicit flow بيحط الـtoken في لينك الـredirect، والـclient secret جوّه التطبيق بيبقى مكشوف، والـcode flow من غير PKCE بيخلّي أي تطبيق تاني يسجّل نفس الـscheme ياخد الكود.";
+  static const oauthFix =
+      "استخدم authorization code مع PKCE (`flutter_appauth`، أو `code_challenge` بـS256)، وخلّي الـclient secrets على السيرفر بتاعك، واستخدم https App Links أو Universal Links للـredirect.";
+  static const oauthImplicit =
+      "OAuth بالـimplicit flow (response_type=token): الـaccess token بيرجع في لينك الـredirect، وده ممكن تطبيقات تانية أو الـlogs تقراه.";
+  static const oauthNoPkce =
+      "Authorization code flow من غير PKCE (مفيش code_challenge): أي تطبيق تاني يسجّل نفس الـredirect scheme يقدر ياخد الكود.";
+  static const oauthPass =
+      "تسجيل الدخول بـOAuth بيستخدم authorization code مع PKCE";
+  static const oauthTitle = "تسجيل دخول OAuth بطريقة غير آمنة";
   static String oldLibrary(
           {required Object? advisory,
           required Object? artifact,
@@ -6817,6 +6995,18 @@ abstract final class Ar {
   static const passTitlesTlsCertificatesAreValidated =
       "شهادات TLS بيتم التحقق منها";
   static const passTitlesWebviewsAreLockedDown = "الـ WebView مقفول كويس";
+  static const pendingIntentDescription =
+      "التطبيق اللي بيستلم PendingIntent قابل للتعديل يقدر يكمّل الـIntent اللي جوّاه. ولو الـIntent ده مش محدد component معيّن، ممكن يتبعت بهوية وصلاحيات تطبيقك لأي component فيه، حتى اللي مش exported.";
+  static const pendingIntentFix =
+      "ضيف `PendingIntent.FLAG_IMMUTABLE`، ولو لازم يكون قابل للتعديل (inline replies أو bubbles)، حدد الـIntent اللي جوّاه بـ`setClass` أو `setComponent`.";
+  static const pendingIntentMutable =
+      "PendingIntent بـFLAG_MUTABLE جوّاه Intent من غير هدف محدد، فالتطبيق اللي بيستلمه يقدر يوجّهه لأي component في تطبيقك.";
+  static const pendingIntentNoFlag =
+      "PendingIntent من غير FLAG_IMMUTABLE جوّاه Intent من غير هدف محدد، ومع targetSdk أقل من 31 بيبقى قابل للتعديل.";
+  static const pendingIntentPass =
+      "الـPendingIntents مش قابلة للتعديل أو محددة";
+  static const pendingIntentTitle =
+      "PendingIntent قابل للتعديل وجوّاه Intent مش محدد";
   static String plainEntityField(
           {required Object? entity,
           required Object? field,
@@ -6979,6 +7169,17 @@ abstract final class Ar {
   static const platformYes = "نعم";
   static const podsNotChecked =
       "الـpods بتاعة CocoaPods مش بتتفحص للثغرات المعروفة، لأن OSV مفيهوش بيانات CocoaPods. الـpods اللي ليها Swift package بتتفحص عن طريق Package.resolved.";
+  static String privacyManifest({required Object? api}) =>
+      "كود التطبيق نفسه بيستخدم " +
+      api.toString() +
+      "، وده required-reason API، بس مفيش PrivacyInfo.xcprivacy.";
+  static const privacyManifestDescription =
+      "من 2024، Apple بتطلب ملف PrivacyInfo.xcprivacy يوضّح ليه كود التطبيق نفسه بيستخدم APIs معينة (UserDefaults، وتواريخ الملفات، ومساحة الديسك، ووقت تشغيل الجهاز). والتطبيقات اللي من غيره بتترفض، والتصريحات دي هي اللي المستخدمين بيشوفوها عن استخدام البيانات.";
+  static const privacyManifestFix =
+      "ضيف `PrivacyInfo.xcprivacy` للـRunner target في Xcode، وصرّح بكل category من الـrequired-reason APIs مع الـreason code بتاعها. الـplugins بتيجي بالـmanifests بتاعتها.";
+  static const privacyManifestPass =
+      "التطبيق معرّف استخدامه للـrequired-reason APIs";
+  static const privacyManifestTitle = "الـprivacy manifest بتاع iOS ناقص";
   static const probeControlDead = "التطبيق مكملش تشغيل أثناء التجربة المرجعية.";
   static String probeFailed({required Object? reason}) =>
       "تعذّر تشغيل الفحص: " + reason.toString() + "";
@@ -7581,6 +7782,17 @@ abstract final class Ar {
   static const sqlInjectionPass = "استعلامات SQL بتبعت القيم كـarguments";
   static const sqlInjectionTitle =
       "استعلام SQL متركّب من متغيرات (SQL injection)";
+  static String taskHijack({required Object? activity}) =>
+      "" +
+      activity.toString() +
+      " بتستخدم taskAffinity مخصص مع singleTask، أو allowTaskReparenting، فتطبيق تاني يقدر يدخل الـtask بتاعها على Android أقدم من 11.";
+  static const taskHijackDescription =
+      "الـtaskAffinity المخصص مع singleTask، أو allowTaskReparenting، بيخلّي تطبيق تاني يحط شاشاته جوّه الـtask بتاع تطبيقك على Android أقدم من 11 (StrandHogg)، فتظهر شاشة login مزيفة كأنها من تطبيقك.";
+  static const taskHijackFix =
+      "حط `android:taskAffinity=\"\"` على الـactivities الـexported، وابعد عن `allowTaskReparenting`، أو ارفع `minSdk` لـ30.";
+  static const taskHijackPass = "الـActivities مقفولة على الـtask بتاعها";
+  static const taskHijackTitle =
+      "الـActivity ممكن تتسرق عن طريق الـtask بتاعها";
   static const toolAndroidSdk = "Android SDK";
   static String toolAvd({required Object? avd}) =>
       "AVD \"" + avd.toString() + "\"";
@@ -7608,6 +7820,16 @@ abstract final class Ar {
       ". شغّل \"" +
       command.toString() +
       "\".";
+  static String v1Only({required Object? minSdk}) =>
+      "الـAPK عليه توقيع v1 بس وبيدعم Android أقدم من 7.0 (minSdk " +
+      minSdk.toString() +
+      ")، وهناك APK متعدّل يقدر يحتفظ بالتوقيع (Janus، CVE-2017-13156).";
+  static const v1OnlyDescription =
+      "Android من 5 لـ7 بيقبل APK متوقّع بـv1 (JAR) بس، وثغرة Janus بتخلّي APK متعدّل يحتفظ بنفس التوقيع. فمستخدمين النسخ دي ممكن ياخدوا تطبيق متلاعب فيه وشكله أصلي.";
+  static const v1OnlyFix =
+      "وقّع بـapksigner بالـv2 أو v3 scheme (الـAndroid Gradle Plugin بيعمل كده تلقائي)، أو ارفع `minSdk` لـ24.";
+  static const v1OnlyPass = "الـAPK متوقّع بـv2 أو v3";
+  static const v1OnlyTitle = "الـAPK متوقّع بالـv1 scheme بس";
   static String webInjection({required Object? call, required Object? value}) =>
       "`" +
       value.toString() +

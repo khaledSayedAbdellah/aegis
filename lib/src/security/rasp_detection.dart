@@ -22,6 +22,10 @@ const raspJailbreak = 'jailbreak';
 const raspDebugger = 'debugger';
 const raspHooking = 'hooking';
 
+/// Optional checks: listed in the evidence, not required for a pass.
+const raspEmulator = 'emulator';
+const raspVirtualization = 'virtualization';
+
 /// The check that makes a platform's protection count at all.
 String raspIntegrityCheck(String platform) =>
     platform == raspAndroid ? raspRoot : raspJailbreak;
@@ -78,6 +82,12 @@ final raspIndicators = <String, RegExp>{
       r'com\.saurik\.substrate|\bMobileSubstrate\b|MSHookFunction|'
       r'MSHookMessageEx|SubstrateLoader|libcycript|cynject|SSLKillSwitch|'
       r'amIReverseEngineered|amIRuntimeHooked'),
+  raspEmulator: RegExp(
+      r'\bgoldfish\b|\branchu\b|\bsdk_gphone|generic_x86|\bGenymotion\b|'
+      r'\bvbox86\b|TARGET_OS_SIMULATOR|SIMULATOR_DEVICE_NAME|\bisPhysicalDevice\b'),
+  raspVirtualization:
+      RegExp(r'com\.lody\.virtual|io\.va\.exposed|com\.lbe\.parallel|'
+          r'com\.excelliance\.dualaid|com\.parallel\.space|\bVirtualApp\b'),
 };
 
 /// A native SDK that provides runtime protection. [usage] is null for

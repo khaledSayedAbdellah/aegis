@@ -119,3 +119,7 @@ class PaymentForm {
     await prefs.setString('data', key.base64);
   }
 }
+
+// AEG-P13: the implicit flow returns the token in the redirect URL.
+const signInUrl =
+    'https://id.my-shop.com/authorize?response_type=token&client_id=app';
