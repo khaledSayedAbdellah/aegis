@@ -146,10 +146,21 @@ class PendingIntentRule extends Rule {
             .allMatches(args)
             .map((m) => m[1]!)
             .toList()) {
-          final decl = RegExp(
-                  '\\b(?:val|var|final|int)\\s+$name\\b[^=\\n]*=([^\\n;]*FLAG_[^\\n;]*)')
-              .firstMatch(code);
+          // The nearest declaration before the call.
+          final decl =
+              RegExp('\\b(?:val|var|final|int)\\s+$name\\b[^=\\n]*=([^\\n;]*)')
+                  .allMatches(code)
+                  .where((d) => d.start < m.start)
+                  .lastOrNull;
           if (decl != null) args = '$args ${decl[1]}';
+        }
+        // Flags returned by a helper in the same file: `mutableFlags()`.
+        for (final name in RegExp(r'\b([a-z]\w*)\s*\(\s*\)')
+            .allMatches(args!)
+            .map((m) => m[1]!)
+            .toSet()) {
+          final body = _functionBody(code, name);
+          if (body != null && body.contains('FLAG_')) args = '$args $body';
         }
         if (args!.contains('FLAG_IMMUTABLE')) continue;
         final mutable = args.contains('FLAG_MUTABLE');
@@ -184,6 +195,21 @@ class PendingIntentRule extends Rule {
     }
     return false;
   }
+}
+
+/// The text of the Kotlin or Java function [name] declared in [code], up to
+/// the next declaration, or null.
+String? _functionBody(String code, String name) {
+  final m = RegExp(
+          '\\b(?:fun|int|Int|static\\s+int)\\s+${RegExp.escape(name)}\\s*\\(')
+      .firstMatch(code);
+  if (m == null) return null;
+  final rest = code.substring(m.end);
+  final next = RegExp(
+          r'\n\s*(?:(?:private|public|internal|protected|override|static|final)\s+)*(?:fun|class|object)\s')
+      .firstMatch(rest);
+  final end = next?.start ?? (rest.length < 2000 ? rest.length : 2000);
+  return rest.substring(0, end);
 }
 
 /// FileProvider path elements that share far more than intended:
@@ -396,6 +422,8 @@ class PrivacyManifestRule extends Rule {
     final out = <Finding>[];
     final reported = <String>{};
     for (final f in project.iosNativeSources) {
+      // Headers declare APIs; the .m / .swift files are where they are used.
+      if (f.path.endsWith('.h')) continue;
       final code = withoutComments(f.text);
       for (final m in _requiredReason.allMatches(code)) {
         final api = m[0]!;
@@ -632,6 +660,18 @@ final _loaderLibraries =
         r'com\.google\.android\.play\.|androidx\.|android\.|kotlin\.|'
         r'com\.facebook\.soloader\.|io\.flutter\.|com\.android\.)');
 
+/// A Java package name inside a string: `com.google.ads.Thing`,
+/// `Lcom/facebook/x;`.
+final _packageName = RegExp(
+    r'\b(?:com|org|net|io|androidx|me|dev|co)[./][a-z][a-z0-9_]*(?:[./][a-z][a-z0-9_]*)+');
+
+/// A class name R8 shortened: no package left (`-repackageclasses`), or
+/// only one- to three-letter names (`a.b.C`).
+bool _renamed(String className) {
+  final parts = className.split('.');
+  return parts.length == 1 || parts.every((p) => p.length <= 3);
+}
+
 class DynamicCodeApkRule extends Rule {
   const DynamicCodeApkRule();
 
@@ -660,25 +700,66 @@ class DynamicCodeApkRule extends Rule {
     final apk = project.apk;
     if (apk == null) return RuleCheck.notApplicable();
     final users = <String, String>{}; // class -> loader
+    final hints = <String, Set<String>>{}; // class -> package names it uses
     for (final e in apk.zip.entries.values) {
       if (!RegExp(r'(^|/)classes\d*\.dex$').hasMatch(e.name)) continue;
       if (e.size > 96 * 1024 * 1024) continue;
-      final usage = readDexUsage(apk.zip.readEntry(e), (_) => const {},
+      final usage = readDexUsage(
+          apk.zip.readEntry(e),
+          (s) => s.length < 160 && _packageName.hasMatch(s)
+              ? {'pkg:${_packageName.firstMatch(s)![0]!.replaceAll('/', '.')}'}
+              : const {},
           classLabels: (c) => _loaders.contains(c) ? {c} : const {});
-      usage.users.forEach((cls, loaders) {
-        users.putIfAbsent(cls, () => loaders.first.split('.').last);
+      usage.users.forEach((cls, labels) {
+        final loader = labels.where(_loaders.contains).firstOrNull;
+        if (loader == null) return;
+        users.putIfAbsent(cls, () => loader.split('.').last);
+        (hints[cls] ??= {}).addAll([
+          for (final l in labels)
+            if (l.startsWith('pkg:')) l.substring(4)
+        ]);
       });
     }
+    final own = apk.packageName;
     final out = <Finding>[];
     final libraries = <String>[];
+    final unknown = <String>[];
     for (final e in users.entries) {
-      if (_loaderLibraries.hasMatch(e.key)) {
+      var owner = e.key;
+      if (_renamed(e.key)) {
+        // R8 renamed the class (and may have moved it out of its package):
+        // the package names in its strings are the only clue to its owner.
+        final used = hints[e.key] ?? const <String>{};
+        final mine =
+            own != null && used.any((h) => h.startsWith('$own.') || h == own);
+        final library =
+            used.where((h) => own == null || !h.startsWith(own)).firstOrNull;
+        if (!mine && library != null) {
+          libraries.add('${e.key} ($library)');
+          continue;
+        }
+        if (!mine) {
+          unknown.add(e.key);
+          continue;
+        }
+        owner = '${e.key} ($own)';
+      } else if (_loaderLibraries.hasMatch(e.key)) {
         libraries.add(e.key);
         continue;
       }
       out.add(inFile('${apk.fileName}!/classes.dex', null,
-          En.dynamicCodeApk(loader: e.value, owner: e.key),
-          messageAr: Ar.dynamicCodeApk(loader: e.value, owner: e.key)));
+          En.dynamicCodeApk(loader: e.value, owner: owner),
+          messageAr: Ar.dynamicCodeApk(loader: e.value, owner: owner)));
+    }
+    if (unknown.isNotEmpty) {
+      final list = (unknown..sort()).take(8).join(', ');
+      project.securityEvidence.add(SecurityEvidence(
+          meta.id,
+          '${apk.fileName}!/classes.dex',
+          Bilingual(En.dynamicCodeRenamed(classes: list),
+              Ar.dynamicCodeRenamed(classes: list)),
+          status: 'facts',
+          data: {'renamedClasses': unknown}));
     }
     if (libraries.isNotEmpty) {
       final list = (libraries..sort()).take(5).join(', ');

@@ -1,6 +1,7 @@
 /// UI strings for reports.
 library;
 
+import '../engine.dart' show AuditReport;
 import '../l10n/messages.g.dart';
 
 import '../model.dart';
@@ -85,6 +86,21 @@ class Strings {
   String get updateHint =>
       L10n(lang).i18nRunAegisUpdateBaselineToRemoveFixedIssuesFrom;
   String get noIssues => L10n(lang).i18nNoIssuesFound;
+  String get changedLines => L10n(lang).i18nChangedLines;
+  String changedLinesSummary(String ref, int count) =>
+      L10n(lang).i18nChangedLinesSummary(ref: ref, count: count);
+
+  /// The heading of the open-issues list, which depends on what is hidden.
+  String failedHeading(AuditReport r) => r.changed != null
+      ? L10n(lang).i18nIssuesOnChangedLines
+      : r.usesBaseline
+          ? newIssues
+          : failed;
+  String emptyHeading(AuditReport r) => r.changed != null
+      ? L10n(lang).i18nNoIssuesOnChangedLines
+      : r.usesBaseline
+          ? noNewIssues
+          : noIssues;
   String get isKnown => L10n(lang).i18nKnown2;
   String get disclaimer =>
       L10n(lang).i18nThisScoreMeasuresHowWellKnownProtectionsAre;

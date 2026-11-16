@@ -874,7 +874,7 @@
   "@binaryRulesOverrideTheMergedValueInYourManifestWith": {
     "description": "rules/binary_rules.dart: localized message."
   },
-  "binaryRulesLibraryAddsAnExportedComponentWithoutPermission": "Library adds an exported component without permission",
+  "binaryRulesLibraryAddsAnExportedComponentWithoutPermission": "Exported component without permission in the final manifest",
   "@binaryRulesLibraryAddsAnExportedComponentWithoutPermission": {
     "description": "rules/binary_rules.dart: localized message."
   },
@@ -5424,6 +5424,93 @@
         "type": "String"
       },
       "api": {
+        "type": "String"
+      }
+    }
+  },
+  "deepLinkActionTitle": "Deep-link data reaches a sensitive action unchecked",
+  "@deepLinkActionTitle": {
+    "description": "rules/deep_link_rules.dart: AEG-D19."
+  },
+  "deepLinkActionPass": "Deep-link data is checked before it is used",
+  "@deepLinkActionPass": {
+    "description": "rules/deep_link_rules.dart: AEG-D19."
+  },
+  "deepLinkActionDescription": "Any app or web page can open the app with a link it chose. When a value from that link is opened as a URL, loaded in a WebView, used as a file path or sent as a request without a check, the link decides what the app does: open a phishing page, load a script in the WebView, read or overwrite a file, or send the user's session to another server.",
+  "@deepLinkActionDescription": {
+    "description": "rules/deep_link_rules.dart: AEG-D19."
+  },
+  "deepLinkActionFix": "Check the value before using it: compare `uri.host` and `uri.scheme` with an allow-list, map route names to known screens instead of using the path as data, and never build a URL, file path or request from link data directly.",
+  "@deepLinkActionFix": {
+    "description": "rules/deep_link_rules.dart: AEG-D19."
+  },
+  "deepLinkAction": "Deep-link data `{value}` reaches {call}() without a check.",
+  "@deepLinkAction": {
+    "description": "rules/deep_link_rules.dart: AEG-D19.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "call": {
+        "type": "String"
+      }
+    }
+  },
+  "deepLinkActionNone": "The Dart code doesn't read deep links (uni_links, app_links or go_router state).",
+  "@deepLinkActionNone": {
+    "description": "rules/deep_link_rules.dart: AEG-D19."
+  },
+  "i18nChangedLines": "Changed lines",
+  "@i18nChangedLines": {
+    "description": "reporters/i18n.dart: changed-lines mode (--changed-since)."
+  },
+  "i18nChangedLinesSummary": "only findings on lines changed since {ref} are listed; {count} others are not (they still count in the score)",
+  "@i18nChangedLinesSummary": {
+    "description": "reporters/i18n.dart: changed-lines mode (--changed-since).",
+    "placeholders": {
+      "ref": {
+        "type": "String"
+      },
+      "count": {
+        "type": "Object"
+      }
+    }
+  },
+  "i18nIssuesOnChangedLines": "Issues on changed lines",
+  "@i18nIssuesOnChangedLines": {
+    "description": "reporters/i18n.dart: changed-lines mode (--changed-since)."
+  },
+  "i18nNoIssuesOnChangedLines": "No issues on the changed lines",
+  "@i18nNoIssuesOnChangedLines": {
+    "description": "reporters/i18n.dart: changed-lines mode (--changed-since)."
+  },
+  "releaseManifestDebuggable": "android:debuggable=\"true\" is set in the manifest of the release source set, so release builds are debuggable.",
+  "@releaseManifestDebuggable": {
+    "description": "rules/android_rules.dart: AEG-A01 release source set."
+  },
+  "nativeStaticKey": "The key `{name}` used for encryption is a string written in the code.",
+  "@nativeStaticKey": {
+    "description": "rules/dart_rules.dart: AEG-D06 in Kotlin and Java.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "nativeStaticIv": "The IV `{name}` used for encryption is fixed in the code.",
+  "@nativeStaticIv": {
+    "description": "rules/dart_rules.dart: AEG-D06 in Kotlin and Java.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "dynamicCodeRenamed": "Classes renamed by R8 that load code, with nothing in them that tells whether they are the app's or a library's (not counted): {classes}. Look them up in the build's mapping.txt.",
+  "@dynamicCodeRenamed": {
+    "description": "rules/platform_ipc_rules.dart: AEG-B17 renamed classes.",
+    "placeholders": {
+      "classes": {
         "type": "String"
       }
     }

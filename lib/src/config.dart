@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
 import 'model.dart';
+import 'rules/custom_rules.dart';
 import 'util.dart';
 
 class AegisConfig {
@@ -41,6 +42,7 @@ class AegisConfig {
     this.runtimeSecurity = const {},
     this.raspPackages = const [],
     this.notProtection = const [],
+    this.customRules = const [],
   });
 
   final ProfileSet profile;
@@ -104,6 +106,9 @@ class AegisConfig {
   /// `rasp: not_protection:` — names AEG-P01 treats like crash and analytics
   /// libraries: their device checks are not the app's protection.
   final List<String> notProtection;
+
+  /// `custom_rules:` — the team's own checks (ids start with `X-`).
+  final List<CustomRuleSpec> customRules;
 
   /// An artifact path made absolute against [projectRoot], or null when unset.
   static String? resolve(String projectRoot, String? path) {
@@ -193,6 +198,7 @@ class AegisConfig {
       runtimeSecurity: _runtime(doc['runtime_security']),
       raspPackages: _names(doc['rasp'], 'packages'),
       notProtection: _names(doc['rasp'], 'not_protection'),
+      customRules: CustomRuleSpec.parseAll(doc['custom_rules']),
     );
   }
 
@@ -270,5 +276,6 @@ class AegisConfig {
         runtimeSecurity: runtimeSecurity,
         raspPackages: raspPackages,
         notProtection: notProtection,
+        customRules: customRules,
       );
 }

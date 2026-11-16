@@ -12,7 +12,7 @@ void main() {
   group('AEG-D11 SQL', () {
     test('values pasted into SQL are reported', () async {
       expect(await found('AEG-D11', r'''
-Future<void> f(db, String id, String name, String q, int limit) async {
+Future<void> f(db, String id, String name, String q, limit) async {
   await db.rawQuery('SELECT * FROM users WHERE id = $id');
   await db.rawDelete("DELETE FROM users WHERE name = '$name'");
   await db.query('notes', where: 'title LIKE "%$q%"');
@@ -45,6 +45,49 @@ Future<void> f(db, String id, String table) async {
   await db.execute('notes $id');
 }
 '''), isEmpty);
+    });
+  });
+
+  group('AEG-D11 value flow', () {
+    test('a query variable built from data is reported', () async {
+      expect(await found('AEG-D11', r'''
+Future<void> f(db, TextEditingController nameController, List names) async {
+  final name = nameController.text.trim();
+  final sql = 'SELECT * FROM users WHERE name = "$name"';
+  await db.rawQuery(sql);
+  for (final n in names) {
+    await db.rawQuery('SELECT * FROM t WHERE n = $n');
+  }
+}
+'''), [
+        startsWith('4: SQL built with `name` in rawQuery()'),
+        startsWith('6: SQL built with `n` in rawQuery()'),
+      ]);
+    });
+
+    test('numbers and constants defined in the function pass', () async {
+      expect(await found('AEG-D11', r'''
+Future<void> f(db, TextEditingController c, int id, {required int limit}) async {
+  var where = 'id = $id';
+  await db.query('t', where: where);
+  final count = int.parse(countController.text);
+  await db.rawQuery('SELECT * FROM t LIMIT $count');
+  const kind = 'a';
+  await db.rawQuery('SELECT * FROM t WHERE k = $kind');
+  await db.rawQuery('SELECT * FROM t LIMIT $limit');
+  final n = c.text.length;
+  await db.rawQuery('SELECT * FROM t WHERE n = $n');
+}
+'''), isEmpty);
+    });
+
+    test('a WebView script variable built from data is reported', () async {
+      expect(await found('AEG-D12', r'''
+Future<void> f(web, TextEditingController nameController) async {
+  final js = 'greet("${nameController.text}")';
+  await web.runJavaScript(js);
+}
+'''), [startsWith('3: `nameController.text` is pasted')]);
     });
   });
 

@@ -39,7 +39,7 @@ def write_outputs(report):
         for rule in report.get("rules", [])
         if rule.get("status") == "failed"
         for finding in rule.get("findings", [])
-        if not finding.get("baselined")
+        if not finding.get("baselined") and not finding.get("outsideChange")
     )
     values = {
         "score": score.get("value", ""),
@@ -67,7 +67,7 @@ def annotate(report, project):
             continue
         level = LEVELS.get(rule.get("severity"), "notice")
         for finding in rule.get("findings", []):
-            if finding.get("baselined"):
+            if finding.get("baselined") or finding.get("outsideChange"):
                 continue
             if shown >= MAX_ANNOTATIONS:
                 hidden += 1

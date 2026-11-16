@@ -2,6 +2,7 @@
 /// SQLite, and HTML or JavaScript handed to a WebView.
 library;
 
+import '../dart_flow.dart';
 import '../dart_scanner.dart';
 import '../l10n/messages.g.dart';
 import '../model.dart';
@@ -35,6 +36,16 @@ List<TemplatePart>? templateOf(DartFile f, int start, int end) {
 
   for (var i = start; i <= end && i < f.tokens.length; i++) {
     final t = f.tokens[i];
+    // Brackets belong to the expression around them: the string in
+    // `value.substring('javascript:'.length)` is not part of the template.
+    if (t.isPunct('(') || t.isPunct('[') || t.isPunct('{') || t.isPunct('?[')) {
+      final m = f.matchOf(i);
+      if (m != null && m <= end) {
+        pending.write(f.text(i, m));
+        i = m;
+        continue;
+      }
+    }
     if (t.isString) {
       flush();
       sawString = true;
@@ -94,9 +105,23 @@ List<TemplatePart> _interpolations(String value) {
 
 /// Expressions that are constants, not data: `kTable`, `TABLE_NAME`,
 /// `Tables.USERS`, numbers.
-bool _constant(String e) =>
-    RegExp(r'^(?:\w+\.)*(?:_?k[A-Z]\w*|[A-Z][A-Z0-9_]*)$').hasMatch(e) ||
-    RegExp(r'^\d+(?:\.\d+)?$').hasMatch(e);
+bool _constant(String e) => constantName(e);
+
+/// The string templates an argument stands for: the argument itself when it
+/// contains a string literal, or, when it is a plain variable, each template
+/// assigned to that variable earlier in the function. Each comes with the
+/// token index its pasted values are read at.
+List<(List<TemplatePart>, int)> argumentTemplates(
+    DartFile f, ValueFlow flow, Arg arg) {
+  final direct = templateOf(f, arg.start, arg.end);
+  if (direct != null) return [(direct, arg.start)];
+  final t = f.tokens[arg.start];
+  if (arg.start != arg.end || !t.isIdent || _constant(t.text)) return const [];
+  return [
+    for (final d in flow.definitions(t.text, arg.start))
+      if (templateOf(f, d.start, d.end) case final parts?) (parts, d.start)
+  ];
+}
 
 class SqlInjectionRule extends Rule {
   const SqlInjectionRule();
@@ -134,6 +159,7 @@ class SqlInjectionRule extends Rule {
   RuleCheck check(Project project, ProfileSet profile) {
     final out = <Finding>[];
     for (final f in project.dartFiles) {
+      final flow = ValueFlow(f);
       for (final c in f.calls({..._statements, ..._conditions})) {
         final args = f.args(c.open);
         final Arg? arg;
@@ -143,13 +169,15 @@ class SqlInjectionRule extends Rule {
           arg = args.where((a) => a.name == null).firstOrNull;
         }
         if (arg == null) continue;
-        final parts = templateOf(f, arg.start, arg.end);
-        if (parts == null) continue;
-        if (_statements.contains(c.name) &&
-            !_sql.hasMatch(parts.map((p) => p.text).join(' '))) {
-          continue;
+        String? value;
+        for (final (parts, use) in argumentTemplates(f, flow, arg)) {
+          if (_statements.contains(c.name) &&
+              !_sql.hasMatch(parts.map((p) => p.text).join(' '))) {
+            continue;
+          }
+          value = _valueInSql(parts, (e) => flow.origin(e, use).clean);
+          if (value != null) break;
         }
-        final value = _valueInSql(parts);
         if (value == null) continue;
         out.add(at(f, arg.start,
             En.sqlInjection(value: shorten(value, 40), call: c.name),
@@ -157,13 +185,91 @@ class SqlInjectionRule extends Rule {
                 Ar.sqlInjection(value: shorten(value, 40), call: c.name)));
       }
     }
+    out.addAll(_native(project));
     return RuleCheck(out);
+  }
+
+  /// Kotlin and Java: `rawQuery`, `execSQL` and `compileStatement` given SQL
+  /// built with string templates (`"... $x"`) or `+`. Both read like Dart
+  /// strings to the tokenizer.
+  List<Finding> _native(Project project) {
+    final out = <Finding>[];
+    for (final file in [
+      ...project.androidNativeSources,
+      ...project.sharedNativeSources,
+    ]) {
+      if (!file.path.endsWith('.kt') && !file.path.endsWith('.java')) continue;
+      if (!RegExp(r'\b(?:rawQuery|execSQL|compileStatement)\b')
+          .hasMatch(file.text)) {
+        continue;
+      }
+      final f = DartFile(file.path, file.text);
+      for (final c
+          in f.calls(const {'rawQuery', 'execSQL', 'compileStatement'})) {
+        final arg = f.args(c.open).where((a) => a.name == null).firstOrNull;
+        if (arg == null) continue;
+        var parts = templateOf(f, arg.start, arg.end);
+        final t = f.tokens[arg.start];
+        if (parts == null && arg.start == arg.end && t.isIdent) {
+          final d = _nativeDefinition(f, t.text, c.nameIndex);
+          if (d != null) parts = templateOf(f, d.$1, d.$2);
+        }
+        if (parts == null ||
+            !_sql.hasMatch(parts.map((p) => p.text).join(' '))) {
+          continue;
+        }
+        final value = _valueInSql(parts, (_) => false);
+        if (value == null) continue;
+        out.add(at(f, c.nameIndex,
+            En.sqlInjection(value: shorten(value, 40), call: c.name),
+            messageAr:
+                Ar.sqlInjection(value: shorten(value, 40), call: c.name)));
+      }
+    }
+    return out;
+  }
+
+  /// The value range of the nearest `val name = ...`, `var name = ...` or
+  /// `String name = ...` before token [before]. Kotlin has no `;`, so the
+  /// value ends with its line unless the line ends with `+`.
+  static (int, int)? _nativeDefinition(DartFile f, String name, int before) {
+    for (var k = before - 1; k > 0; k--) {
+      final t = f.tokens[k];
+      if (!t.isIdent || t.text != name) continue;
+      final prev = f.tokens[k - 1];
+      if (!(prev.isIdent &&
+          const {'val', 'var', 'String', 'final'}.contains(prev.text))) {
+        continue;
+      }
+      var eq = k + 1;
+      // `val sql: String = ...`
+      if (f.at(eq)?.isPunct(':') ?? false) eq += 2;
+      if (f.at(eq + 1) == null) return null;
+      if (!(f.tokens[eq].isPunct('='))) continue;
+      final start = eq + 1;
+      var e = start;
+      while (e < before) {
+        final tk = f.tokens[e];
+        if (tk.isPunct(';')) break;
+        if (e > start &&
+            f.lineOfToken(e) > f.lineOfToken(e - 1) &&
+            !f.tokens[e - 1].isPunct('+') &&
+            !tk.isPunct('+')) {
+          break;
+        }
+        final m = f.matchOf(e);
+        e = (m != null && m > e) ? m + 1 : e + 1;
+      }
+      return e - 1 >= start ? (start, e - 1) : null;
+    }
+    return null;
   }
 
   /// The first pasted expression that sits where SQL expects a value
   /// (`= $x`, `LIKE '%$x%'`, `IN ($x)`, `VALUES ($a, $b)`), not where it
   /// expects a table or column name.
-  static String? _valueInSql(List<TemplatePart> parts) {
+  static String? _valueInSql(
+      List<TemplatePart> parts, bool Function(String) clean) {
     final before = StringBuffer();
     for (final part in parts) {
       final e = part.expression;
@@ -171,7 +277,9 @@ class SqlInjectionRule extends Rule {
         before.write(part.text);
         continue;
       }
-      if (!_constant(e) && _valuePosition(before.toString())) return e;
+      if (!_constant(e) && !clean(e) && _valuePosition(before.toString())) {
+        return e;
+      }
       before.write('x');
     }
     return null;
@@ -227,25 +335,34 @@ class WebViewInjectionRule extends Rule {
 
   /// Pasting an encoded value is the safe way to do this.
   static final _encoded = RegExp(
-      r'^(?:jsonEncode|json\.encode|htmlEscape\.convert|const HtmlEscape\(\)\.convert|Uri\.encodeComponent|Uri\.encodeFull|base64Encode|base64\.encode)\(');
+      r'^(?:jsonEncode|json\.encode|htmlEscape\.convert|const HtmlEscape\(\)\.convert|Uri\.encodeComponent|Uri\.encodeFull|base64Encode|base64\.encode)\(|'
+      // The app's own helpers: `htmlEscape(x)`, `escapeJs(x)`, `sanitize(x)`.
+      r'^(?:[\w.]*\.)?\w*(?:[eE]scape|[eE]ncode|[sS]anitiz)\w*\(');
 
   @override
   RuleCheck check(Project project, ProfileSet profile) {
     final out = <Finding>[];
     for (final f in project.dartFiles) {
+      final flow = ValueFlow(f);
       for (final c in f.calls(_calls.keys.toSet())) {
         final args = f.args(c.open);
         final named = _calls[c.name];
         final arg = (named == null ? null : f.namedArg(args, named)) ??
             args.where((a) => a.name == null).firstOrNull;
         if (arg == null) continue;
-        final parts = templateOf(f, arg.start, arg.end);
-        if (parts == null) continue;
-        final value = parts
-            .map((p) => p.expression)
-            .whereType<String>()
-            .where((e) => !_constant(e) && !_encoded.hasMatch(e))
-            .firstOrNull;
+        String? value;
+        for (final (parts, use) in argumentTemplates(f, flow, arg)) {
+          value = parts
+              .map((p) => p.expression)
+              .whereType<String>()
+              .where((e) =>
+                  !_constant(e) &&
+                  !_encoded.hasMatch(e) &&
+                  !_escapedByHelper(f, e) &&
+                  !flow.origin(e, use).clean)
+              .firstOrNull;
+          if (value != null) break;
+        }
         if (value == null) continue;
         out.add(at(f, arg.start,
             En.webInjection(value: shorten(value, 40), call: c.name),
@@ -255,6 +372,20 @@ class WebViewInjectionRule extends Rule {
     }
     return RuleCheck(out);
   }
+}
+
+/// Whether [e] calls a function of this file that escapes its input:
+/// `_jsString(x)` defined as `'"${s.replaceAll('"', r'\"')}"'`.
+bool _escapedByHelper(DartFile f, String e) {
+  final m = RegExp(r'^(_?\w+)\(').firstMatch(e);
+  if (m == null) return false;
+  final body = f.functionBody(m[1]!);
+  if (body == null) return false;
+  final text = f.text(body.start, body.end);
+  return RegExp(
+              r'jsonEncode|json\.encode|htmlEscape|HtmlEscape|encodeComponent')
+          .hasMatch(text) ||
+      RegExp(r'''replaceAll\(\s*r?['"](?:\\\\|\\?["'<>&])''').hasMatch(text);
 }
 
 const injectionRules = <Rule>[SqlInjectionRule(), WebViewInjectionRule()];

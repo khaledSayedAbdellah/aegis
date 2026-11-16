@@ -30,6 +30,9 @@ inputs:
   baseline:
     description: Baseline file of accepted findings. Empty uses aegis-baseline.json in the project, if any.
     default: ''
+  changed-only:
+    description: 'On pull requests, list (and fail on) only findings on lines the pull request changed. The score still covers the whole project. Best with fetch-depth: 0 in actions/checkout.'
+    default: 'false'
   strict:
     description: Fail when an applicable check could not complete.
     default: 'false'
@@ -139,6 +142,7 @@ runs:
         AEGIS_FAIL_ON: ${{ inputs.fail-on }}
         AEGIS_MIN_SCORE: ${{ inputs.min-score }}
         AEGIS_BASELINE: ${{ inputs.baseline }}
+        AEGIS_CHANGED_ONLY: ${{ inputs.changed-only }}
         AEGIS_STRICT: ${{ inputs.strict }}
         AEGIS_OFFLINE: ${{ inputs.offline }}
         AEGIS_PUB_GET: ${{ inputs.pub-get }}

@@ -3,6 +3,9 @@ library;
 
 import '../l10n/messages.g.dart';
 
+import 'dart:io';
+
+import 'package:path/path.dart' as p;
 import 'package:xml/xml.dart';
 
 import '../model.dart';
@@ -66,6 +69,24 @@ class DebuggableRule extends Rule {
           En.androidRulesAndroidDebuggableTrueIsSetInTheMainManifest,
           messageAr:
               Ar.androidRulesAndroidDebuggableTrueIsSetInTheMainManifest));
+    }
+    // `src/release/AndroidManifest.xml` is merged into release builds only.
+    if (p.basename(p.dirname(m.path)) == 'main') {
+      final rel = p.join(
+          p.dirname(p.dirname(m.path)), 'release', 'AndroidManifest.xml');
+      final file = File(p.join(project.root, rel));
+      if (file.existsSync()) {
+        final text = file.readAsStringSync();
+        final line =
+            RegExp(r'android:debuggable\s*=\s*"true"').firstMatch(text);
+        if (line != null) {
+          out.add(inFile(
+              rel,
+              '\n'.allMatches(text.substring(0, line.start)).length + 1,
+              En.releaseManifestDebuggable,
+              messageAr: Ar.releaseManifestDebuggable));
+        }
+      }
     }
     final g = project.appGradle;
     if (g != null) {

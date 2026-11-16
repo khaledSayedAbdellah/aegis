@@ -5,8 +5,10 @@ import '../l10n/messages.g.dart';
 
 import 'dart:convert';
 
+import '../dart_flow.dart';
 import '../dart_scanner.dart';
 import '../model.dart';
+import '../security/native_analysis.dart' show withoutComments;
 import '../project.dart';
 import '../util.dart';
 import 'rule.dart';
@@ -669,7 +671,68 @@ class StaticKeyRule extends Rule {
         }
       }
     }
+    out.addAll(_native(project));
     return RuleCheck(out);
+  }
+
+  /// Kotlin and Java files that build a cipher key or IV.
+  static final _usesCrypto =
+      RegExp(r'\b(?:SecretKeySpec|IvParameterSpec|GCMParameterSpec)\b');
+
+  /// `String key = "..."`, `val secretKey = "..."` (8+ characters).
+  static final _keyLiteral = RegExp(
+      r'(?:\bval|\bvar|\bString|\bconst\s+val)\s+(\w*(?:key|Key|KEY|secret|Secret|SECRET)\w*)\s*(?::\s*String\s*)?=\s*"([^"\\$]{8,})"');
+
+  /// `SecretKeySpec("...".toByteArray(), ...)` and `.getBytes()`.
+  static final _inlineKey =
+      RegExp(r'SecretKeySpec\(\s*"([^"]{4,})"\s*\.\s*(?:toByteArray|getBytes)');
+
+  /// `byte[] iv = {0, 1, ...}`, `val iv = byteArrayOf(...)`,
+  /// `IvParameterSpec(ByteArray(16))`, `IvParameterSpec(new byte[16])`.
+  static final _ivLiteral = RegExp(
+      r'(?:\bbyte\s*\[\]\s*(\w*(?:iv|Iv|IV)\w*)\s*=\s*(?:new\s+byte\s*\[\]\s*)?\{|'
+      r'\b(?:val|var)\s+(\w*(?:iv|Iv|IV)\w*)\s*(?::\s*ByteArray\s*)?=\s*byteArrayOf\(\s*(?:0x)?\d|'
+      r'IvParameterSpec\(\s*(ByteArray\(\s*\d+\s*\)|new\s+byte\s*\[\s*\d+\s*\])\s*\))');
+
+  List<Finding> _native(Project project) {
+    final out = <Finding>[];
+    for (final file in [
+      ...project.androidNativeSources,
+      ...project.sharedNativeSources,
+    ]) {
+      if (!file.path.endsWith('.kt') && !file.path.endsWith('.java')) continue;
+      final code = withoutComments(file.text);
+      if (!_usesCrypto.hasMatch(code)) continue;
+      int line(int offset) =>
+          '\n'.allMatches(code.substring(0, offset)).length + 1;
+      for (final m in _keyLiteral.allMatches(code)) {
+        // Only a string that becomes key bytes, not a key alias, a
+        // preference name or an API key that is itself being encrypted.
+        final name = m[1]!;
+        final n = RegExp.escape(name);
+        if (!RegExp('(?<!(?:doFinal|update|encrypt|decrypt)\\(\\s*)'
+                '\\b$n\\s*\\.\\s*(?:toByteArray|getBytes|encodeToByteArray)'
+                '\\s*\\(|SecretKeySpec\\([^;\\n]*\\b$n\\b')
+            .hasMatch(code)) {
+          continue;
+        }
+        out.add(inFile(file.path, line(m.start), En.nativeStaticKey(name: name),
+            messageAr: Ar.nativeStaticKey(name: name),
+            snippet: '$name = ${redact(m[2]!)}'));
+      }
+      for (final m in _inlineKey.allMatches(code)) {
+        out.add(inFile(
+            file.path, line(m.start), En.nativeStaticKey(name: 'SecretKeySpec'),
+            messageAr: Ar.nativeStaticKey(name: 'SecretKeySpec'),
+            snippet: 'SecretKeySpec(${redact(m[1]!)}...)'));
+      }
+      for (final m in _ivLiteral.allMatches(code)) {
+        final name = m[1] ?? m[2] ?? m[3]!;
+        out.add(inFile(file.path, line(m.start), En.nativeStaticIv(name: name),
+            messageAr: Ar.nativeStaticIv(name: name)));
+      }
+    }
+    return out;
   }
 }
 
@@ -762,6 +825,7 @@ class SensitiveLoggingRule extends Rule {
   RuleCheck check(Project project, ProfileSet profile) {
     final out = <Finding>[];
     for (final f in project.dartFiles) {
+      final flow = ValueFlow(f);
       for (final c in f.calls(_loggers)) {
         final r = c.receiver;
         final isBare =
@@ -779,6 +843,12 @@ class SensitiveLoggingRule extends Rule {
               idents.add(mm.group(1)!);
             }
           }
+        }
+        // Then what the logged variables were built from in this function:
+        // `final line = format(password: password); log(line)`.
+        if (!idents.any(isSecretName) && c.close > c.open + 1) {
+          idents.addAll(
+              flow.namesBehind(f.text(c.open + 1, c.close - 1), c.open));
         }
         final hit = idents.firstWhere(isSecretName, orElse: () => '');
         if (hit.isEmpty) continue;

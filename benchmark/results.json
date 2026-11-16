@@ -1,0 +1,222 @@
+{
+  "dvma": {
+    "commit": "eadf986191b2ad9e71b6e711915e59ce79e8f335",
+    "score": 0,
+    "failed": {
+      "AEG-A01": 1,
+      "AEG-A02": 1,
+      "AEG-A03": 1,
+      "AEG-A04": 2,
+      "AEG-A06": 16,
+      "AEG-A07": 1,
+      "AEG-A12": 3,
+      "AEG-A15": 1,
+      "AEG-C04": 1,
+      "AEG-D01": 46,
+      "AEG-D02": 5,
+      "AEG-D03": 1,
+      "AEG-D04": 7,
+      "AEG-D05": 3,
+      "AEG-D06": 3,
+      "AEG-D07": 2,
+      "AEG-D08": 1,
+      "AEG-D10": 10,
+      "AEG-D11": 1,
+      "AEG-D12": 3,
+      "AEG-D15": 15,
+      "AEG-D16": 1,
+      "AEG-I01": 1,
+      "AEG-I04": 2,
+      "AEG-N08": 2,
+      "AEG-P13": 1
+    }
+  },
+  "insecurebank": {
+    "commit": "3c8cc3a3ce45ed56d0f58f236b541b41f992e51f",
+    "score": 45,
+    "failed": {
+      "AEG-A02": 3,
+      "AEG-A06": 7,
+      "AEG-A07": 3,
+      "AEG-A10": 3,
+      "AEG-A12": 2,
+      "AEG-D06": 4,
+      "AEG-N04": 1,
+      "AEG-N09": 1
+    }
+  },
+  "insecurebank-apk": {
+    "commit": "3c8cc3a3ce45ed56d0f58f236b541b41f992e51f",
+    "score": 6,
+    "failed": {
+      "AEG-A12": 2,
+      "AEG-B02": 1,
+      "AEG-B03": 1,
+      "AEG-B04": 6,
+      "AEG-B05": 1,
+      "AEG-B11": 2,
+      "AEG-B15": 1
+    }
+  },
+  "androgoat": {
+    "commit": "77996f239587a8ed2691629777374b5f4a364589",
+    "score": 42,
+    "failed": {
+      "AEG-A02": 1,
+      "AEG-A04": 2,
+      "AEG-A06": 4,
+      "AEG-A07": 1,
+      "AEG-A10": 1,
+      "AEG-A12": 2,
+      "AEG-D11": 2,
+      "AEG-D16": 1,
+      "AEG-N02": 2,
+      "AEG-N08": 3,
+      "AEG-N09": 1
+    }
+  },
+  "dvia": {
+    "commit": "96466ab85569dbcd37c69b2d15d22ff666f57031",
+    "score": 53,
+    "failed": {
+      "AEG-I01": 1,
+      "AEG-I14": 1,
+      "AEG-N08": 3
+    }
+  },
+  "dvia-ipa": {
+    "commit": "96466ab85569dbcd37c69b2d15d22ff666f57031",
+    "score": 55,
+    "failed": {
+      "AEG-I01": 1,
+      "AEG-I03": 1,
+      "AEG-I14": 1
+    }
+  },
+  "dvrn": {
+    "commit": "8180663c9da948645a451813a69b7a91997f7835",
+    "score": 44,
+    "failed": {
+      "AEG-A04": 3,
+      "AEG-A08": 3,
+      "AEG-A09": 6,
+      "AEG-N04": 3,
+      "AEG-N08": 4
+    }
+  },
+  "mastg-android": {
+    "commit": "e8183038d7a88c1ac962732d6e3f6e7f40a0251c",
+    "score": 0,
+    "covered": [
+      "MASVS-AUTH/MASTG-DEMO-0090",
+      "MASVS-CODE/MASTG-DEMO-0102",
+      "MASVS-CODE/MASTG-DEMO-0136",
+      "MASVS-CODE/MASTG-DEMO-0139",
+      "MASVS-CODE/MASTG-DEMO-0140",
+      "MASVS-CODE/MASTG-DEMO-0141",
+      "MASVS-CRYPTO/MASTG-DEMO-0017",
+      "MASVS-CRYPTO/MASTG-DEMO-0022",
+      "MASVS-CRYPTO/MASTG-DEMO-0023",
+      "MASVS-CRYPTO/MASTG-DEMO-0058",
+      "MASVS-NETWORK/MASTG-DEMO-0054",
+      "MASVS-NETWORK/MASTG-DEMO-0055",
+      "MASVS-NETWORK/MASTG-DEMO-0056",
+      "MASVS-PLATFORM/MASTG-DEMO-0029",
+      "MASVS-PLATFORM/MASTG-DEMO-0030",
+      "MASVS-PLATFORM/MASTG-DEMO-0031",
+      "MASVS-PLATFORM/MASTG-DEMO-0032",
+      "MASVS-PLATFORM/MASTG-DEMO-0040",
+      "MASVS-PLATFORM/MASTG-DEMO-0097",
+      "MASVS-PLATFORM/MASTG-DEMO-0121",
+      "MASVS-PLATFORM/MASTG-DEMO-0122",
+      "MASVS-PLATFORM/MASTG-DEMO-0128",
+      "MASVS-PLATFORM/MASTG-DEMO-0129",
+      "MASVS-PLATFORM/MASTG-DEMO-0130",
+      "MASVS-PLATFORM/MASTG-DEMO-0151",
+      "MASVS-RESILIENCE/MASTG-DEMO-0027",
+      "MASVS-RESILIENCE/MASTG-DEMO-0028",
+      "MASVS-RESILIENCE/MASTG-DEMO-0101",
+      "MASVS-RESILIENCE/MASTG-DEMO-0106",
+      "MASVS-RESILIENCE/MASTG-DEMO-0107",
+      "MASVS-STORAGE/MASTG-DEMO-0006",
+      "MASVS-STORAGE/MASTG-DEMO-0059",
+      "MASVS-STORAGE/MASTG-DEMO-0060"
+    ],
+    "failed": {
+      "AEG-A01": 1,
+      "AEG-A02": 5,
+      "AEG-A03": 6,
+      "AEG-A06": 10,
+      "AEG-A11": 1,
+      "AEG-A12": 6,
+      "AEG-D06": 7,
+      "AEG-D20": 3,
+      "AEG-N01": 6,
+      "AEG-N02": 6,
+      "AEG-N03": 19,
+      "AEG-N08": 16,
+      "AEG-N09": 2
+    }
+  },
+  "dvma-apk": {
+    "commit": "",
+    "score": 4,
+    "failed": {
+      "AEG-A12": 3,
+      "AEG-B02": 1,
+      "AEG-B03": 4,
+      "AEG-B04": 16,
+      "AEG-B05": 1,
+      "AEG-B06": 1,
+      "AEG-B07": 1,
+      "AEG-B17": 1
+    }
+  },
+  "dvma-aab": {
+    "commit": "",
+    "score": 4,
+    "failed": {
+      "AEG-A12": 3,
+      "AEG-B02": 1,
+      "AEG-B03": 4,
+      "AEG-B04": 16,
+      "AEG-B05": 1,
+      "AEG-B06": 1,
+      "AEG-B07": 1,
+      "AEG-B17": 1
+    }
+  },
+  "dvma-ipa": {
+    "commit": "",
+    "score": 55,
+    "failed": {
+      "AEG-I01": 1,
+      "AEG-I04": 2,
+      "AEG-I05": 1
+    }
+  },
+  "dvrn-apk": {
+    "commit": "",
+    "score": 51,
+    "failed": {
+      "AEG-B03": 1,
+      "AEG-B09": 1,
+      "AEG-B11": 2,
+      "AEG-B16": 1
+    }
+  },
+  "androgoat-apk": {
+    "commit": "",
+    "score": 4,
+    "failed": {
+      "AEG-A12": 2,
+      "AEG-B02": 1,
+      "AEG-B03": 3,
+      "AEG-B04": 4,
+      "AEG-B05": 1,
+      "AEG-B06": 2,
+      "AEG-B09": 1,
+      "AEG-B11": 2
+    }
+  }
+}

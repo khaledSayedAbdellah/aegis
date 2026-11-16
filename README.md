@@ -329,7 +329,7 @@ The report also prints the **signing certificate SHA-256 in Base64**, the exact 
 | AEG-B01 | Debug (JIT) Flutter build shipped (`kernel_blob.bin`) | RESILIENCE-4 |
 | AEG-B02 | Final manifest is debuggable | RESILIENCE-4 |
 | AEG-B03 | Final manifest / network config weakens backup or TLS | NETWORK-1 |
-| AEG-B04 | Library adds an exported component without permission | PLATFORM-1 |
+| AEG-B04 | Exported component without permission in the final manifest (marked when a library added it) | PLATFORM-1 |
 | AEG-B05 | Sensitive permissions added by libraries | PRIVACY-1 |
 | AEG-B06 | Secrets in libapp.so, dex, the resource table or assets (catches `--dart-define`) | STORAGE-1 |
 | AEG-B07 | Dart code not really obfuscated | RESILIENCE-3 |
@@ -341,7 +341,7 @@ The report also prints the **signing certificate SHA-256 in Base64**, the exact 
 | AEG-B14 | Outdated C libraries inside the APK: end-of-life OpenSSL (supported: 3.5, 4.0, 4.1), zlib before 1.2.13, libpng before 1.6.37, libcurl before 8.4.0, SQLite before 3.39.2 (dated by its source id); `libflutter.so` is skipped | CODE-3 |
 | AEG-B15 | APK signed with the v1 scheme only while supporting Android before 7.0 (Janus); app bundles are skipped | RESILIENCE-2 |
 | AEG-B16 | FileProvider paths in the APK's merged resources that share the whole storage (also paths added by libraries) | PLATFORM-1 |
-| AEG-B17 | App classes in the APK that create a `DexClassLoader` or `InMemoryDexClassLoader` (Play services, Firebase, AndroidX and Flutter are listed, not reported) | CODE-4 |
+| AEG-B17 | App classes in the APK that create a `DexClassLoader` or `InMemoryDexClassLoader` (Play services, Firebase, AndroidX and Flutter are listed, not reported; classes R8 renamed are matched to their owner by the package names they use, and listed for review when there is none) | CODE-4 |
 
 aegis reads APKs and AABs itself (zip, binary XML, protobuf XML, v1/v2/v3 signatures) in pure Dart, with no external tools.
 
@@ -573,6 +573,13 @@ aab: build/app/outputs/bundle/release/app-release.aab       # for aegis run --mo
 rasp:                  # AEG-P01, see "Where AEG-P01 looks for runtime protection"
   packages: [my_guard, com.acme.guard., AcmeShield]
   not_protection: [onesignal_flutter, com.onesignal., OneSignal]
+custom_rules:          # your own checks, see "Custom rules"
+  - id: X-HTTP-URL
+    title: Plain HTTP URL
+    severity: medium
+    pattern: "http://(?!localhost)"
+    message: "Plain HTTP URL: {match}"
+    fix: Use https.
 ```
 
 **Your own packages are scanned too.** Many apps keep auth, networking and storage in internal packages pulled in as git or path dependencies. aegis reads `.dart_tool/package_config.json` (run `flutter pub get` first) and scans the Dart code of every git and path dependency, listing them under "Packages scanned"; findings point to `package:<name>/...`. pub.dev packages are not scanned. Turn this off with `scan_packages: false`.
@@ -584,6 +591,34 @@ const devUrl = 'http://10.0.0.5/api'; // aegis:ignore AEG-D02
 ```
 
 Use `// aegis:ignore-file AEG-D02` to suppress a rule for a whole Dart file. Suppressed findings are counted in every report.
+
+### Custom rules
+
+Teams can add their own checks under `custom_rules:`. Each needs an `id` starting with `X-`, a `title`, a `severity`, a `message`, a `fix`, and either a `pattern` (a regex run on whole files) or a `call` (a Dart function or method name):
+
+```yaml
+custom_rules:
+  - id: X-HTTP-URL
+    title: Plain HTTP URL
+    severity: medium
+    files: ["lib/**", "android/**/*.kt"]   # default: every text file (pattern) or every Dart file (call)
+    pattern: "http://(?!localhost)[\\w./-]+"
+    message: "Plain HTTP URL: {match}"
+    fix: Use https.
+  - id: X-LAUNCH-EXTERNAL
+    title: Links opened in another app
+    severity: low
+    call: launchUrl
+    receiver: "^$"                          # optional regex on the receiver chain
+    args:
+      - name: mode                          # or index: 0
+        matches: externalApplication        # also not_matches, or absent: true
+    message: "{call}() opens the link in another app."
+    fix: Open links in the in-app browser.
+    masvs: MASVS-PLATFORM-2                 # optional; also cwe, description
+```
+
+`{match}` in the message is the matched text (or the call), `{call}` the call name. `title_ar`, `message_ar` and `fix_ar` give the Arabic report its own text. Custom findings appear in every report format, count in the score, and work with `aegis:ignore X-...` comments, baselines and `--fail-on`. They run on projects with source, not on an APK or IPA alone.
 
 ## Baselines
 
@@ -599,6 +634,16 @@ aegis --fail-on high           # now fails only on findings that are not in the 
 * Reports show three groups: **new issues** (fail the build), **known issues** (still listed, still count in the score) and **fixed since the baseline**. Run `--update-baseline` again to drop the fixed ones; the file is sorted so the diff shows exactly what changed.
 * The score is never hidden: known issues still lower it, and `--min-score` uses the real score. Only `--fail-on` ignores known issues.
 * `--baseline <file>` uses another file, `--ignore-baseline` reports everything as new. SARIF output sets `baselineState` (`new` / `unchanged`) so GitHub code scanning shows the same split.
+
+### Only the lines a change touched
+
+`--changed-since <git-ref>` lists, annotates and fails only on findings on lines changed since that ref (its merge base with `HEAD`), plus uncommitted and new files. The score still covers the whole project, and the report says how many findings it didn't list.
+
+```bash
+aegis --changed-since origin/main --fail-on high
+```
+
+The GitHub Action does this for pull requests with `changed-only: true`; give `actions/checkout` `fetch-depth: 0` so git can find where the branch started.
 
 ## CI
 
@@ -621,7 +666,7 @@ steps:
       fail-on: high
 ```
 
-It also takes `apk`, `ipa`, `baseline`, `min-score`, `strict` and the other options, and exposes the score, grade and counts as step outputs; see its [README](https://github.com/khaledSayedAbdellah/aegis-action#readme). `@v1` installs the latest aegis release; `@vX.Y.Z` stays on aegis X.Y.Z.
+It also takes `apk`, `ipa`, `baseline`, `changed-only`, `min-score`, `strict` and the other options, and exposes the score, grade and counts as step outputs; see its [README](https://github.com/khaledSayedAbdellah/aegis-action#readme). `@v1` installs the latest aegis release; `@vX.Y.Z` stays on aegis X.Y.Z.
 
 Without the action:
 
@@ -702,7 +747,7 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-P13 | Unsafe OAuth: implicit flow (`response_type=token`), a `client_secret` in the app (also `AuthorizationCodeGrant(secret:)`), a hand-built code flow without PKCE (`flutter_appauth` and `oauth2` add PKCE themselves) | AUTH-1 |
 | AEG-P15 | Firebase security rules broader than needed: any signed-in user on all data, or anonymous writes to a path | AUTH-1 |
 | AEG-P14 | Card and identity number fields readable by accessibility services (listed for review) | PLATFORM-3 |
-| AEG-A01 | Android app debuggable | RESILIENCE-4 |
+| AEG-A01 | Android app debuggable (main or release source-set manifest, or the release build type) | RESILIENCE-4 |
 | AEG-A02 | Backup allowed | STORAGE-2 |
 | AEG-A03 | Cleartext traffic (manifest) | NETWORK-1 |
 | AEG-A04 | Weak network security config | NETWORK-1 |
@@ -712,7 +757,7 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-A08 | Release signed with the debug key | RESILIENCE-2 |
 | AEG-A09 | Signing secrets exposed | STORAGE-1 |
 | AEG-A10 | minSdk below 24 | CODE-1 |
-| AEG-A15 | `PendingIntent` that is mutable (`FLAG_MUTABLE`, or no flag below targetSdk 31) and wraps an Intent without an explicit target | PLATFORM-1 |
+| AEG-A15 | `PendingIntent` that is mutable (`FLAG_MUTABLE`, or no flag below targetSdk 31) and wraps an Intent without an explicit target; flags in a variable or returned by a helper in the same file are followed | PLATFORM-1 |
 | AEG-A16 | FileProvider `<root-path>`, or `external-path` / `files-path` with `path="."`, `"/"` or `""` | PLATFORM-1 |
 | AEG-A17 | Exported activity with a custom `taskAffinity` and `singleTask`, or `allowTaskReparenting`, with minSdk below 30 (StrandHogg) | PLATFORM-1 |
 | AEG-I01 | ATS disabled | NETWORK-1 |
@@ -731,18 +776,19 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-D03 | TLS validation disabled | NETWORK-1 |
 | AEG-D04 | Sensitive data in SharedPreferences / GetStorage / Hive; Hive boxes named for secrets without `encryptionCipher`; SQLite tables, drift tables, Isar collections and ObjectBox entities with password or token fields when the database isn't encrypted | STORAGE-1 |
 | AEG-D05 | Weak cryptography | CRYPTO-1 |
-| AEG-D06 | Hardcoded encryption key or IV | CRYPTO-2 |
+| AEG-D06 | Hardcoded encryption key or IV (Dart; Kotlin and Java strings that become `SecretKeySpec` bytes, fixed IVs) | CRYPTO-2 |
 | AEG-D07 | `Random()` for security values | CRYPTO-1 |
-| AEG-D08 | Sensitive data in logs, unguarded `LogInterceptor` | STORAGE-2 |
+| AEG-D08 | Sensitive data in logs (also a log line built from secrets earlier in the function), unguarded `LogInterceptor` | STORAGE-2 |
 | AEG-D09 | `.env` / keys bundled as assets | STORAGE-1 |
 | AEG-D10 | WebView JS bridge without navigation limits, WebView debugging | PLATFORM-2 |
-| AEG-D11 | SQL built from variables (`rawQuery('... WHERE id = $id')`, `where: 'name = \'$q\''`) instead of `?` arguments | CODE-4 |
-| AEG-D12 | Values pasted into WebView HTML or JavaScript (`runJavaScript`, `loadHtmlString`, `evaluateJavascript`) without encoding | PLATFORM-2 |
+| AEG-D11 | SQL built from variables (`rawQuery('... WHERE id = $id')`, `where: 'name = \'$q\''`) instead of `?` arguments, also through a query variable built in the same function, and in Kotlin and Java (`rawQuery`, `execSQL`). Numbers and constants pass | CODE-4 |
+| AEG-D12 | Values pasted into WebView HTML or JavaScript (`runJavaScript`, `loadHtmlString`, `evaluateJavascript`) without encoding, also through a script variable; the app's own escape helpers count as encoding | PLATFORM-2 |
 | AEG-D13 | Debug tools in release builds: Alice, DevicePreview, Stetho, Flipper used outside `kDebugMode`; Chucker, Stetho, Flipper, LeakCanary added with `implementation` in Gradle | RESILIENCE-4 |
 | AEG-D14 | Permission, session or integrity check made only inside `assert()`, which release builds remove | CODE-4 |
 | AEG-D15 | Password, PIN or card field with keyboard suggestions and autocorrect on (keyboard cache) | STORAGE-2 |
 | AEG-D16 | Token, password or key copied to the clipboard (Dart, Swift/Objective-C, Kotlin/Java) | PLATFORM-3 |
 | AEG-D17 | Notifications that may show codes, balances or tokens (listed for review) | PLATFORM-3 |
+| AEG-D19 | Deep-link data (`uni_links`, `app_links`, go_router `state`) that reaches `launchUrl`, a WebView, a file path or an HTTP request in the same function without an `if`/`switch` check; when it can decide and no push payloads are handled, it replaces manual check AEG-M08 | PLATFORM-1 |
 | AEG-D18 | `flutter_secure_storage` items that can leave the device (not `_this_device`, or synchronizable) | STORAGE-1 |
 | AEG-D20 | Generated crypto keys or raw key bytes written to SharedPreferences, Hive, `UserDefaults` or files (Dart and native) | STORAGE-1 |
 | AEG-C01 | Dependency with known vulnerabilities (OSV): Dart packages from `pubspec.lock`; Maven from Gradle files, version catalogs, `gradle.lockfile` and the Android code of Flutter plugins; npm from `package-lock.json` / `yarn.lock`; Swift packages from `Package.resolved`. CocoaPods has no OSV data and is listed as not checked. Skipped with `--offline` | CODE-3 |
@@ -765,6 +811,8 @@ dart test                                               # the whole suite
 dart test test/cli_test.dart                            # one file
 dart test -N "apk mode"                                 # tests whose name contains the text
 ```
+
+**Benchmark.** `dart run benchmark/run.dart` audits public, intentionally vulnerable apps (DVMA, InsecureBankv2, AndroGoat, DVIA-v2, DVRN, the OWASP MASTG demos and their released binaries), downloaded on demand at pinned versions, and fails when an expected finding is missed or a rule stops firing; see `benchmark/README.md`.
 
 The tests need no network, emulator or Android tools: the CLI tests run `bin/aegis.dart` on temporary projects with `--offline` and `--no-probe`, and the probe tests use a fake host and a fake device (`test/support/fake_host.dart`, `test/probe_runner_test.dart`). To try your change as the real `aegis` command, activate the clone with `--source path` (see Install).
 

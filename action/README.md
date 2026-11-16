@@ -80,6 +80,7 @@ Code scanning paths and annotations are made relative to the repository.
 | `fail-on` | from `aegis.yaml` | Fail on a new finding at or above `critical`, `high`, `medium` or `low`. |
 | `min-score` | from `aegis.yaml` | Fail when the score is below this value. |
 | `baseline` | `aegis-baseline.json` | Baseline file of accepted findings. |
+| `changed-only` | `false` | On pull requests, list and fail on only the findings on lines the pull request changed. The score still covers the whole project. Use `fetch-depth: 0` in `actions/checkout`. |
 | `strict` | `false` | Fail when an applicable check could not complete. |
 | `offline` | `false` | Skip the OSV vulnerability lookup of dependencies. |
 | `pub-get` | `true` | Run `pub get` when dependencies are not resolved, so the native code of packages can be checked. |

@@ -255,6 +255,34 @@ const clones = ['com.lody.virtual', 'com.lbe.parallel'];
           contains('com.google.android.gms.dynamite.DynamiteModule'));
     });
 
+    test('AEG-B17 classes renamed by R8', () async {
+      final dir = Directory.systemTemp.createTempSync('aegis-b17-');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      // `-repackageclasses ''`: no package names left, only their strings.
+      final r = await apkWith(dir, {
+        'C60': ['call:dalvik.system.DexClassLoader#<init>', '%s/%s.dex'],
+        'u40': [
+          'call:dalvik.system.DexClassLoader#<init>',
+          'com.google.ccc.abuse.droidguard.DroidGuard'
+        ],
+        'a.b': [
+          'call:dalvik.system.DexClassLoader#<init>',
+          'com.acme.bank.plugins.Loader'
+        ],
+      });
+      final b17 = r.results.singleWhere((x) => x.meta.id == 'AEG-B17');
+      expect(b17.findings.map((f) => f.message), [
+        "a.b (com.acme.bank) creates a DexClassLoader, which loads code that isn't part of the APK."
+      ]);
+      final evidence = r.securityEvidence
+          .where((e) => e.ruleId == 'AEG-B17')
+          .map((e) => e.detail.en)
+          .join('\n');
+      expect(evidence, contains('u40 (com.google.ccc.abuse.droidguard)'));
+      expect(evidence, contains('renamed by R8'));
+      expect(evidence, contains('C60'));
+    });
+
     test('AEG-P13 hand-built flows and package:oauth2 secrets', () async {
       final r = await audit({
         'pubspec.yaml': '$pubspec  url_launcher: any\n',

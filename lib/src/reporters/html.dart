@@ -60,7 +60,7 @@ String renderHtml(AuditReport r, {String lang = 'en', bool compact = false}) {
       '${f.snippet == null ? '' : '<pre>${_e(f.snippetOf(lang)!)}</pre>'}</li>';
 
   final newFailed = r.newFailed.toList();
-  final knownOnly = r.failed.where((x) => !x.hasNew).toList();
+  final knownOnly = r.failed.where((x) => !x.hasNew && x.hasKnown).toList();
   final failed = StringBuffer();
   for (final res in [...newFailed, ...knownOnly]) {
     final m = res.meta;
@@ -112,11 +112,14 @@ String renderHtml(AuditReport r, {String lang = 'en', bool compact = false}) {
       : '<h2>↓ ${_e(t.resolved)} (${r.resolvedCount})</h2><ul>'
           '${r.baselineResolved.map((e) => '<li>✓ <code>${_e(e.ruleId)}</code> ${e.file == null ? '' : '<code>${_e(e.file!)}</code> '}${_e(e.message)}</li>').join()}'
           '</ul><p class="muted">${_e(t.updateHint)}</p>';
-  final baselineLine = r.usesBaseline
-      ? '<div class="muted">${_e(t.baseline)}: <b>${_e(t.baselineLine(r.knownFindingCount, r.newFindingCount, r.resolvedCount))}</b></div>'
-      : '';
-  final failedTitle = r.usesBaseline ? t.newIssues : t.failed;
-  final emptyText = r.usesBaseline ? t.noNewIssues : t.noIssues;
+  final baselineLine = [
+    if (r.usesBaseline)
+      '<div class="muted">${_e(t.baseline)}: <b>${_e(t.baselineLine(r.knownFindingCount, r.newFindingCount, r.resolvedCount))}</b></div>',
+    if (r.changed != null)
+      '<div class="muted">${_e(t.changedLines)}: <b>${_e(t.changedLinesSummary(r.changed!.ref, r.outsideChangeCount))}</b></div>',
+  ].join();
+  final failedTitle = t.failedHeading(r);
+  final emptyText = t.emptyHeading(r);
 
   final probeView = ProbeView.of(r, lang);
   final probe = StringBuffer();

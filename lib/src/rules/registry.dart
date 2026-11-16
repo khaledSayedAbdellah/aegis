@@ -18,6 +18,7 @@ import 'ui_leak_rules.dart';
 import 'binary_rules.dart';
 import 'dart_rules.dart';
 import 'debug_tool_rules.dart';
+import 'deep_link_rules.dart';
 import 'dependency_rules.dart';
 import 'injection_rules.dart';
 import 'ios_rules.dart';
@@ -33,6 +34,7 @@ const List<Rule> allRules = [
   ...dependencyRules,
   ...backendRules,
   ...injectionRules,
+  DeepLinkActionRule(),
   ...debugToolRules,
   ...assertRules,
   ...uiLeakRules,

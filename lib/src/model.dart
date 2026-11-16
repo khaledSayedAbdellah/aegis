@@ -223,6 +223,10 @@ class Finding {
   /// True when this finding is listed in the baseline (a known issue).
   bool baselined = false;
 
+  /// True in changed-lines mode (`--changed-since`) when the finding is not
+  /// on a line the change touched. It still counts in the score.
+  bool outsideChange = false;
+
   String messageOf(String lang) =>
       lang == 'ar' ? (messageAr ?? message) : message;
 
@@ -240,6 +244,7 @@ class Finding {
         if (snippet != null) 'snippet': snippet,
         if (snippetAr != null) 'snippetAr': snippetAr,
         if (baselined) 'baselined': true,
+        if (outsideChange) 'outsideChange': true,
       };
 }
 
@@ -299,14 +304,20 @@ class RuleResult {
 
   bool get counts => status == RuleStatus.passed || status == RuleStatus.failed;
 
-  /// Findings that are not in the baseline.
-  List<Finding> get newFindings => findings.where((f) => !f.baselined).toList();
+  /// Findings that are not in the baseline (and, in changed-lines mode, are
+  /// on a changed line).
+  List<Finding> get newFindings =>
+      findings.where((f) => !f.baselined && !f.outsideChange).toList();
 
   /// Findings accepted by the baseline.
   List<Finding> get knownFindings =>
-      findings.where((f) => f.baselined).toList();
+      findings.where((f) => f.baselined && !f.outsideChange).toList();
 
   /// Failed with at least one finding that is not in the baseline.
   bool get hasNew =>
-      status == RuleStatus.failed && findings.any((f) => !f.baselined);
+      status == RuleStatus.failed &&
+      findings.any((f) => !f.baselined && !f.outsideChange);
+
+  /// Failed with at least one finding accepted by the baseline.
+  bool get hasKnown => status == RuleStatus.failed && knownFindings.isNotEmpty;
 }

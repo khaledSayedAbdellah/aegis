@@ -66,6 +66,16 @@ args=("$project" --format "$formats" --output "$out/aegis" --lang "${AEGIS_LANG:
 [ -n "${AEGIS_FAIL_ON:-}" ] && args+=(--fail-on "$AEGIS_FAIL_ON")
 [ -n "${AEGIS_MIN_SCORE:-}" ] && args+=(--min-score "$AEGIS_MIN_SCORE")
 [ -n "${AEGIS_BASELINE:-}" ] && args+=(--baseline "$AEGIS_BASELINE")
+if truthy "${AEGIS_CHANGED_ONLY:-false}"; then
+  if [ -n "${GITHUB_BASE_REF:-}" ]; then
+    # The pull request's base branch, so git can find where the branch started.
+    git -C "$project" fetch --no-tags --quiet origin \
+      "+refs/heads/$GITHUB_BASE_REF:refs/remotes/origin/$GITHUB_BASE_REF" || true
+    args+=(--changed-since "origin/$GITHUB_BASE_REF")
+  else
+    echo "::notice title=aegis::changed-only works on pull requests; this run lists every finding."
+  fi
+fi
 truthy "${AEGIS_STRICT:-false}" && args+=(--strict)
 truthy "${AEGIS_OFFLINE:-false}" && args+=(--offline)
 truthy "${AEGIS_PUB_GET:-true}" || args+=(--no-pub-get)

@@ -17,7 +17,9 @@ export 'src/binary/locate.dart'
         flutterBundleDir,
         projectOf;
 export 'src/binary/signing.dart' show SigningCert;
+export 'src/changed_lines.dart' show ChangedLines;
 export 'src/config.dart' show AegisConfig;
+export 'src/rules/custom_rules.dart' show CustomRuleSpec;
 export 'src/engine.dart'
     show AuditReport, BinaryInfo, CertificateInfo, runAudit;
 export 'src/masvs.dart'

@@ -47,6 +47,10 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
     b.writeln(
         '| ${t.baseline} | ${t.baselineLine(r.knownFindingCount, r.newFindingCount, r.resolvedCount)} |');
   }
+  if (r.changed != null) {
+    b.writeln(
+        '| ${t.changedLines} | ${t.changedLinesSummary('`${r.changed!.ref}`', r.outsideChangeCount)} |');
+  }
   b.writeln();
 
   if (r.incomplete.isNotEmpty) {
@@ -120,23 +124,28 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
   }
 
   final failed = r.newFailed.toList();
-  b.writeln(
-      '## ❌ ${r.usesBaseline ? t.newIssues : t.failed} (${failed.length})');
+  b.writeln('## ❌ ${t.failedHeading(r)} (${failed.length})');
   b.writeln();
-  if (failed.isEmpty) b.writeln(r.usesBaseline ? t.noNewIssues : t.noIssues);
+  if (failed.isEmpty) b.writeln(t.emptyHeading(r));
   for (final res in failed) {
     final m = res.meta;
     b.writeln(
         '### `${m.id}` ${m.title.of(lang)} — ${t.severity(res.severity)}');
     b.writeln();
-    b.writeln(
-        '${m.masvs.join(', ')}${m.maswe.isEmpty ? '' : ' · ${m.maswe.join(', ')}'}${m.cwe == null ? '' : ' · ${m.cwe}'}');
-    b.writeln();
+    final refs = [
+      if (m.masvs.isNotEmpty) m.masvs.join(', '),
+      if (m.maswe.isNotEmpty) m.maswe.join(', '),
+      if (m.cwe != null) m.cwe!,
+    ];
+    if (refs.isNotEmpty) {
+      b.writeln(refs.join(' · '));
+      b.writeln();
+    }
     for (final f in res.newFindings) {
       final loc = f.location.isEmpty ? '' : '`${f.location}` — ';
       b.writeln('- $loc${f.messageOf(lang)}');
     }
-    final knownCount = res.findings.length - res.newFindings.length;
+    final knownCount = res.knownFindings.length;
     if (knownCount > 0) b.writeln('- _+ ${t.knownCount(knownCount)}_');
     b.writeln();
     b.writeln('**${t.why}:** ${m.description.of(lang)}');
@@ -145,13 +154,13 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
     b.writeln();
   }
 
-  final known = r.failed.where((x) => !x.hasNew).toList();
+  final known = r.failed.where((x) => !x.hasNew && x.hasKnown).toList();
   if (known.isNotEmpty) {
     b.writeln('<details><summary>${t.known} (${known.length})</summary>');
     b.writeln();
     for (final res in known) {
       b.writeln(
-          '- `${res.meta.id}` ${res.meta.title.of(lang)} — ${t.severity(res.severity)} · ${t.knownCount(res.findings.length)}');
+          '- `${res.meta.id}` ${res.meta.title.of(lang)} — ${t.severity(res.severity)} · ${t.knownCount(res.knownFindings.length)}');
     }
     b.writeln();
     b.writeln('_${t.knownHint}_');

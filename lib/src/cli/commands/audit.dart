@@ -327,9 +327,25 @@ Future<void> auditCommand(ArgResults root, ArgParser parser) async {
           log: stdout.writeln)
       : null;
 
+  ChangedLines? changed;
+  final since = args['changed-since'] as String?;
+  if (since != null && since.trim().isNotEmpty) {
+    try {
+      changed = ChangedLines.load(p.absolute(path), since.trim());
+    } on FormatException catch (e) {
+      stderr.writeln('aegis: ${e.message}');
+      exit(2);
+    } on ProcessException {
+      stderr.writeln('aegis: --changed-since needs git on the PATH.');
+      exit(2);
+    }
+    if (changed.note != null) stderr.writeln('aegis: ${changed.note}');
+  }
+
   final AuditReport report;
   try {
     report = await runAudit(path,
+        changed: changed,
         config: config,
         offline: args['offline'] as bool,
         pubGet: args['pub-get'] as bool,

@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 
 import 'baseline.dart';
+import 'changed_lines.dart';
 import 'binary/apk.dart';
 import 'binary/ipa.dart';
 import 'binary/ios_static.dart';
@@ -21,6 +22,10 @@ import 'project/native_files.dart';
 import 'rules/android_rules.dart';
 import 'rules/backend_rules.dart';
 import 'rules/debug_tool_rules.dart';
+import 'rules/custom_rules.dart';
+import 'rules/dart_rules.dart' show StaticKeyRule;
+import 'rules/injection_rules.dart' show SqlInjectionRule;
+import 'rules/deep_link_rules.dart' show deepLinksDecided;
 import 'rules/platform_ipc_rules.dart';
 import 'rules/dependency_rules.dart' show VulnerableDependencyRule;
 import 'rules/ui_leak_rules.dart' show ClipboardRule, PlainKeyStorageRule;
@@ -57,7 +62,15 @@ class AuditReport {
     this.probe,
     this.iosStatic,
     this.securityEvidence = const [],
+    this.changed,
   });
+
+  /// Changed-lines mode: only findings on these lines are listed.
+  final ChangedLines? changed;
+
+  /// Findings not listed because they are outside the change.
+  int get outsideChangeCount => failed.fold(
+      0, (s, r) => s + r.findings.where((f) => f.outsideChange).length);
 
   final String projectName;
   final String root;
@@ -343,6 +356,7 @@ Future<AuditReport> runAudit(
   Baseline? baseline,
   ProbeOutcome? probe,
   RuntimeSecurityResult? runtimeSecurity,
+  ChangedLines? changed,
 }) async {
   if (apkPath != null && ipaPath != null) {
     throw const FormatException(
@@ -432,6 +446,8 @@ Future<AuditReport> runAudit(
           const TaskHijackingRule(),
           const PrivacyManifestRule(),
           const DynamicCodeLoadingRule(),
+          const SqlInjectionRule(),
+          const StaticKeyRule(),
         ],
         // Without source, runtime protection is read from the artifact.
         if (!project.hasSource && (project.apk != null || ipa != null))
@@ -447,6 +463,8 @@ Future<AuditReport> runAudit(
         // Only in a run that tried the probe (aegis run --mode apk|aab).
         if (project.apk != null && probe != null) ...probeRules,
         if (ipa != null && probe != null) ...iosProbeRules,
+        if (project.hasSource)
+          for (final spec in cfg.customRules) CustomRule(spec),
       ];
   // Binary rules are written for APKs; for a bundle they say "AAB".
   final bundle = project.apk?.isBundle ?? false;
@@ -524,6 +542,13 @@ Future<AuditReport> runAudit(
   }
 
   final resolved = baseline?.apply(results) ?? const <BaselineEntry>[];
+  if (changed != null) {
+    for (final r in results) {
+      for (final f in r.findings) {
+        f.outsideChange = !changed.contains(f.file, f.line);
+      }
+    }
+  }
 
   // Most severe first, then by id.
   results.sort((a, b) {
@@ -542,6 +567,9 @@ Future<AuditReport> runAudit(
         .where((m) => profile.includesAny(m.profiles))
         // The APK scan verifies obfuscation directly (AEG-B07).
         .where((m) => !(apk != null && m.id == 'AEG-M05'))
+        // AEG-D19 follows deep links; push payloads still need the manual check.
+        .where(
+            (m) => !(m.id == 'AEG-M08' && deepLinksDecided(results, project)))
         .toList(),
     generatedAt: DateTime.now(),
     binary: ipa != null
@@ -556,5 +584,6 @@ Future<AuditReport> runAudit(
     probe: probe,
     iosStatic: ipa?.staticAnalysis,
     securityEvidence: project.securityEvidence,
+    changed: changed,
   );
 }

@@ -1,3 +1,23 @@
+## Unreleased
+
+* Value flow inside a function: aegis now follows `final x = ...`, reassignments, `for (... in ...)`, parameters and closures, and knows where data comes from (deep links, typed text, HTTP responses, platform channels, push messages).
+  * `AEG-D11` and `AEG-D12` also report a query or script variable built from data earlier in the function, and no longer report numbers, `int` parameters and local constants.
+  * New `AEG-D19` (medium, high for L2): deep-link data (`uni_links`, `app_links`, go_router `state`) that reaches `launchUrl`, a WebView, a file path or an HTTP request without an `if`/`switch` check. When it can decide and the app handles no push payloads, it replaces manual check `AEG-M08`.
+  * `AEG-D08` also reports a log line built from secrets earlier in the function.
+* Custom rules in `aegis.yaml` under `custom_rules:`: an `X-` id, a title, a severity, a regex (`pattern`) or a call with argument conditions (`call`, `receiver`, `args`), and the message and fix. They show in every report, count in the score, and work with `aegis:ignore`, baselines and `--fail-on`.
+* `--changed-since <git-ref>` lists and fails only on findings on lines changed since that ref (uncommitted and new files included); the score still covers the whole project. The GitHub Action does this for pull requests with `changed-only: true`.
+* Found by auditing public vulnerable apps (DVMA, InsecureBankv2, AndroGoat, DVIA-v2, DVRN, the OWASP MASTG demos and their releases):
+  * `AEG-D11` also reads Kotlin and Java `rawQuery`, `execSQL` and `compileStatement`, and runs on native Android projects.
+  * `AEG-D06` also finds Kotlin and Java keys written as strings that become `SecretKeySpec` bytes, and fixed IVs, and runs on native Android projects.
+  * `AEG-A01` reads the release source-set manifest (`src/release/AndroidManifest.xml`).
+  * `AEG-A15` follows flags returned by a helper function in the same file, and uses the nearest declaration of a flags variable.
+  * `AEG-D16` names the value behind `.text` (`_secret.text` is `_secret`).
+  * `AEG-D12` treats the app's own escape helpers as encoding, and no longer splits a call like `value.substring('javascript:'.length)` as a template.
+  * `AEG-B12` asks for RELRO only when the library has relocations; Flutter's `libapp.so` has none and was reported in every Flutter app.
+  * `AEG-B17`: classes that R8 renamed (for example with `-repackageclasses`) are matched to their owner by the package names in their strings; with no clue they are listed for review instead of reported.
+  * `AEG-I14` ignores header files.
+  * `AEG-B04` is now called "Exported component without permission in the final manifest": without source it lists every exported component, not only those added by libraries.
+
 ## 0.16.0
 
 * New rules for sign-in and platform IPC:

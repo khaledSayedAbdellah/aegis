@@ -773,6 +773,20 @@ class L10n {
       : En.debugToolImport(tool: tool);
   String get debugToolPass => isArabic ? Ar.debugToolPass : En.debugToolPass;
   String get debugToolTitle => isArabic ? Ar.debugToolTitle : En.debugToolTitle;
+  String deepLinkAction({required Object? call, required Object? value}) =>
+      isArabic
+          ? Ar.deepLinkAction(call: call, value: value)
+          : En.deepLinkAction(call: call, value: value);
+  String get deepLinkActionDescription =>
+      isArabic ? Ar.deepLinkActionDescription : En.deepLinkActionDescription;
+  String get deepLinkActionFix =>
+      isArabic ? Ar.deepLinkActionFix : En.deepLinkActionFix;
+  String get deepLinkActionNone =>
+      isArabic ? Ar.deepLinkActionNone : En.deepLinkActionNone;
+  String get deepLinkActionPass =>
+      isArabic ? Ar.deepLinkActionPass : En.deepLinkActionPass;
+  String get deepLinkActionTitle =>
+      isArabic ? Ar.deepLinkActionTitle : En.deepLinkActionTitle;
   String get dependencyRulesALockedPackageVersionHasAPublishedAdvisory =>
       isArabic
           ? Ar.dependencyRulesALockedPackageVersionHasAPublishedAdvisory
@@ -817,6 +831,9 @@ class L10n {
       : En.dynamicCodeLibraries(classes: classes);
   String get dynamicCodePass =>
       isArabic ? Ar.dynamicCodePass : En.dynamicCodePass;
+  String dynamicCodeRenamed({required Object? classes}) => isArabic
+      ? Ar.dynamicCodeRenamed(classes: classes)
+      : En.dynamicCodeRenamed(classes: classes);
   String get dynamicCodeTitle =>
       isArabic ? Ar.dynamicCodeTitle : En.dynamicCodeTitle;
   String get extA11Description =>
@@ -987,6 +1004,13 @@ class L10n {
   String get i18nCertificateSha256Base64ForFreeraspSigningcerthashes => isArabic
       ? Ar.i18nCertificateSha256Base64ForFreeraspSigningcerthashes
       : En.i18nCertificateSha256Base64ForFreeraspSigningcerthashes;
+  String get i18nChangedLines =>
+      isArabic ? Ar.i18nChangedLines : En.i18nChangedLines;
+  String i18nChangedLinesSummary(
+          {required Object? count, required Object? ref}) =>
+      isArabic
+          ? Ar.i18nChangedLinesSummary(count: count, ref: ref)
+          : En.i18nChangedLinesSummary(count: count, ref: ref);
   String get i18nCheck => isArabic ? Ar.i18nCheck : En.i18nCheck;
   String get i18nCheckManuallyNoToolCanVerifyThese => isArabic
       ? Ar.i18nCheckManuallyNoToolCanVerifyThese
@@ -1005,6 +1029,8 @@ class L10n {
   String get i18nInfo => isArabic ? Ar.i18nInfo : En.i18nInfo;
   String get i18nIosApplicationIpa =>
       isArabic ? Ar.i18nIosApplicationIpa : En.i18nIosApplicationIpa;
+  String get i18nIssuesOnChangedLines =>
+      isArabic ? Ar.i18nIssuesOnChangedLines : En.i18nIssuesOnChangedLines;
   String i18nKnown({required Object? n}) =>
       isArabic ? Ar.i18nKnown(n: n) : En.i18nKnown(n: n);
   String get i18nKnown2 => isArabic ? Ar.i18nKnown2 : En.i18nKnown2;
@@ -1035,6 +1061,8 @@ class L10n {
       : En.i18nNewIssuesNotInTheBaseline;
   String get i18nNoIssuesFound =>
       isArabic ? Ar.i18nNoIssuesFound : En.i18nNoIssuesFound;
+  String get i18nNoIssuesOnChangedLines =>
+      isArabic ? Ar.i18nNoIssuesOnChangedLines : En.i18nNoIssuesOnChangedLines;
   String get i18nNoNewIssuesSinceTheBaseline => isArabic
       ? Ar.i18nNoNewIssuesSinceTheBaseline
       : En.i18nNoNewIssuesSinceTheBaseline;
@@ -1704,6 +1732,11 @@ class L10n {
       isArabic ? Ar.nativeSourceDescription : En.nativeSourceDescription;
   String get nativeSourceScope =>
       isArabic ? Ar.nativeSourceScope : En.nativeSourceScope;
+  String nativeStaticIv({required Object? name}) =>
+      isArabic ? Ar.nativeStaticIv(name: name) : En.nativeStaticIv(name: name);
+  String nativeStaticKey({required Object? name}) => isArabic
+      ? Ar.nativeStaticKey(name: name)
+      : En.nativeStaticKey(name: name);
   String notificationLeak({required Object? places}) => isArabic
       ? Ar.notificationLeak(places: places)
       : En.notificationLeak(places: places);
@@ -2736,6 +2769,8 @@ class L10n {
               platform: platform);
   String raspUnused({required Object? name}) =>
       isArabic ? Ar.raspUnused(name: name) : En.raspUnused(name: name);
+  String get releaseManifestDebuggable =>
+      isArabic ? Ar.releaseManifestDebuggable : En.releaseManifestDebuggable;
   String ruleError({required Object? error}) =>
       isArabic ? Ar.ruleError(error: error) : En.ruleError(error: error);
   String get runChooseMode => isArabic ? Ar.runChooseMode : En.runChooseMode;
@@ -3309,7 +3344,7 @@ abstract final class En {
   static const binaryRulesLibrariesCanMergeAttributesSuchAsUsescleartexttrafficOr =
       "Libraries can merge attributes such as usesCleartextTraffic or allowBackup into your manifest, and a network security config from a library can relax TLS rules. What ships is the merged result.";
   static const binaryRulesLibraryAddsAnExportedComponentWithoutPermission =
-      "Library adds an exported component without permission";
+      "Exported component without permission in the final manifest";
   static String binaryRulesMinsdkIs({required Object? min}) =>
       "minSdk is " + min.toString() + ".";
   static const binaryRulesOldAndroidSdkLevelsInTheApk =
@@ -3536,6 +3571,23 @@ abstract final class En {
       " is imported in code that is part of release builds.";
   static const debugToolPass = "Debug tools stay out of the release build";
   static const debugToolTitle = "Debug tools ship in the release build";
+  static String deepLinkAction(
+          {required Object? call, required Object? value}) =>
+      "Deep-link data `" +
+      value.toString() +
+      "` reaches " +
+      call.toString() +
+      "() without a check.";
+  static const deepLinkActionDescription =
+      "Any app or web page can open the app with a link it chose. When a value from that link is opened as a URL, loaded in a WebView, used as a file path or sent as a request without a check, the link decides what the app does: open a phishing page, load a script in the WebView, read or overwrite a file, or send the user's session to another server.";
+  static const deepLinkActionFix =
+      "Check the value before using it: compare `uri.host` and `uri.scheme` with an allow-list, map route names to known screens instead of using the path as data, and never build a URL, file path or request from link data directly.";
+  static const deepLinkActionNone =
+      "The Dart code doesn't read deep links (uni_links, app_links or go_router state).";
+  static const deepLinkActionPass =
+      "Deep-link data is checked before it is used";
+  static const deepLinkActionTitle =
+      "Deep-link data reaches a sensitive action unchecked";
   static const dependencyRulesALockedPackageVersionHasAPublishedAdvisory =
       "A locked package version has a published advisory in the OSV database.";
   static const dependencyRulesDependencyWithKnownVulnerabilities =
@@ -3572,6 +3624,10 @@ abstract final class En {
       classes.toString() +
       ".";
   static const dynamicCodePass = "The app loads only its own code";
+  static String dynamicCodeRenamed({required Object? classes}) =>
+      "Classes renamed by R8 that load code, with nothing in them that tells whether they are the app's or a library's (not counted): " +
+      classes.toString() +
+      ". Look them up in the build's mapping.txt.";
   static const dynamicCodeTitle = "Code loaded from outside the app";
   static const extA11Description =
       "Review HTTP(S) verification and broad link filters.";
@@ -3780,6 +3836,14 @@ abstract final class En {
   static const i18nByCategory = "By category";
   static const i18nCertificateSha256Base64ForFreeraspSigningcerthashes =
       "Certificate SHA-256 (Base64, for freeRASP signingCertHashes)";
+  static const i18nChangedLines = "Changed lines";
+  static String i18nChangedLinesSummary(
+          {required Object? count, required Object? ref}) =>
+      "only findings on lines changed since " +
+      ref.toString() +
+      " are listed; " +
+      count.toString() +
+      " others are not (they still count in the score)";
   static const i18nCheck = "Check";
   static const i18nCheckManuallyNoToolCanVerifyThese =
       "Check manually (no tool can verify these)";
@@ -3793,6 +3857,7 @@ abstract final class En {
   static const i18nHigh = "HIGH";
   static const i18nInfo = "INFO";
   static const i18nIosApplicationIpa = "iOS application (IPA)";
+  static const i18nIssuesOnChangedLines = "Issues on changed lines";
   static String i18nKnown({required Object? n}) => "" + n.toString() + " known";
   static const i18nKnown2 = "known";
   static const i18nKnownIssuesAcceptedInTheBaseline =
@@ -3818,6 +3883,7 @@ abstract final class En {
   static const i18nNewIssuesNotInTheBaseline =
       "New issues (not in the baseline)";
   static const i18nNoIssuesFound = "No issues found.";
+  static const i18nNoIssuesOnChangedLines = "No issues on the changed lines";
   static const i18nNoNewIssuesSinceTheBaseline =
       "No new issues since the baseline.";
   static const i18nNotApplicable = "Not applicable";
@@ -4373,6 +4439,14 @@ abstract final class En {
       "Lexical inspection of Kotlin (including KMP), Java, Swift, Objective-C and JavaScript/TypeScript source. Matches identify source patterns, not complete data-flow analysis or verified runtime protection.";
   static const nativeSourceScope =
       "Some source/configuration inputs could not be inspected. Confirmed findings are retained; no complete verdict is available for missing inputs.";
+  static String nativeStaticIv({required Object? name}) =>
+      "The IV `" +
+      name.toString() +
+      "` used for encryption is fixed in the code.";
+  static String nativeStaticKey({required Object? name}) =>
+      "The key `" +
+      name.toString() +
+      "` used for encryption is a string written in the code.";
   static String notificationLeak({required Object? places}) =>
       "Notifications that may show sensitive data, to review: " +
       places.toString() +
@@ -5244,6 +5318,8 @@ abstract final class En {
       "" +
       name.toString() +
       " is declared as a dependency, but nothing in the code uses it, so it does not protect the app.";
+  static const releaseManifestDebuggable =
+      "android:debuggable=\"true\" is set in the manifest of the release source set, so release builds are debuggable.";
   static String ruleError({required Object? error}) =>
       "Rule error: " + error.toString() + "";
   static const runChooseMode = "Which mode do you want to audit?";
@@ -5816,7 +5892,7 @@ abstract final class Ar {
   static const binaryRulesLibrariesCanMergeAttributesSuchAsUsescleartexttrafficOr =
       "المكتبات ممكن تضيف attributes زي usesCleartextTraffic أو allowBackup للـ manifest، وممكن network security config من مكتبة يخفف قواعد الـ TLS. واللي بيتشحن هو النتيجة النهائية بعد الدمج.";
   static const binaryRulesLibraryAddsAnExportedComponentWithoutPermission =
-      "مكتبة بتضيف مكوّن exported من غير permission";
+      "مكوّن exported من غير permission في الـmanifest النهائي";
   static String binaryRulesMinsdkIs({required Object? min}) =>
       "الـ minSdk = " + min.toString() + ".";
   static const binaryRulesOldAndroidSdkLevelsInTheApk =
@@ -6030,6 +6106,23 @@ abstract final class Ar {
       "" + tool.toString() + " متعمله import في كود داخل في الـrelease.";
   static const debugToolPass = "أدوات الـdebug برّه الـrelease build";
   static const debugToolTitle = "أدوات الـdebug داخلة في الـrelease build";
+  static String deepLinkAction(
+          {required Object? call, required Object? value}) =>
+      "بيانات من deep link `" +
+      value.toString() +
+      "` بتوصل لـ" +
+      call.toString() +
+      "() من غير تحقق.";
+  static const deepLinkActionDescription =
+      "أي تطبيق أو صفحة ويب تقدر تفتح التطبيق بـlink هي اللي تختاره. لو قيمة من الـlink ده اتفتحت كـURL، أو اتحمّلت في WebView، أو اتستخدمت كـfile path، أو اتبعتت في request من غير تحقق، يبقى الـlink هو اللي بيقرر التطبيق يعمل إيه: يفتح صفحة phishing، أو يشغّل script في الـWebView، أو يقرا أو يكتب فوق ملف، أو يبعت الـsession بتاعة المستخدم لسيرفر تاني.";
+  static const deepLinkActionFix =
+      "اتحقق من القيمة قبل ما تستخدمها: قارن `uri.host` و`uri.scheme` بـallow-list، وحوّل أسماء الـroutes لشاشات معروفة بدل ما تستخدم الـpath كبيانات، وماتبنيش URL أو file path أو request من بيانات الـlink على طول.";
+  static const deepLinkActionNone =
+      "كود الـDart مش بيقرا deep links (uni_links أو app_links أو go_router state).";
+  static const deepLinkActionPass =
+      "بيانات الـdeep links بتتراجع قبل ما تتستخدم";
+  static const deepLinkActionTitle =
+      "بيانات من deep link بتوصل لعملية حساسة من غير تحقق";
   static const dependencyRulesALockedPackageVersionHasAPublishedAdvisory =
       "فيه نسخة مكتبة في pubspec.lock عليها ثغرة منشورة في قاعدة بيانات OSV.";
   static const dependencyRulesDependencyWithKnownVulnerabilities =
@@ -6066,6 +6159,10 @@ abstract final class Ar {
       classes.toString() +
       ".";
   static const dynamicCodePass = "التطبيق بيحمّل الكود بتاعه بس";
+  static String dynamicCodeRenamed({required Object? classes}) =>
+      "classes اسمها اتغيّر بـR8 وبتحمّل كود، ومفيش فيها حاجة توضّح هي بتاعة التطبيق ولا مكتبة (مش محسوبة): " +
+      classes.toString() +
+      ". دوّر عليها في الـmapping.txt بتاع الـbuild.";
   static const dynamicCodeTitle = "كود بيتحمّل من برّه التطبيق";
   static const extA11Description =
       "راجع التحقق من روابط HTTP(S) ومرشحات الروابط الواسعة.";
@@ -6269,6 +6366,14 @@ abstract final class Ar {
   static const i18nByCategory = "حسب القسم";
   static const i18nCertificateSha256Base64ForFreeraspSigningcerthashes =
       "الـ SHA-256 بتاع الشهادة (Base64، لـ signingCertHashes في freeRASP)";
+  static const i18nChangedLines = "السطور المتغيّرة";
+  static String i18nChangedLinesSummary(
+          {required Object? count, required Object? ref}) =>
+      "ظاهر بس الـfindings اللي على سطور اتغيّرت من " +
+      ref.toString() +
+      "؛ و" +
+      count.toString() +
+      " غيرهم مش ظاهرين (بس لسه محسوبين في الـscore)";
   static const i18nCheck = "الفحص";
   static const i18nCheckManuallyNoToolCanVerifyThese =
       "لازم تتأكد منها بنفسك (مفيش أداة تقدر تفحصها)";
@@ -6282,6 +6387,7 @@ abstract final class Ar {
   static const i18nHigh = "عالي";
   static const i18nInfo = "معلومة";
   static const i18nIosApplicationIpa = "تطبيق iOS (IPA)";
+  static const i18nIssuesOnChangedLines = "مشاكل في السطور المتغيّرة";
   static String i18nKnown({required Object? n}) =>
       "" + n.toString() + " معروفة";
   static const i18nKnown2 = "معروفة";
@@ -6308,6 +6414,7 @@ abstract final class Ar {
   static const i18nNewIssuesNotInTheBaseline =
       "مشاكل جديدة (مش في الـ baseline)";
   static const i18nNoIssuesFound = "مفيش مشاكل.";
+  static const i18nNoIssuesOnChangedLines = "مفيش مشاكل في السطور المتغيّرة";
   static const i18nNoNewIssuesSinceTheBaseline =
       "مفيش مشاكل جديدة من وقت الـ baseline.";
   static const i18nNotApplicable = "مش منطبق";
@@ -6856,6 +6963,12 @@ abstract final class Ar {
       "فحص أنماط كود Kotlin (بما فيها KMP) وJava وSwift وObjective-C وJavaScript/TypeScript. تطابق الأنماط لا يمثل تحليلًا كاملًا لتدفق البيانات أو إثباتًا لتشغيل الحماية فعليًا.";
   static const nativeSourceScope =
       "تعذر فحص بعض مدخلات الكود أو الإعدادات. تظل النتائج المثبتة محفوظة؛ ولا تتوفر نتيجة مكتملة للمدخلات المفقودة.";
+  static String nativeStaticIv({required Object? name}) =>
+      "الـIV `" + name.toString() + "` اللي بيتستخدم في التشفير ثابت في الكود.";
+  static String nativeStaticKey({required Object? name}) =>
+      "الـkey `" +
+      name.toString() +
+      "` اللي بيتستخدم في التشفير string مكتوب في الكود.";
   static String notificationLeak({required Object? places}) =>
       "إشعارات ممكن تعرض بيانات حساسة، محتاجة مراجعة: " +
       places.toString() +
@@ -7716,6 +7829,8 @@ abstract final class Ar {
       "" +
       name.toString() +
       " موجودة في الـ dependencies بس مفيش كود بيستخدمها، فهي مش بتحمي التطبيق.";
+  static const releaseManifestDebuggable =
+      "android:debuggable=\"true\" متحطوطة في الـmanifest بتاع الـrelease source set، فنسخ الـrelease بتبقى debuggable.";
   static String ruleError({required Object? error}) =>
       "حدث خطأ أثناء الفحص: " + error.toString() + "";
   static const runChooseMode = "عاوز تعمل الفحص بأي مود؟";

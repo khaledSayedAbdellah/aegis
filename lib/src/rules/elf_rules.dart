@@ -42,7 +42,7 @@ class ElfHardeningRule extends Rule {
                 messageAr: Ar.extElfFinding(detail: ar)));
         if (s.executableStack) add(En.extElfStack, Ar.extElfStack);
         if (s.wx) add(En.extElfWx, Ar.extElfWx);
-        if (s.dynamic && (!s.relro || !s.bindNow)) {
+        if (s.dynamic && s.relocations && (!s.relro || !s.bindNow)) {
           add(En.extElfRelro, Ar.extElfRelro);
         }
         if (s.type == 2) add(En.extElfPie, Ar.extElfPie);

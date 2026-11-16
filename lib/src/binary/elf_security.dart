@@ -10,7 +10,8 @@ class ElfSecurity {
       wx = false,
       relro = false,
       bindNow = false,
-      dynamic = false;
+      dynamic = false,
+      relocations = false;
   bool? canary, fortify;
   final List<String> debugSections = [], paths = [];
   Map<String, Object?> toJson() => {
@@ -18,7 +19,7 @@ class ElfSecurity {
         'type': type,
         'executableStack': stackHeader ? executableStack : null,
         'writableExecutableLoad': wx,
-        'relro': !dynamic
+        'relro': !dynamic || !relocations
             ? 'not_applicable'
             : relro
                 ? (bindNow ? 'full' : 'partial')
@@ -131,6 +132,15 @@ ElfSecurity inspectElf(Uint8List bytes) {
       if (tag == 5) strings = value;
       if (tag == 10) stringsSize = value;
       if (tag == 15 || tag == 29) pathOffsets.add(value);
+      // RELASZ, RELSZ, PLTRELSZ, RELRSZ and Android's packed relocations:
+      // without relocations there is nothing for RELRO to protect (Flutter's
+      // libapp.so).
+      if ((const {8, 18, 2, 35, 0x60000010, 0x60000012}.contains(tag) &&
+              value > 0) ||
+          tag == 0x6000000f ||
+          tag == 0x60000011) {
+        result.relocations = true;
+      }
       if (tag == 24 ||
           tag == 30 && value & 8 != 0 ||
           tag == 0x6ffffffb && value & 1 != 0) {

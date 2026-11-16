@@ -71,12 +71,20 @@ int _lineAt(String text, int offset) =>
     '\n'.allMatches(text.substring(0, offset)).length + 1;
 
 /// The last identifier of an expression: `session.accessToken` -> `accessToken`.
+/// The name that says what [expression] holds: `_secret.text` is
+/// `_secret`, `token.trim()` is `token`.
 String _lastName(String expression) =>
     RegExp(r'[A-Za-z_]\w*')
         .allMatches(expression)
         .map((m) => m[0]!)
+        .where((n) => !_accessors.contains(n))
         .lastOrNull ??
     expression;
+
+const _accessors = {
+  'text', 'value', 'data', 'string', 'toString', 'trim', 'getText', //
+  'toUpperCase', 'toLowerCase', 'this', 'widget',
+};
 
 class KeyboardCacheRule extends Rule {
   const KeyboardCacheRule();
@@ -142,9 +150,7 @@ class ClipboardRule extends Rule {
             .firstMatch(f.text(c.open, c.close));
         if (m == null) continue;
         final value = m[1]!.replaceAll(RegExp(r'[!?]'), '');
-        final name = value
-            .split('.')
-            .lastWhere((s) => s.isNotEmpty, orElse: () => value);
+        final name = _lastName(value);
         if (!isSecretName(name)) continue;
         out.add(at(f, c.nameIndex, En.clipboard(value: value),
             messageAr: Ar.clipboard(value: value)));

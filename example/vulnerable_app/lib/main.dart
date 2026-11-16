@@ -98,6 +98,15 @@ Future<void> greet(dynamic webView, String name) async {
   await webView.runJavaScript('showGreeting("$name")');
 }
 
+void openLinks(
+    Stream<Uri> uriLinkStream, Future<bool> Function(Uri) launchUrl) {
+  uriLinkStream.listen((uri) {
+    // AEG-D19: any app can make this open a URL it chose.
+    final next = uri.queryParameters['next'];
+    if (next != null) launchUrl(Uri.parse(next));
+  });
+}
+
 Future<void> transfer(dynamic session, int amount) async {
   // AEG-D14: the only permission check disappears in release builds.
   assert(session.hasPermission('transfer'));

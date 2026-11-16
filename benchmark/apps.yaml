@@ -1,0 +1,159 @@
+# Public, intentionally vulnerable apps used to measure aegis. Each is
+# downloaded at the pinned commit by benchmark/run.dart; none is committed,
+# and each keeps its own license (MIT for DVMA, InsecureBankv2, DVIA-v2 and
+# DVRN; AndroGoat and the MASTG demos have their own terms).
+#
+# `expected` lists the rules that must fail, each tied to a weakness the app
+# documents. `from` reuses another entry's download; `apk` / `ipa` audit a
+# prebuilt binary from it on its own; `units` counts the folders (one planted
+# weakness each) that get at least one finding.
+# `url` + `sha256` download a released binary instead of the source.
+# Update a commit or a release only together with its expectations.
+apps:
+  dvma:
+    # Flutter, 200+ modules sorted by MASVS category.
+    repo: cpeoples/dvma
+    commit: eadf986191b2ad9e71b6e711915e59ce79e8f335
+    expected:
+      - {rule: AEG-A01, why: debuggable_release_build (src/release manifest)}
+      - {rule: AEG-A02, why: insecure_backups}
+      - {rule: AEG-A03, why: cleartext_traffic_allowed}
+      - {rule: AEG-A04, why: cleartext_traffic_allowed, user CAs trusted}
+      - {rule: AEG-A06, why: exported_android_components}
+      - {rule: AEG-A07, why: no_obfuscation}
+      - {rule: AEG-A15, why: pending_intent_hijacking}
+      - {rule: AEG-C04, why: dynamic_code_loading_rce}
+      - {rule: AEG-D01, why: hardcoded_llm_api_keys}
+      - {rule: AEG-D02, why: insecure_webview_networking, cleartext URLs}
+      - {rule: AEG-D03, why: weak_tls_config}
+      - {rule: AEG-D04, why: insecure_local_storage}
+      - {rule: AEG-D05, why: weak_algorithms}
+      - {rule: AEG-D06, why: hardcoded_keys_ivs}
+      - {rule: AEG-D07, why: insecure_random}
+      - {rule: AEG-D08, why: sensitive_data_in_logs}
+      - {rule: AEG-D10, why: webview_remote_debugging_enabled, JS bridges}
+      - {rule: AEG-D11, why: content_provider_sql_injection (Kotlin)}
+      - {rule: AEG-D12, why: ai_output_to_webview_xss}
+      - {rule: AEG-D15, why: keyboard_cache_autofill_leakage}
+      - {rule: AEG-D16, why: clipboard_leakage}
+      - {rule: AEG-I01, why: ATS disabled}
+      - {rule: AEG-P13, why: oauth_misconfiguration}
+  insecurebank:
+    # Native Android (Java).
+    repo: dineshshetty/Android-InsecureBankv2
+    commit: 3c8cc3a3ce45ed56d0f58f236b541b41f992e51f
+    expected:
+      - {rule: AEG-A02, why: allowBackup}
+      - {rule: AEG-A06, why: exported activities (login bypass)}
+      - {rule: AEG-A12, why: exported content provider}
+      - {rule: AEG-D06, why: hardcoded AES key and IV in CryptoClass}
+      - {rule: AEG-N04, why: world-readable shared preferences}
+      - {rule: AEG-N09, why: credentials written to logcat}
+  insecurebank-apk:
+    from: insecurebank
+    apk: InsecureBankv2.apk
+    expected:
+      - {rule: AEG-B02, why: debuggable APK}
+      - {rule: AEG-B03, why: backup enabled}
+      - {rule: AEG-B04, why: exported activities}
+      - {rule: AEG-B15, why: v1-only signature with minSdk 15}
+      - {rule: AEG-A12, why: exported content provider}
+  androgoat:
+    # Native Android (Kotlin).
+    repo: satishpatnayak/AndroGoat
+    commit: 77996f239587a8ed2691629777374b5f4a364589
+    expected:
+      - {rule: AEG-A02, why: allowBackup}
+      - {rule: AEG-A04, why: cleartext and user CAs in network config}
+      - {rule: AEG-A06, why: exported activity and service}
+      - {rule: AEG-A12, why: exported content provider}
+      - {rule: AEG-D11, why: SQLinjectionActivity}
+      - {rule: AEG-D16, why: ClipboardActivity}
+      - {rule: AEG-N02, why: WebView file URL access}
+      - {rule: AEG-N08, why: hardcoded cloud and AI keys}
+      - {rule: AEG-N09, why: keys written to logcat}
+  dvia:
+    # Native iOS (Swift).
+    repo: prateek147/DVIA-v2
+    commit: 96466ab85569dbcd37c69b2d15d22ff666f57031
+    expected:
+      - {rule: AEG-I01, why: ATS disabled}
+      - {rule: AEG-N08, why: hardcoded API key and password}
+  dvia-ipa:
+    from: dvia
+    ipa: DVIA-v2.ipa
+    expected:
+      - {rule: AEG-I01, why: ATS disabled}
+      - {rule: AEG-I03, why: get-task-allow in the shipped binary}
+  dvrn:
+    # React Native, three build variants.
+    repo: waseeq14/Damn-Vulnerable-React-Native
+    commit: 8180663c9da948645a451813a69b7a91997f7835
+    expected:
+      - {rule: AEG-A04, why: cleartext allowed}
+      - {rule: AEG-A08, why: release signed with the debug key}
+      - {rule: AEG-A09, why: signing passwords in build.gradle}
+      - {rule: AEG-N04, why: token in AsyncStorage}
+      - {rule: AEG-N08, why: hardcoded premium API key}
+  mastg-android:
+    # OWASP MASTG demos: one folder per tested weakness.
+    repo: OWASP/mastg
+    commit: e8183038d7a88c1ac962732d6e3f6e7f40a0251c
+    sparse: ["/demos/android/"]
+    path: demos/android
+    units: "MASVS-*/MASTG-DEMO-*"
+    expected:
+      - {rule: AEG-A01, why: MASTG-DEMO-0040 debuggable}
+      - {rule: AEG-A03, why: cleartext traffic demos}
+      - {rule: AEG-A06, why: exported components}
+      - {rule: AEG-A11, why: MASTG-DEMO-0151 deep link without autoVerify}
+      - {rule: AEG-D06, why: hardcoded keys (MASTG-DEMO-0017, 0023, 0101)}
+      - {rule: AEG-D20, why: key in plain storage (MASTG-DEMO-0101)}
+      - {rule: AEG-N01, why: trust-all TrustManager}
+      - {rule: AEG-N02, why: WebView file access}
+      - {rule: AEG-N03, why: broken crypto (DES, ECB)}
+      - {rule: AEG-N09, why: secrets in logs}
+  dvma-apk:
+    # DVMA's published release (R8 off, readable class names).
+    url: https://github.com/cpeoples/dvma/releases/download/v1.0.0/dvma-1.0.0.apk
+    sha256: 70aa6185645ded0247791f53f49b944ad95119c15742e32e433671904d662442
+    apk: dvma-1.0.0.apk
+    expected:
+      - {rule: AEG-B02, why: debuggable release}
+      - {rule: AEG-B03, why: backup and cleartext in the final manifest}
+      - {rule: AEG-B04, why: exported components}
+      - {rule: AEG-B06, why: OpenAI key compiled into libapp.so}
+      - {rule: AEG-B07, why: Dart code not obfuscated}
+      - {rule: AEG-B17, why: PlatformIpc's DexClassLoader}
+  dvma-aab:
+    url: https://github.com/cpeoples/dvma/releases/download/v1.0.0/dvma-1.0.0.aab
+    sha256: c6c4d027d0f718ccbad0afd6343ce78f2663cc48ab579e8706deaaf2cc4093d8
+    apk: dvma-1.0.0.aab
+    expected:
+      - {rule: AEG-B02, why: debuggable release}
+      - {rule: AEG-B06, why: OpenAI key compiled into libapp.so}
+      - {rule: AEG-B17, why: PlatformIpc's DexClassLoader}
+  dvma-ipa:
+    url: https://github.com/cpeoples/dvma/releases/download/v1.0.0/dvma-1.0.0-unsigned.ipa
+    sha256: 247b09aea18400de6924bf56f5160129cb699b1e1fb0cf43cf756472b9aa5299
+    ipa: dvma-1.0.0-unsigned.ipa
+    expected:
+      - {rule: AEG-I01, why: ATS disabled}
+      - {rule: AEG-I04, why: UIFileSharingEnabled}
+  dvrn-apk:
+    url: https://github.com/waseeq14/Damn-Vulnerable-React-Native/releases/download/v1.0.0/DVRN-B.apk
+    sha256: f1357463dd7d4ad7cb00196ee7e6d80cd56ba500689c041d89cbca9132a47a70
+    apk: DVRN-B.apk
+    expected:
+      - {rule: AEG-B03, why: cleartext in the shipped network config}
+      - {rule: AEG-B09, why: signed with the debug certificate}
+  androgoat-apk:
+    url: https://github.com/satishpatnayak/AndroGoat/releases/download/v2.0.1/AndroGoat.apk
+    sha256: 3e6f6b538b82874dd94c0d8cdadd69ba54d49b59d2c7eb055073892e8a4fc0e0
+    apk: AndroGoat.apk
+    expected:
+      - {rule: AEG-B02, why: debuggable}
+      - {rule: AEG-B03, why: backup enabled}
+      - {rule: AEG-B04, why: exported components}
+      - {rule: AEG-B06, why: AWS key in the dex}
+      - {rule: AEG-B09, why: signed with the debug certificate}

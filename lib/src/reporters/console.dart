@@ -166,22 +166,28 @@ class ConsoleReporter {
       b.writeln();
     }
 
+    if (r.changed != null) {
+      b.writeln(
+          '${t.changedLines}: ${t.changedLinesSummary(r.changed!.ref, r.outsideChangeCount)}');
+      b.writeln();
+    }
+
     final failed = r.newFailed.toList();
-    final heading = r.usesBaseline ? t.newIssues : t.failed;
+    final heading = t.failedHeading(r);
     b.writeln(_bold('${_red('✗')} $heading (${failed.length})'));
     b.writeln(line);
     if (failed.isEmpty) {
-      b.writeln(_green('  ${r.usesBaseline ? t.noNewIssues : t.noIssues}'));
+      b.writeln(_green('  ${t.emptyHeading(r)}'));
     }
     var n = 0;
     for (final res in failed) {
       n++;
       final m = res.meta;
       final fresh = res.newFindings;
-      final knownCount = res.findings.length - fresh.length;
+      final knownCount = res.knownFindings.length;
       b.writeln(
           '${_bold('[$n]')} ${_sev(res.severity, t.severity(res.severity))} '
-          '${_bold(m.title.of(lang))} ${_dim('${m.id} · ${m.masvs.join(', ')}')}');
+          '${_bold(m.title.of(lang))} ${_dim(m.masvs.isEmpty ? m.id : '${m.id} · ${m.masvs.join(', ')}')}');
       for (final f in fresh.take(verbose ? 1000 : 5)) {
         final loc = f.location.isEmpty ? '' : _cyan(f.location);
         b.writeln('    • ${loc.isEmpty ? '' : '$loc  '}${f.messageOf(lang)}');
@@ -201,16 +207,16 @@ class ConsoleReporter {
       b.writeln();
     }
 
-    final known = r.failed.where((x) => !x.hasNew).toList();
+    final known = r.failed.where((x) => !x.hasNew && x.hasKnown).toList();
     if (known.isNotEmpty) {
       b.writeln(_bold('${_dim('≈')} ${t.known} (${known.length})'));
       b.writeln(line);
       for (final res in known) {
         b.writeln(
             '  ${_sev(res.severity, t.severity(res.severity))} ${res.meta.title.of(lang)} '
-            '${_dim('${res.meta.id} · ${t.knownCount(res.findings.length)}')}');
+            '${_dim('${res.meta.id} · ${t.knownCount(res.knownFindings.length)}')}');
         if (verbose) {
-          for (final f in res.findings) {
+          for (final f in res.knownFindings) {
             b.writeln(_dim(
                 '      • ${f.location.isEmpty ? '' : '${f.location}  '}${f.messageOf(lang)}'));
           }

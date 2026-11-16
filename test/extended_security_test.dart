@@ -23,6 +23,7 @@ Uint8List elf(
     bool wx = false,
     bool relro = true,
     bool now = true,
+    bool relocations = true,
     int type = 3}) {
   final b = Uint8List(512), d = ByteData(512);
   b.setRange(0, 7,
@@ -52,11 +53,18 @@ Uint8List elf(
 
   ph(0, 1, wx ? 7 : 5, 0, 512);
   ph(1, 0x6474e551, stack ? 7 : 6, 0, 0);
-  ph(2, 2, 6, 400, wide ? 32 : 16);
+  ph(2, 2, 6, 400, wide ? 48 : 24);
   if (relro) ph(3, 0x6474e552, 4, 0, 0);
+  final entry = wide ? 16 : 8;
+  var at = 400;
+  if (relocations) {
+    word(at, 8); // DT_RELASZ
+    word(at + entry ~/ 2, 24);
+    at += entry;
+  }
   if (now) {
-    word(400, 24);
-    word(400 + (wide ? 8 : 4), 0);
+    word(at, 24); // DT_BIND_NOW
+    word(at + entry ~/ 2, 0);
   }
   final bytes = d.buffer.asUint8List();
   bytes.setRange(0, 7, b.sublist(0, 7));
@@ -266,6 +274,11 @@ void main() {
     }
     test('missing RELRO and truncation cannot pass', () {
       expect(inspectElf(elf(relro: false)).toJson()['relro'], 'none');
+      // Nothing to relocate (Flutter's libapp.so): RELRO does not apply.
+      expect(
+          inspectElf(elf(relro: false, now: false, relocations: false))
+              .toJson()['relro'],
+          'not_applicable');
       final bytes = elf();
       for (final size in [0, 4, 51, 80, 180]) {
         expect(() => inspectElf(Uint8List.sublistView(bytes, 0, size)),

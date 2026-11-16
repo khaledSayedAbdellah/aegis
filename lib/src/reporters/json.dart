@@ -68,6 +68,12 @@ Map<String, Object?> reportToJson(AuditReport r) => {
         'incomplete': r.incomplete.length,
         'suppressed': r.suppressed,
       },
+      if (r.changed != null)
+        'changedSince': {
+          'ref': r.changed!.ref,
+          'files': r.changed!.files.length,
+          'notListed': r.outsideChangeCount,
+        },
       if (r.usesBaseline)
         'baseline': {
           'file': r.baselinePath,
@@ -156,22 +162,23 @@ String renderSarif(AuditReport r) {
         'results': [
           for (final res in rules)
             for (final f in res.findings)
-              {
-                'ruleId': res.meta.id,
-                'level': _sarifLevel(res.severity),
-                'message': {'text': f.message},
-                'partialFingerprints': {'aegis/v1': Baseline.fingerprint(f)},
-                if (r.usesBaseline)
-                  'baselineState': f.baselined ? 'unchanged' : 'new',
-                'locations': [
-                  {
-                    'physicalLocation': {
-                      'artifactLocation': {'uri': f.file ?? 'pubspec.yaml'},
-                      if (f.line != null) 'region': {'startLine': f.line},
+              if (!f.outsideChange)
+                {
+                  'ruleId': res.meta.id,
+                  'level': _sarifLevel(res.severity),
+                  'message': {'text': f.message},
+                  'partialFingerprints': {'aegis/v1': Baseline.fingerprint(f)},
+                  if (r.usesBaseline)
+                    'baselineState': f.baselined ? 'unchanged' : 'new',
+                  'locations': [
+                    {
+                      'physicalLocation': {
+                        'artifactLocation': {'uri': f.file ?? 'pubspec.yaml'},
+                        if (f.line != null) 'region': {'startLine': f.line},
+                      }
                     }
-                  }
-                ],
-              }
+                  ],
+                }
         ],
         'properties': {
           'complete': r.complete,

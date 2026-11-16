@@ -160,7 +160,7 @@ class DartFile {
   }
 
   void _collectSuppressions() {
-    final re = RegExp(r'aegis\s*:\s*ignore(-file)?\s+([A-Za-z0-9\-, ]+)');
+    final re = RegExp(r'aegis\s*:\s*ignore(-file)?\s+([A-Za-z0-9_\-, ]+)');
     for (final c in comments) {
       final m = re.firstMatch(c.text);
       if (m == null) continue;
@@ -168,7 +168,7 @@ class DartFile {
           .group(2)!
           .split(RegExp(r'[,\s]+'))
           .map((s) => s.trim().toUpperCase())
-          .where((s) => s.startsWith('AEG-'))
+          .where((s) => s.startsWith('AEG-') || s.startsWith('X-'))
           .toSet();
       if (m.group(1) != null) {
         _fileSuppress.addAll(ids);

@@ -60,6 +60,12 @@ ArgParser auditParser({bool run = false}) => _iosOptions(
       ..addFlag('ignore-baseline',
           negatable: false,
           help: 'Report every finding as new, ignoring the baseline.')
+      ..addOption('changed-since',
+          valueHelp: 'git-ref',
+          help:
+              'List only findings on lines changed since this git ref (its merge base with HEAD), '
+              'plus uncommitted and new files. The score still covers the whole project. '
+              'For a pull request: --changed-since origin/main.')
       ..addFlag('strict',
           negatable: false,
           help: 'Fail if an applicable check could not complete.')

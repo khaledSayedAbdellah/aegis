@@ -30,3 +30,6 @@ doc/images/report-dark.png
 
 # The GitHub Action is synced to its own repository on release.
 action/
+
+# The benchmark is for developing aegis, not part of the package.
+benchmark/
