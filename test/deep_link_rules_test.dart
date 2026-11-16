@@ -78,6 +78,78 @@ void init() {
 '''), isEmpty);
   });
 
+  test('link data returned by a helper in another file', () async {
+    final r = await audit({
+      'lib/router.dart': r'''
+class Router {
+  static String? target(String link) => _param(Uri.tryParse(link));
+  static String? _param(Uri? uri) {
+    if (uri == null) return null;
+    return uri.queryParameters['url'];
+  }
+  static String? safeTarget(String link) {
+    final url = Uri.tryParse(link)?.queryParameters['url'];
+    if (url == null || !allowed.contains(Uri.parse(url).host)) return null;
+    return url;
+  }
+}
+''',
+      'lib/screen.dart': r'''
+Future<void> open(web, String link) async {
+  final url = Router.target(link);
+  if (url != null) await web.loadRequest(Uri.parse(url));
+  final checked = Router.safeTarget(link);
+  if (checked != null) await web.loadRequest(Uri.parse(checked));
+}
+''',
+    });
+    expect(result(r, 'AEG-D19').findings.map((f) => '${f.file}:${f.line}'),
+        ['lib/screen.dart:3']);
+  });
+
+  test('Kotlin and Swift: Intent and link data reaching a sink', () async {
+    final r = await audit({
+      'android/app/src/main/kotlin/com/example/WebActivity.kt': '''
+class WebActivity : Activity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val url = intent.getStringExtra("url") ?: "about:blank"
+        web.loadUrl(url)
+    }
+    fun checked() {
+        val link = intent?.data
+        if (link?.host != "example.com") return
+        web.loadUrl(link.toString())
+    }
+    fun fixed() {
+        web.loadUrl("https://example.com/help")
+    }
+}
+''',
+      'ios/Runner/SceneDelegate.swift': '''
+class AppDelegate {
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool {
+        webView.load(URLRequest(url: url))
+        return true
+    }
+}
+''',
+    });
+    expect(result(r, 'AEG-D19').findings.map((f) => '${f.file}:${f.line}'), [
+      'android/app/src/main/kotlin/com/example/WebActivity.kt:4',
+      'ios/Runner/SceneDelegate.swift:3',
+    ]);
+  });
+
+  test('route names from Flutter deep linking', () async {
+    expect(await found(r'''
+final app = MaterialApp(onGenerateRoute: (settings) {
+  final page = settings.name ?? '/';
+  launchUrl(Uri.parse('https://example.com$page'));
+  return null;
+});
+'''), [startsWith('3: Deep-link data')]);
+  });
+
   test('no link handling: not applicable, and AEG-M08 stays', () async {
     final r = await audit({'lib/main.dart': 'void main() {}'});
     expect(result(r, 'AEG-D19').status, RuleStatus.notApplicable);

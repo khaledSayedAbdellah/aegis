@@ -36,6 +36,7 @@ apps:
       - {rule: AEG-D12, why: ai_output_to_webview_xss}
       - {rule: AEG-D15, why: keyboard_cache_autofill_leakage}
       - {rule: AEG-D16, why: clipboard_leakage}
+      - {rule: AEG-D19, why: deeplink_to_webview_navigation, WebViewActivity's url extra}
       - {rule: AEG-I01, why: ATS disabled}
       - {rule: AEG-P13, why: oauth_misconfiguration}
   insecurebank:
@@ -47,6 +48,7 @@ apps:
       - {rule: AEG-A06, why: exported activities (login bypass)}
       - {rule: AEG-A12, why: exported content provider}
       - {rule: AEG-D06, why: hardcoded AES key and IV in CryptoClass}
+      - {rule: AEG-D15, why: password fields without inputType}
       - {rule: AEG-N04, why: world-readable shared preferences}
       - {rule: AEG-N09, why: credentials written to logcat}
   insecurebank-apk:
@@ -68,6 +70,7 @@ apps:
       - {rule: AEG-A06, why: exported activity and service}
       - {rule: AEG-A12, why: exported content provider}
       - {rule: AEG-D11, why: SQLinjectionActivity}
+      - {rule: AEG-D15, why: KeyboardCacheActivity}
       - {rule: AEG-D16, why: ClipboardActivity}
       - {rule: AEG-N02, why: WebView file URL access}
       - {rule: AEG-N08, why: hardcoded cloud and AI keys}
@@ -108,10 +111,11 @@ apps:
       - {rule: AEG-A06, why: exported components}
       - {rule: AEG-A11, why: MASTG-DEMO-0151 deep link without autoVerify}
       - {rule: AEG-D06, why: hardcoded keys (MASTG-DEMO-0017, 0023, 0101)}
+      - {rule: AEG-D07, why: insecure random (MASTG-DEMO-0007)}
       - {rule: AEG-D20, why: key in plain storage (MASTG-DEMO-0101)}
       - {rule: AEG-N01, why: trust-all TrustManager}
       - {rule: AEG-N02, why: WebView file access}
-      - {rule: AEG-N03, why: broken crypto (DES, ECB)}
+      - {rule: AEG-N03, why: broken crypto (DES, ECB) and a 1024-bit RSA key (MASTG-DEMO-0012)}
       - {rule: AEG-N09, why: secrets in logs}
   dvma-apk:
     # DVMA's published release (R8 off, readable class names).

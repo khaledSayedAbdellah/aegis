@@ -7,6 +7,7 @@ import '../dart_scanner.dart';
 import '../l10n/messages.g.dart';
 import '../model.dart';
 import '../project.dart';
+import '../security/native_analysis.dart' show withoutComments;
 import 'rule.dart';
 
 const _all = {MasProfile.l1, MasProfile.l2, MasProfile.r};
@@ -159,7 +160,7 @@ class SqlInjectionRule extends Rule {
   RuleCheck check(Project project, ProfileSet profile) {
     final out = <Finding>[];
     for (final f in project.dartFiles) {
-      final flow = ValueFlow(f);
+      final flow = ValueFlow(f, functions: projectFunctions(project.dartFiles));
       for (final c in f.calls({..._statements, ..._conditions})) {
         final args = f.args(c.open);
         final Arg? arg;
@@ -224,6 +225,57 @@ class SqlInjectionRule extends Rule {
             En.sqlInjection(value: shorten(value, 40), call: c.name),
             messageAr:
                 Ar.sqlInjection(value: shorten(value, 40), call: c.name)));
+      }
+    }
+    out.addAll(_swift(project));
+    return out;
+  }
+
+  /// Swift: `sqlite3_exec`, `sqlite3_prepare_v2` and FMDB's `executeQuery` /
+  /// `executeUpdate` given a string built with `\(x)`.
+  List<Finding> _swift(Project project) {
+    final out = <Finding>[];
+    final call = RegExp(
+        r'\b(sqlite3_exec|sqlite3_prepare(?:_v2|_v3)?)\s*\(\s*[^,]+,\s*([^,]+),|'
+        r'\.(executeQuery|executeUpdate|executeStatements)\s*\(\s*([^,)]+)');
+    for (final file in [
+      ...project.iosNativeSources,
+      ...project.sharedNativeSources,
+    ]) {
+      if (!file.path.endsWith('.swift')) continue;
+      final code = withoutComments(file.text);
+      if (!code.contains('sqlite3_') && !code.contains('execute')) continue;
+      for (final m in call.allMatches(code)) {
+        final name = m[1] ?? m[3]!;
+        var arg = (m[2] ?? m[4]!).trim();
+        if (RegExp(r'^\w+$').hasMatch(arg)) {
+          // `let sql = "..."` before the call.
+          final decl = RegExp(
+                  '\\b(?:let|var)\\s+${RegExp.escape(arg)}\\s*(?::\\s*String\\s*)?=\\s*(".*")\\s*\$',
+                  multiLine: true)
+              .allMatches(code.substring(0, m.start))
+              .lastOrNull;
+          if (decl == null) continue;
+          arg = decl[1]!;
+        }
+        if (!arg.startsWith('"')) continue;
+        final parts = <TemplatePart>[];
+        var last = 1;
+        for (final i
+            in RegExp(r'\\\(([^()]*(?:\([^()]*\)[^()]*)*)\)').allMatches(arg)) {
+          parts.add(TemplatePart.text(arg.substring(last, i.start)));
+          parts.add(TemplatePart.value(i[1]!.trim()));
+          last = i.end;
+        }
+        parts.add(TemplatePart.text(arg.substring(last)));
+        if (!_sql.hasMatch(parts.map((p) => p.text).join(' '))) continue;
+        final value = _valueInSql(parts, (_) => false);
+        if (value == null) continue;
+        out.add(inFile(
+            file.path,
+            '\n'.allMatches(code.substring(0, m.start)).length + 1,
+            En.sqlInjection(value: shorten(value, 40), call: name),
+            messageAr: Ar.sqlInjection(value: shorten(value, 40), call: name)));
       }
     }
     return out;
@@ -343,7 +395,7 @@ class WebViewInjectionRule extends Rule {
   RuleCheck check(Project project, ProfileSet profile) {
     final out = <Finding>[];
     for (final f in project.dartFiles) {
-      final flow = ValueFlow(f);
+      final flow = ValueFlow(f, functions: projectFunctions(project.dartFiles));
       for (final c in f.calls(_calls.keys.toSet())) {
         final args = f.args(c.open);
         final named = _calls[c.name];

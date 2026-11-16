@@ -1,4 +1,4 @@
-## Unreleased
+## 0.17.0
 
 * Value flow inside a function: aegis now follows `final x = ...`, reassignments, `for (... in ...)`, parameters and closures, and knows where data comes from (deep links, typed text, HTTP responses, platform channels, push messages).
   * `AEG-D11` and `AEG-D12` also report a query or script variable built from data earlier in the function, and no longer report numbers, `int` parameters and local constants.
@@ -17,6 +17,11 @@
   * `AEG-B17`: classes that R8 renamed (for example with `-repackageclasses`) are matched to their owner by the package names in their strings; with no clue they are listed for review instead of reported.
   * `AEG-I14` ignores header files.
   * `AEG-B04` is now called "Exported component without permission in the final manifest": without source it lists every exported component, not only those added by libraries.
+* Value flow follows calls into the project's own functions and static methods, in any file: a helper that returns link data passes it on, and one that checks it first does not.
+* `AEG-D19` also reads Flutter route names (`onGenerateRoute`), and Kotlin, Java and Swift: Intent extras and data, `getQueryParameter`, `open url:` handlers and `onOpenURL` that reach `loadUrl`, `startActivity`, files or a WebView without a check.
+* Native code in more rules: `AEG-D07` (`java.util.Random`, `kotlin.random.Random`, `Math.random()` near security code), `AEG-D15` (Jetpack Compose text fields and XML `EditText`s for secrets with suggestions on), `AEG-D17` (Android and iOS notifications showing codes or tokens), `AEG-N03` (RSA keys under 2048 bits, symmetric keys under 128 bits) and `AEG-D11` (Swift `sqlite3_exec` / `sqlite3_prepare_v2` and FMDB with `\(x)` interpolation). They run on native projects too.
+* `AEG-B17` reads R8's `mapping.txt` next to the APK or in Gradle's `outputs/mapping/<variant>/` to name renamed classes.
+* The benchmark (`dart run benchmark/run.dart`) runs weekly in CI.
 
 ## 0.16.0
 

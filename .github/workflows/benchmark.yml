@@ -1,0 +1,31 @@
+name: Benchmark
+
+# Audits the public vulnerable apps in benchmark/apps.yaml and fails when an
+# expected finding is missed or a rule that fired in benchmark/results.json
+# stops firing. Weekly, and on demand.
+on:
+  schedule:
+    - cron: '17 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  benchmark:
+    # macOS so the IPA entries can check code signatures too.
+    runs-on: macos-latest
+    env:
+      AEGIS_BENCHMARK_CACHE: ${{ github.workspace }}/../aegis-benchmark
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      # The apps are pinned, so the downloads only change with apps.yaml.
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.AEGIS_BENCHMARK_CACHE }}
+          key: benchmark-${{ hashFiles('benchmark/apps.yaml') }}
+      - run: dart run benchmark/run.dart

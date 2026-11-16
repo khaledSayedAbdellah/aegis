@@ -61,12 +61,14 @@ CryptoJS.DES.encrypt(value, key);
         {'.kt': 1, '.tsx': 1, '.js': 1});
     expect(result(r, 'AEG-S01').counts, isFalse);
     // Dart rules don't run without Dart code; AEG-D13 also reads Gradle files,
-    // AEG-D06, AEG-D11, AEG-D16 and AEG-D20 native code.
+    // the rules listed below native code too.
     expect(
         r.results.any((r) =>
             r.meta.id.startsWith('AEG-D') &&
-            !const {'AEG-D06', 'AEG-D11', 'AEG-D13', 'AEG-D16', 'AEG-D20'}
-                .contains(r.meta.id)),
+            !const {
+              'AEG-D06', 'AEG-D07', 'AEG-D11', 'AEG-D13', 'AEG-D15', //
+              'AEG-D16', 'AEG-D17', 'AEG-D19', 'AEG-D20',
+            }.contains(r.meta.id)),
         isFalse);
   });
 

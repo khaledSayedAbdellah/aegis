@@ -777,6 +777,28 @@ class InsecureRandomRule extends Rule {
         }
       }
     }
+    // Kotlin and Java: java.util.Random, kotlin.random.Random, Math.random.
+    final native = RegExp(
+        r'(?<!Secure)\bRandom\s*\(\s*\d*\s*\)|\bMath\.random\s*\(|(?<![\w.])Random\.next\w*\s*\(');
+    for (final file in [
+      ...project.androidNativeSources,
+      ...project.sharedNativeSources,
+    ]) {
+      if (!file.path.endsWith('.kt') && !file.path.endsWith('.java')) continue;
+      final lines = withoutComments(file.text).split('\n');
+      for (var i = 0; i < lines.length; i++) {
+        final m = native.firstMatch(lines[i]);
+        if (m == null) continue;
+        final window = lines
+            .sublist(i - 3 < 0 ? 0 : i - 3,
+                i + 4 > lines.length ? lines.length : i + 4)
+            .join(' ');
+        if (!_securityContext.hasMatch(window)) continue;
+        final api = m[0]!.replaceAll(RegExp(r'\s*\(.*'), '()');
+        out.add(inFile(file.path, i + 1, En.nativeInsecureRandom(api: api),
+            messageAr: Ar.nativeInsecureRandom(api: api)));
+      }
+    }
     return RuleCheck(out);
   }
 }
@@ -825,7 +847,7 @@ class SensitiveLoggingRule extends Rule {
   RuleCheck check(Project project, ProfileSet profile) {
     final out = <Finding>[];
     for (final f in project.dartFiles) {
-      final flow = ValueFlow(f);
+      final flow = ValueFlow(f, functions: projectFunctions(project.dartFiles));
       for (final c in f.calls(_loggers)) {
         final r = c.receiver;
         final isBare =

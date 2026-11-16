@@ -77,6 +77,9 @@ const _inputCallbacks = {
   'validator',
 };
 
+/// Named arguments whose callback gets the route a deep link opened.
+const _routeCallbacks = {'onGenerateRoute', 'onUnknownRoute'};
+
 /// Calls that turn any value into a number, a flag or a length.
 final _numeric = RegExp(
     r'^(?:(?:int|double|num)\.(?:parse|tryParse)\(.*\)|.*\.(?:length|isEmpty|isNotEmpty|hashCode|toInt\(\)|round\(\)|floor\(\)|ceil\(\)|truncate\(\)))$',
@@ -126,9 +129,13 @@ class Definition {
 }
 
 class ValueFlow {
-  ValueFlow(this.f);
+  ValueFlow(this.f, {this.functions});
 
   final DartFile f;
+
+  /// Finds a function or static method declared in the project by name, so
+  /// a call takes the origin of what it returns.
+  final FunctionLookup? functions;
   final _regionCache = <int, List<_Region>>{};
 
   /// Function bodies around token [i], innermost first.
@@ -272,6 +279,10 @@ class ValueFlow {
       final name = f.at(open - 2);
       if (name != null && _inputCallbacks.contains(name.text)) {
         return SourceKind.input;
+      }
+      // Flutter's deep linking passes the link's path as the route name.
+      if (name != null && _routeCallbacks.contains(name.text)) {
+        return SourceKind.link;
       }
     }
     if (!(before.isPunct('(') || before.isPunct(','))) return null;
@@ -431,13 +442,23 @@ class ValueFlow {
       }
       if (!t.isIdent || _keywords.contains(t.text)) continue;
       final prev = i > 0 ? toks[i - 1] : null;
-      if (prev != null &&
-          (prev.isPunct('.') || prev.isPunct('?.') || prev.isPunct('..'))) {
+      final next = i + 1 < toks.length ? toks[i + 1] : null;
+      final member = prev != null &&
+          (prev.isPunct('.') || prev.isPunct('?.') || prev.isPunct('..'));
+      // `helper(x)` or `Router.resolve(x)`: a function of this project.
+      final staticCall = member &&
+          i >= 2 &&
+          toks[i - 2].isIdent &&
+          RegExp(r'^[A-Z]').hasMatch(toks[i - 2].text);
+      if (next != null && next.isPunct('(') && (!member || staticCall)) {
+        final called = depth < 3 ? _callOrigin(t.text, depth, seen) : null;
+        // Without the function's code the result is unknown; its arguments
+        // are scanned next either way.
+        result = result.merge(called ?? Origin.unknown);
         continue;
       }
-      final next = i + 1 < toks.length ? toks[i + 1] : null;
+      if (member) continue;
       if (next != null && (next.isPunct('(') || next.isPunct('<'))) {
-        // A call: its result is unknown; its arguments are scanned next.
         result = result.merge(Origin.unknown);
         continue;
       }
@@ -445,6 +466,52 @@ class ValueFlow {
         continue; // A constant or a class name such as `Uri`.
       }
       result = result.merge(_resolve(t.text, at, depth, seen));
+    }
+    return result;
+  }
+
+  /// What the function [name] of the project returns, or null when its
+  /// code is not in the project. A value it checks before returning
+  /// (`if (uri.host != ...) return null; return uri;`) no longer counts as
+  /// link data.
+  Origin? _callOrigin(String name, int depth, Set<String> seen) {
+    final key = '()$name';
+    if (seen.contains(key)) return Origin.unknown;
+    final found = functions?.call(name);
+    if (found == null) return null;
+    final (file, start, end) = found;
+    final flow =
+        identical(file, f) ? this : ValueFlow(file, functions: functions);
+    final returns = <(int, int)>[];
+    if (file.tokens[start].isPunct('=>')) {
+      returns.add((start + 1, end));
+    } else {
+      for (var k = start + 1; k < end; k++) {
+        final t = file.tokens[k];
+        if (!t.isIdent || t.text != 'return') continue;
+        var e = k + 1;
+        while (e < end && !file.tokens[e].isPunct(';')) {
+          final m = file.matchOf(e);
+          e = (m != null && m > e) ? m + 1 : e + 1;
+        }
+        if (e > k + 1) returns.add((k + 1, e - 1));
+      }
+    }
+    if (returns.isEmpty) return Origin.unknown;
+    Origin? result;
+    for (final (a, b) in returns) {
+      final text = file.text(a, b);
+      var o = flow._origin(text.trim(), a, depth + 1, {...seen, key});
+      if (o.kinds.contains(SourceKind.link)) {
+        final names = {
+          for (final n in flow.namesBehind(text, a))
+            if (flow.origin(n, a).kinds.contains(SourceKind.link)) n
+        };
+        if (flow.checkedBefore(names, a)) {
+          o = Origin({...o.kinds}..remove(SourceKind.link), clean: false);
+        }
+      }
+      result = result == null ? o : result.merge(o);
     }
     return result;
   }
@@ -581,6 +648,26 @@ class ValueFlow {
 }
 
 enum _Brace { function, block, type }
+
+/// Finds a function by name: its file and the token range of its body (from
+/// `{` or `=>`).
+typedef FunctionLookup = (DartFile, int, int)? Function(String name);
+
+final _lookups = Expando<FunctionLookup>();
+
+/// A [FunctionLookup] over [files], built once per list.
+FunctionLookup projectFunctions(List<DartFile> files) =>
+    _lookups[files] ??= () {
+      final cache = <String, (DartFile, int, int)?>{};
+      return (String name) => cache.putIfAbsent(name, () {
+            for (final file in files) {
+              if (!file.source.contains(name)) continue;
+              final body = file.functionBody(name);
+              if (body != null) return (file, body.start, body.end);
+            }
+            return null;
+          });
+    }();
 
 /// `x != null`, `null == x`, `x.isEmpty`, `x?.isNotEmpty == true`.
 final _presenceTest = RegExp(

@@ -23,12 +23,17 @@ import 'rules/android_rules.dart';
 import 'rules/backend_rules.dart';
 import 'rules/debug_tool_rules.dart';
 import 'rules/custom_rules.dart';
-import 'rules/dart_rules.dart' show StaticKeyRule;
+import 'rules/dart_rules.dart' show InsecureRandomRule, StaticKeyRule;
 import 'rules/injection_rules.dart' show SqlInjectionRule;
-import 'rules/deep_link_rules.dart' show deepLinksDecided;
+import 'rules/deep_link_rules.dart' show DeepLinkActionRule, deepLinksDecided;
 import 'rules/platform_ipc_rules.dart';
 import 'rules/dependency_rules.dart' show VulnerableDependencyRule;
-import 'rules/ui_leak_rules.dart' show ClipboardRule, PlainKeyStorageRule;
+import 'rules/ui_leak_rules.dart'
+    show
+        ClipboardRule,
+        KeyboardCacheRule,
+        NotificationLeakRule,
+        PlainKeyStorageRule;
 import 'rules/platform_security_rules.dart';
 import 'rules/platform_protection_rules.dart';
 import 'rules/native_security_rules.dart';
@@ -448,6 +453,10 @@ Future<AuditReport> runAudit(
           const DynamicCodeLoadingRule(),
           const SqlInjectionRule(),
           const StaticKeyRule(),
+          const DeepLinkActionRule(),
+          const InsecureRandomRule(),
+          const KeyboardCacheRule(),
+          const NotificationLeakRule(),
         ],
         // Without source, runtime protection is read from the artifact.
         if (!project.hasSource && (project.apk != null || ipa != null))

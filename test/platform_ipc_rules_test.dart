@@ -283,6 +283,31 @@ const clones = ['com.lody.virtual', 'com.lbe.parallel'];
       expect(evidence, contains('C60'));
     });
 
+    test('AEG-B17 reads R8 mapping.txt next to the APK', () async {
+      final dir = Directory.systemTemp.createTempSync('aegis-b17-');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      File(p.join(dir.path, 'mapping.txt')).writeAsStringSync('''
+# compiler: R8
+com.google.android.gms.internal.ads.zzgkq -> C60:
+    void load() -> a
+com.acme.bank.plugins.Loader -> TA:
+''');
+      final r = await apkWith(dir, {
+        'C60': ['call:dalvik.system.DexClassLoader#<init>'],
+        'TA': ['call:dalvik.system.DexClassLoader#<init>'],
+      });
+      final b17 = r.results.singleWhere((x) => x.meta.id == 'AEG-B17');
+      expect(b17.findings.map((f) => f.message), [
+        "com.acme.bank.plugins.Loader (TA) creates a DexClassLoader, which loads code that isn't part of the APK."
+      ]);
+      expect(
+          r.securityEvidence
+              .where((e) => e.ruleId == 'AEG-B17')
+              .map((e) => e.detail.en)
+              .join('\n'),
+          contains('C60 (com.google.android.gms.internal.ads.zzgkq)'));
+    });
+
     test('AEG-P13 hand-built flows and package:oauth2 secrets', () async {
       final r = await audit({
         'pubspec.yaml': '$pubspec  url_launcher: any\n',

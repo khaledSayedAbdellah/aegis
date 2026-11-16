@@ -665,6 +665,52 @@ final _loaderLibraries =
 final _packageName = RegExp(
     r'\b(?:com|org|net|io|androidx|me|dev|co)[./][a-z][a-z0-9_]*(?:[./][a-z][a-z0-9_]*)+');
 
+/// R8's `mapping.txt` for the APK at [apkPath], when the build left it
+/// next to the APK or in Gradle's `outputs/mapping/<variant>/`: its path
+/// and the original names of [wanted] renamed classes.
+(String, Map<String, String>)? _mapping(String apkPath, Set<String> wanted) {
+  if (wanted.isEmpty) return null;
+  final dir = p.dirname(apkPath);
+  final candidates = <String>[p.join(dir, 'mapping.txt')];
+  final outputs = RegExp(r'^(.*[/\\]outputs)[/\\]').firstMatch(apkPath)?[1];
+  if (outputs != null) {
+    final root = Directory(p.join(outputs, 'mapping'));
+    if (root.existsSync()) {
+      final variants = [
+        for (final d in root.listSync())
+          if (d is Directory &&
+              File(p.join(d.path, 'mapping.txt')).existsSync())
+            p.basename(d.path)
+      ];
+      final name = p.basenameWithoutExtension(apkPath).toLowerCase();
+      // `app-prod-release.apk` -> `prodRelease`; fall back to the only one.
+      final match = variants.where(
+          (v) => name.replaceAll(RegExp(r'^app-|-'), '') == v.toLowerCase());
+      final pick = match.isNotEmpty
+          ? match.first
+          : variants.length == 1
+              ? variants.single
+              : variants.contains('release')
+                  ? 'release'
+                  : null;
+      if (pick != null) candidates.add(p.join(root.path, pick, 'mapping.txt'));
+    }
+  }
+  for (final path in candidates) {
+    final f = File(path);
+    if (!f.existsSync()) continue;
+    final out = <String, String>{};
+    final line = RegExp(r'^(\S+) -> (\S+):$');
+    for (final l in f.readAsLinesSync()) {
+      if (l.startsWith(' ') || l.startsWith('#')) continue;
+      final m = line.firstMatch(l);
+      if (m != null && wanted.contains(m[2])) out[m[2]!] = m[1]!;
+    }
+    return (path, out);
+  }
+  return null;
+}
+
 /// A class name R8 shortened: no package left (`-repackageclasses`), or
 /// only one- to three-letter names (`a.b.C`).
 bool _renamed(String className) {
@@ -724,9 +770,33 @@ class DynamicCodeApkRule extends Rule {
     final out = <Finding>[];
     final libraries = <String>[];
     final unknown = <String>[];
+    // R8's mapping.txt gives renamed classes their real names back.
+    final mapping = _mapping(apk.path, {
+      for (final c in users.keys)
+        if (_renamed(c)) c
+    });
+    if (mapping != null && mapping.$2.isNotEmpty) {
+      project.securityEvidence.add(SecurityEvidence(
+          meta.id,
+          '${apk.fileName}!/classes.dex',
+          Bilingual(En.dynamicCodeMapping(file: mapping.$1),
+              Ar.dynamicCodeMapping(file: mapping.$1)),
+          status: 'facts',
+          data: {'mapping': mapping.$1}));
+    }
     for (final e in users.entries) {
       var owner = e.key;
-      if (_renamed(e.key)) {
+      final original = mapping?.$2[e.key];
+      if (original != null) {
+        // `com.acme.app.dev` still keeps its code in `com.acme.*`.
+        final prefix = own?.split('.').take(2).join('.');
+        if (_loaderLibraries.hasMatch(original) ||
+            (prefix != null && !original.startsWith('$prefix.'))) {
+          libraries.add('${e.key} ($original)');
+          continue;
+        }
+        owner = '$original (${e.key})';
+      } else if (_renamed(e.key)) {
         // R8 renamed the class (and may have moved it out of its package):
         // the package names in its strings are the only clue to its owner.
         final used = hints[e.key] ?? const <String>{};

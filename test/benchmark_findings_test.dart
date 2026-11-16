@@ -2,6 +2,7 @@
 /// getting wrong, written as small fixtures.
 library;
 
+import 'package:aegis/aegis.dart';
 import 'package:test/test.dart';
 
 import 'rules_test.dart' show audit, result;
@@ -154,5 +155,97 @@ class Old {
           'android/app/src/main/java/com/example/Old.java:2',
           'android/app/src/main/java/com/example/Old.java:3',
         ]));
+  });
+
+  test('AEG-D07 in Kotlin and Java', () async {
+    expect(
+        await found('AEG-D07', {
+          _kt: '''
+fun token(): String {
+    val random = Random()
+    val token = StringBuilder()
+    return token.toString()
+}
+
+
+fun dice() = Random().nextInt(6)
+
+
+
+fun safe(): String {
+    val password = SecureRandom().nextInt(10)
+    return password.toString()
+}
+''',
+        }),
+        ['$_kt:2']);
+  });
+
+  test('AEG-N03 short RSA and symmetric keys', () async {
+    expect(
+        await found('AEG-N03', {
+          _kt: '''
+fun keys() {
+    generator.initialize(1024, SecureRandom())
+    keyGen.init(56)
+    okGenerator.initialize(2048)
+}
+''',
+        }),
+        ['$_kt:2', '$_kt:3']);
+  });
+
+  test('AEG-D15 Compose fields and XML EditTexts for secrets', () async {
+    expect(
+        await found('AEG-D15', {
+          _kt: '''
+@Composable fun Login() {
+    TextField(value = pin, onValueChange = {}, label = { Text("PIN") })
+    TextField(value = pin, onValueChange = {}, label = { Text("PIN") },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword))
+    TextField(value = name, onValueChange = {}, label = { Text("Name") })
+}
+''',
+          'android/app/src/main/res/layout/login.xml': '''
+<LinearLayout>
+    <EditText android:id="@+id/password" android:hint="Password"/>
+    <EditText android:id="@+id/password2" android:inputType="textPassword"/>
+    <EditText android:id="@+id/user" android:hint="User"/>
+</LinearLayout>
+''',
+        }),
+        [
+          '$_kt:2',
+          'android/app/src/main/res/layout/login.xml:2',
+        ]);
+  });
+
+  test('AEG-D17 Android notifications with codes', () async {
+    final r = await audit({
+      _kt: '''
+fun show(otp: String) {
+    builder.setContentTitle("Sign in").setContentText("Your code: " + otp)
+}
+''',
+    });
+    final d17 = result(r, 'AEG-D17');
+    expect(d17.status, RuleStatus.evidenceOnly);
+    expect(d17.note, contains('$_kt:2'));
+  });
+
+  test('AEG-D11 in Swift', () async {
+    expect(
+        await found('AEG-D11', {
+          'ios/Runner/Store.swift': r'''
+func find(name: String, id: Int32) {
+    let sql = "SELECT * FROM users WHERE name = '\(name)'"
+    sqlite3_prepare_v2(db, sql, -1, &statement, nil)
+    sqlite3_exec(db, "DELETE FROM t WHERE id = \(id)", nil, nil, nil)
+    sqlite3_exec(db, "CREATE TABLE IF NOT EXISTS \(table) (id TEXT)", nil, nil, nil)
+    try queue.executeQuery("SELECT * FROM t WHERE a = ?", values: [name])
+}
+''',
+        }),
+        ['ios/Runner/Store.swift:3', 'ios/Runner/Store.swift:4']);
   });
 }

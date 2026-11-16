@@ -781,6 +781,11 @@ class L10n {
       isArabic ? Ar.deepLinkActionDescription : En.deepLinkActionDescription;
   String get deepLinkActionFix =>
       isArabic ? Ar.deepLinkActionFix : En.deepLinkActionFix;
+  String deepLinkActionNative(
+          {required Object? call, required Object? value}) =>
+      isArabic
+          ? Ar.deepLinkActionNative(call: call, value: value)
+          : En.deepLinkActionNative(call: call, value: value);
   String get deepLinkActionNone =>
       isArabic ? Ar.deepLinkActionNone : En.deepLinkActionNone;
   String get deepLinkActionPass =>
@@ -829,6 +834,9 @@ class L10n {
   String dynamicCodeLibraries({required Object? classes}) => isArabic
       ? Ar.dynamicCodeLibraries(classes: classes)
       : En.dynamicCodeLibraries(classes: classes);
+  String dynamicCodeMapping({required Object? file}) => isArabic
+      ? Ar.dynamicCodeMapping(file: file)
+      : En.dynamicCodeMapping(file: file);
   String get dynamicCodePass =>
       isArabic ? Ar.dynamicCodePass : En.dynamicCodePass;
   String dynamicCodeRenamed({required Object? classes}) => isArabic
@@ -1710,6 +1718,12 @@ class L10n {
       isArabic ? Ar.messagesWillInstall : En.messagesWillInstall;
   String get nativeConfigUnavailable =>
       isArabic ? Ar.nativeConfigUnavailable : En.nativeConfigUnavailable;
+  String nativeInsecureRandom({required Object? api}) => isArabic
+      ? Ar.nativeInsecureRandom(api: api)
+      : En.nativeInsecureRandom(api: api);
+  String nativeKeyboardCache({required Object? field}) => isArabic
+      ? Ar.nativeKeyboardCache(field: field)
+      : En.nativeKeyboardCache(field: field);
   String nativeLogFound({required Object? names}) => isArabic
       ? Ar.nativeLogFound(names: names)
       : En.nativeLogFound(names: names);
@@ -3582,6 +3596,13 @@ abstract final class En {
       "Any app or web page can open the app with a link it chose. When a value from that link is opened as a URL, loaded in a WebView, used as a file path or sent as a request without a check, the link decides what the app does: open a phishing page, load a script in the WebView, read or overwrite a file, or send the user's session to another server.";
   static const deepLinkActionFix =
       "Check the value before using it: compare `uri.host` and `uri.scheme` with an allow-list, map route names to known screens instead of using the path as data, and never build a URL, file path or request from link data directly.";
+  static String deepLinkActionNative(
+          {required Object? call, required Object? value}) =>
+      "Data another app sent (`" +
+      value.toString() +
+      "`) reaches " +
+      call.toString() +
+      "() without a check.";
   static const deepLinkActionNone =
       "The Dart code doesn't read deep links (uni_links, app_links or go_router state).";
   static const deepLinkActionPass =
@@ -3623,6 +3644,8 @@ abstract final class En {
       "Libraries that load code at run time as part of how they work (not counted): " +
       classes.toString() +
       ".";
+  static String dynamicCodeMapping({required Object? file}) =>
+      "Class names read from " + file.toString() + ".";
   static const dynamicCodePass = "The app loads only its own code";
   static String dynamicCodeRenamed({required Object? classes}) =>
       "Classes renamed by R8 that load code, with nothing in them that tells whether they are the app's or a library's (not counted): " +
@@ -4418,6 +4441,14 @@ abstract final class En {
   static const messagesWillInstall = "Will install:";
   static const nativeConfigUnavailable =
       "Native app configuration could not be resolved. Build the APK/IPA to inspect the final merged/generated configuration.";
+  static String nativeInsecureRandom({required Object? api}) =>
+      "" +
+      api.toString() +
+      " is used near security-sensitive code; it is predictable. Use SecureRandom.";
+  static String nativeKeyboardCache({required Object? field}) =>
+      "The " +
+      field.toString() +
+      " for sensitive input keeps keyboard suggestions on.";
   static String nativeLogFound({required Object? names}) =>
       "Logging references sensitive identifiers: " +
       names.toString() +
@@ -6117,6 +6148,13 @@ abstract final class Ar {
       "أي تطبيق أو صفحة ويب تقدر تفتح التطبيق بـlink هي اللي تختاره. لو قيمة من الـlink ده اتفتحت كـURL، أو اتحمّلت في WebView، أو اتستخدمت كـfile path، أو اتبعتت في request من غير تحقق، يبقى الـlink هو اللي بيقرر التطبيق يعمل إيه: يفتح صفحة phishing، أو يشغّل script في الـWebView، أو يقرا أو يكتب فوق ملف، أو يبعت الـsession بتاعة المستخدم لسيرفر تاني.";
   static const deepLinkActionFix =
       "اتحقق من القيمة قبل ما تستخدمها: قارن `uri.host` و`uri.scheme` بـallow-list، وحوّل أسماء الـroutes لشاشات معروفة بدل ما تستخدم الـpath كبيانات، وماتبنيش URL أو file path أو request من بيانات الـlink على طول.";
+  static String deepLinkActionNative(
+          {required Object? call, required Object? value}) =>
+      "بيانات بعتها تطبيق تاني (`" +
+      value.toString() +
+      "`) بتوصل لـ" +
+      call.toString() +
+      "() من غير تحقق.";
   static const deepLinkActionNone =
       "كود الـDart مش بيقرا deep links (uni_links أو app_links أو go_router state).";
   static const deepLinkActionPass =
@@ -6158,6 +6196,8 @@ abstract final class Ar {
       "مكتبات بتحمّل كود وقت التشغيل كجزء من شغلها (مش محسوبة): " +
       classes.toString() +
       ".";
+  static String dynamicCodeMapping({required Object? file}) =>
+      "أسماء الـclasses اتقرت من " + file.toString() + ".";
   static const dynamicCodePass = "التطبيق بيحمّل الكود بتاعه بس";
   static String dynamicCodeRenamed({required Object? classes}) =>
       "classes اسمها اتغيّر بـR8 وبتحمّل كود، ومفيش فيها حاجة توضّح هي بتاعة التطبيق ولا مكتبة (مش محسوبة): " +
@@ -6942,6 +6982,14 @@ abstract final class Ar {
   static const messagesWillInstall = "هيتسطّب:";
   static const nativeConfigUnavailable =
       "تعذّر تحديد إعدادات التطبيق النيتيف. ابنِ APK/IPA لفحص الإعدادات النهائية بعد الدمج والتوليد.";
+  static String nativeInsecureRandom({required Object? api}) =>
+      "" +
+      api.toString() +
+      " بيتستخدم جنب كود حساس أمنيًا، وده ممكن يتوقّع. استخدم SecureRandom.";
+  static String nativeKeyboardCache({required Object? field}) =>
+      "الـ" +
+      field.toString() +
+      " بتاع بيانات حساسة سايب اقتراحات الكيبورد شغالة.";
   static String nativeLogFound({required Object? names}) =>
       "التسجيل يستخدم معرّفات حساسة: " +
       names.toString() +

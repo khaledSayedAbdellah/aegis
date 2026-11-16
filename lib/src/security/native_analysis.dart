@@ -117,6 +117,12 @@ final nativePatterns = <String, List<RegExp>>{
         r'\bCipher\.getInstance\s*\(\s*"(?:DES(?:ede)?(?:/[^"\n]*)?|RC[24](?:/[^"\n]*)?|AES/ECB/[^"\n]+)"'),
     RegExp(
         r'\b(?:CCCrypt|CCCryptorCreate)\s*\([^;\n]{0,200}\bkCCAlgorithm(?:DES|3DES|RC2|RC4)\b'),
+    // RSA/EC keys under 2048/224 bits, symmetric keys under 128 bits.
+    RegExp(
+        r'\b\w*(?:[kK]eyPair[gG]en\w*|[gG]enerator)\s*\.\s*initialize\s*\(\s*(?:512|768|1024|1536)\b'),
+    RegExp(
+        r'\b\w*[kK]ey[gG]en\w*\s*\.\s*init\s*\(\s*(?:40|56|64|80|112)\s*[,)]'),
+    RegExp(r'\bRSAKeyGenParameterSpec\s*\(\s*(?:512|768|1024|1536)\b'),
   ],
   'AEG-N04': [
     RegExp(

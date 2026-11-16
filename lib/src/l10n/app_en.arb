@@ -5514,5 +5514,44 @@
         "type": "String"
       }
     }
+  },
+  "deepLinkActionNative": "Data another app sent (`{value}`) reaches {call}() without a check.",
+  "@deepLinkActionNative": {
+    "description": "rules/deep_link_rules.dart: AEG-D19 in Kotlin, Java and Swift.",
+    "placeholders": {
+      "value": {
+        "type": "String"
+      },
+      "call": {
+        "type": "String"
+      }
+    }
+  },
+  "nativeInsecureRandom": "{api} is used near security-sensitive code; it is predictable. Use SecureRandom.",
+  "@nativeInsecureRandom": {
+    "description": "Native Kotlin/Java checks of Dart rules (phase 5.7).",
+    "placeholders": {
+      "api": {
+        "type": "String"
+      }
+    }
+  },
+  "nativeKeyboardCache": "The {field} for sensitive input keeps keyboard suggestions on.",
+  "@nativeKeyboardCache": {
+    "description": "Native Kotlin/Java checks of Dart rules (phase 5.7).",
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
+  "dynamicCodeMapping": "Class names read from {file}.",
+  "@dynamicCodeMapping": {
+    "description": "rules/platform_ipc_rules.dart: AEG-B17 mapping file.",
+    "placeholders": {
+      "file": {
+        "type": "String"
+      }
+    }
   }
 }

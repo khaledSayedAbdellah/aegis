@@ -36,12 +36,14 @@ void main() {
     expect(result(r, 'AEG-N01').findings.single.file, endsWith('Trust.java'));
     expect(result(r, 'AEG-N03').findings.single.file, endsWith('Unsafe.kt'));
     // Dart rules don't run without Dart code; AEG-D13 also reads Gradle files,
-    // AEG-D06, AEG-D11, AEG-D16 and AEG-D20 native code.
+    // the rules listed below native code too.
     expect(
         r.results.any((r) =>
             r.meta.id.startsWith('AEG-D') &&
-            !const {'AEG-D06', 'AEG-D11', 'AEG-D13', 'AEG-D16', 'AEG-D20'}
-                .contains(r.meta.id)),
+            !const {
+              'AEG-D06', 'AEG-D07', 'AEG-D11', 'AEG-D13', 'AEG-D15', //
+              'AEG-D16', 'AEG-D17', 'AEG-D19', 'AEG-D20',
+            }.contains(r.meta.id)),
         isFalse);
     // Native apps get the runtime protection rule too: this one has none.
     expect(result(r, 'AEG-P01').findings.single.message,

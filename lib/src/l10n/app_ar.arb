@@ -1375,5 +1375,9 @@
   "releaseManifestDebuggable": "android:debuggable=\"true\" متحطوطة في الـmanifest بتاع الـrelease source set، فنسخ الـrelease بتبقى debuggable.",
   "nativeStaticKey": "الـkey `{name}` اللي بيتستخدم في التشفير string مكتوب في الكود.",
   "nativeStaticIv": "الـIV `{name}` اللي بيتستخدم في التشفير ثابت في الكود.",
-  "dynamicCodeRenamed": "classes اسمها اتغيّر بـR8 وبتحمّل كود، ومفيش فيها حاجة توضّح هي بتاعة التطبيق ولا مكتبة (مش محسوبة): {classes}. دوّر عليها في الـmapping.txt بتاع الـbuild."
+  "dynamicCodeRenamed": "classes اسمها اتغيّر بـR8 وبتحمّل كود، ومفيش فيها حاجة توضّح هي بتاعة التطبيق ولا مكتبة (مش محسوبة): {classes}. دوّر عليها في الـmapping.txt بتاع الـbuild.",
+  "deepLinkActionNative": "بيانات بعتها تطبيق تاني (`{value}`) بتوصل لـ{call}() من غير تحقق.",
+  "nativeInsecureRandom": "{api} بيتستخدم جنب كود حساس أمنيًا، وده ممكن يتوقّع. استخدم SecureRandom.",
+  "nativeKeyboardCache": "الـ{field} بتاع بيانات حساسة سايب اقتراحات الكيبورد شغالة.",
+  "dynamicCodeMapping": "أسماء الـclasses اتقرت من {file}."
 }

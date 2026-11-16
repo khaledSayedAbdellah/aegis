@@ -118,7 +118,70 @@ class KeyboardCacheRule extends Rule {
             messageAr: Ar.keyboardCache(field: c.name)));
       }
     }
+    out.addAll(_native(project));
     return RuleCheck(out);
+  }
+
+  static final _secretLabel = RegExp(
+      r'password|passcode|\bpin\b|\botp\b|one.?time|verification|cvv|card.?number|secret',
+      caseSensitive: false);
+
+  /// Jetpack Compose text fields and XML `EditText`s for secrets that keep
+  /// suggestions on.
+  List<Finding> _native(Project project) {
+    final out = <Finding>[];
+    for (final file in [
+      ...project.androidNativeSources,
+      ...project.sharedNativeSources,
+    ]) {
+      if (!file.path.endsWith('.kt') ||
+          !RegExp(r'\b(?:Outlined)?TextField\s*\(').hasMatch(file.text)) {
+        continue;
+      }
+      final f = DartFile(file.path, file.text);
+      for (final c in f
+          .calls(const {'TextField', 'OutlinedTextField', 'BasicTextField'})) {
+        final text = f.text(c.open, c.close);
+        if (!_secretLabel.hasMatch(text)) continue;
+        if (RegExp(
+                r'KeyboardType\.(?:Number)?Password|autoCorrect(?:Enabled)?\s*=\s*false|PasswordVisualTransformation')
+            .hasMatch(text)) {
+          continue;
+        }
+        out.add(at(f, c.nameIndex, En.nativeKeyboardCache(field: c.name),
+            messageAr: Ar.nativeKeyboardCache(field: c.name)));
+      }
+    }
+    final layouts = project.findFiles(
+        '',
+        (r) =>
+            r.contains('/res/layout') &&
+            r.endsWith('.xml') &&
+            !r.contains('/build/'));
+    for (final rel in layouts) {
+      final text = File(project.abs(rel)).readAsStringSync();
+      for (final m in RegExp(
+              r'<(?:\w+\.)*(?:EditText|TextInputEditText|AppCompatEditText)\b[^>]*>')
+          .allMatches(text)) {
+        final tag = m[0]!;
+        final hint =
+            RegExp(r'android:(?:hint|id|contentDescription)\s*=\s*"([^"]*)"')
+                .allMatches(tag)
+                .map((h) => h[1]!)
+                .join(' ');
+        if (!_secretLabel.hasMatch(hint)) continue;
+        final type =
+            RegExp(r'android:inputType\s*=\s*"([^"]*)"').firstMatch(tag)?[1] ??
+                '';
+        if (RegExp(r'[pP]assword|textNoSuggestions').hasMatch(type)) continue;
+        out.add(inFile(
+            rel,
+            '\n'.allMatches(text.substring(0, m.start)).length + 1,
+            En.nativeKeyboardCache(field: 'EditText'),
+            messageAr: Ar.nativeKeyboardCache(field: 'EditText')));
+      }
+    }
+    return out;
   }
 }
 
@@ -200,10 +263,10 @@ class NotificationLeakRule extends Rule {
 
   @override
   RuleCheck check(Project project, ProfileSet profile) {
-    if (!project.usesPackage('flutter_local_notifications')) {
+    final places = <String>[..._native(project)];
+    if (!project.usesPackage('flutter_local_notifications') && places.isEmpty) {
       return RuleCheck.notApplicable();
     }
-    final places = <String>[];
     for (final f in project.dartFiles) {
       if (!f.importsPackage('flutter_local_notifications')) continue;
       if (RegExp(r'NotificationVisibility\.(?:secret|private)')
@@ -225,6 +288,33 @@ class NotificationLeakRule extends Rule {
     final list = places.take(5).join(', ');
     return RuleCheck.evidenceOnly(
         En.notificationLeak(places: list), Ar.notificationLeak(places: list));
+  }
+
+  /// Android `setContentText`/`setContentTitle`/`bigText` and iOS
+  /// `content.body`/`content.title` with codes or tokens, unless the file
+  /// hides them on the lock screen.
+  static List<String> _native(Project project) {
+    final out = <String>[];
+    final shown = RegExp(
+        r'\.(?:setContentText|setContentTitle|bigText|setTicker)\s*\(([^\n]*)|'
+        r'\b\w*[cC]ontent\.(?:body|title|subtitle)\s*=\s*([^\n]*)');
+    for (final file in project.nativeSources) {
+      if (!RegExp(r'\.(?:kt|java|swift|m)$').hasMatch(file.path)) continue;
+      final code = withoutComments(file.text);
+      if (RegExp(
+              r'VISIBILITY_(?:SECRET|PRIVATE)|setPublicVersion|hiddenPreviewsBodyPlaceholder')
+          .hasMatch(code)) {
+        continue;
+      }
+      for (final m in shown.allMatches(code)) {
+        final value = m[1] ?? m[2]!;
+        final names =
+            RegExp(r'[A-Za-z_]\w*').allMatches(value).map((n) => n[0]!);
+        if (!_sensitive.hasMatch(value) && !names.any(isSecretName)) continue;
+        out.add('${file.path}:${_lineAt(code, m.start)}');
+      }
+    }
+    return out;
   }
 }
 

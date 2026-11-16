@@ -23,6 +23,7 @@ import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
 final _here = p.dirname(p.fromUri(Platform.script));
+
 /// Downloads live outside the repository, so audits of aegis itself and its
 /// tests never see the apps' code.
 final _cache = Platform.environment['AEGIS_BENCHMARK_CACHE'] ??

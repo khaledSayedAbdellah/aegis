@@ -22,9 +22,10 @@
       "AEG-D08": 1,
       "AEG-D10": 10,
       "AEG-D11": 1,
-      "AEG-D12": 3,
+      "AEG-D12": 2,
       "AEG-D15": 15,
       "AEG-D16": 1,
+      "AEG-D19": 2,
       "AEG-I01": 1,
       "AEG-I04": 2,
       "AEG-N08": 2,
@@ -33,7 +34,7 @@
   },
   "insecurebank": {
     "commit": "3c8cc3a3ce45ed56d0f58f236b541b41f992e51f",
-    "score": 45,
+    "score": 44,
     "failed": {
       "AEG-A02": 3,
       "AEG-A06": 7,
@@ -41,6 +42,7 @@
       "AEG-A10": 3,
       "AEG-A12": 2,
       "AEG-D06": 4,
+      "AEG-D15": 2,
       "AEG-N04": 1,
       "AEG-N09": 1
     }
@@ -69,6 +71,7 @@
       "AEG-A10": 1,
       "AEG-A12": 2,
       "AEG-D11": 2,
+      "AEG-D15": 1,
       "AEG-D16": 1,
       "AEG-N02": 2,
       "AEG-N08": 3,
@@ -114,6 +117,8 @@
       "MASVS-CODE/MASTG-DEMO-0139",
       "MASVS-CODE/MASTG-DEMO-0140",
       "MASVS-CODE/MASTG-DEMO-0141",
+      "MASVS-CRYPTO/MASTG-DEMO-0007",
+      "MASVS-CRYPTO/MASTG-DEMO-0012",
       "MASVS-CRYPTO/MASTG-DEMO-0017",
       "MASVS-CRYPTO/MASTG-DEMO-0022",
       "MASVS-CRYPTO/MASTG-DEMO-0023",
@@ -150,10 +155,11 @@
       "AEG-A11": 1,
       "AEG-A12": 6,
       "AEG-D06": 7,
+      "AEG-D07": 4,
       "AEG-D20": 3,
       "AEG-N01": 6,
       "AEG-N02": 6,
-      "AEG-N03": 19,
+      "AEG-N03": 21,
       "AEG-N08": 16,
       "AEG-N09": 2
     }
