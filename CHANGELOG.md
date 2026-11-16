@@ -1,4 +1,4 @@
-## Unreleased
+## 0.16.0
 
 * New rules for sign-in and platform IPC:
   * `AEG-P13` (high): unsafe OAuth flows: the implicit flow (`response_type=token`), a `client_secret` sent from the app, and a code flow without PKCE when `flutter_web_auth` drives it by hand.
