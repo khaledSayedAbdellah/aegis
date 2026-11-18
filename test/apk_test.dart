@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:aegis/aegis.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
+import 'package:aegis/src/binary/apk.dart' show ApkContext;
 
 /// Fixtures are built by tool/make_apk_fixtures.py and cross-checked with
 /// androguard, an independent APK parser.

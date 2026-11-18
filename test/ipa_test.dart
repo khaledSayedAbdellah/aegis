@@ -6,6 +6,7 @@ import 'package:aegis/aegis.dart';
 import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
+import 'package:aegis/src/binary/ipa.dart' show IpaContext;
 
 const _app = 'Payload/Probe.app';
 const _plist =

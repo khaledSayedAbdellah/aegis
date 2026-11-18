@@ -5,6 +5,7 @@ import 'package:aegis/aegis.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 import 'package:xml/xml.dart';
+import 'package:aegis/src/binary/apk.dart' show ApkContext;
 
 /// Fixtures are built by tool/make_aab_fixtures.py with Google's protobuf
 /// library and aapt2's Resources.proto.

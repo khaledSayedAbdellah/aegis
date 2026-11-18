@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 
 import '../arguments.dart';
 import '../terminal.dart';
+import '../../util.dart' show parseMenuChoice;
 
 const _appTypes = [
   ('l1', 'Normal app, no sensitive data', 'تطبيق عادي، مفيهوش بيانات حساسة'),

@@ -1,5 +1,7 @@
 ## Unreleased
 
+* **Breaking, for the Dart API only:** `package:aegis/aegis.dart` no longer exports internal helpers (`ApkContext`, `IpaContext`, `SigningCert`, `findBuiltBinary`, `findNewestBinary`, `flutterApkDir`, `flutterBundleDir`, `projectOf`, `parseMenuChoice`, `ProbeRule`, `probeRules`). The CLI, the GitHub Action and the reports are unchanged. The README's new "Stability" section says what 1.0.0 promises.
+* The JSON report has `formatVersion: 1`: fields can be added under it, never removed or renamed.
 * Faster on large files: the value flow (since 0.17.0) was quadratic on big Dart files: a 36,000-line file took 19 s, now about 1 s. File searches no longer enter `node_modules`, `.git`, `Pods`, `build` and other tool folders, so a React Native project with 100,000 installed files is audited in half a second instead of 1.5 s.
 * Windows: finding paths and `exclude:` patterns use `/` for native files too, so excludes work and baselines match across systems; a Firebase rules file named in `firebase.json` is no longer counted twice; `--changed-since` reads git's output as UTF-8. CI now tests on Windows.
 * `AEG-B14` / `AEG-I13`: OpenSSL support is a table of branches with their end dates, compared with the audit's date, so 4.0 becomes end of life on 2027-05-15 without a new aegis release. A branch newer than the table counts as supported. A test fails when the table hasn't been re-read for six months.

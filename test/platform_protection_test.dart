@@ -14,6 +14,8 @@ import 'package:xml/xml.dart';
 import 'rules_test.dart' show audit, result, manifestHeader;
 import 'ios_static_test.dart' show ipaBytes;
 import 'support/macho_security_fixture.dart';
+import 'package:aegis/src/binary/apk.dart' show ApkContext;
+import 'package:aegis/src/binary/ipa.dart' show IpaContext;
 
 final profiles = ProfileSet.tryParse('l2+r')!;
 const manifestPath = 'android/app/src/main/AndroidManifest.xml';

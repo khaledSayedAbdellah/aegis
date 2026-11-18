@@ -15,6 +15,7 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'support/macho_security_fixture.dart';
+import 'package:aegis/src/binary/ipa.dart' show IpaContext;
 
 const app = 'Payload/Test.app';
 const plist =

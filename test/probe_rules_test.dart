@@ -1,5 +1,6 @@
 import 'package:aegis/aegis.dart';
 import 'package:test/test.dart';
+import 'package:aegis/src/rules/probe_rules.dart' show probeRules;
 
 const fixtures = 'test/fixtures/apk';
 

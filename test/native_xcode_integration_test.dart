@@ -1,9 +1,9 @@
 import 'dart:io';
-import 'package:aegis/aegis.dart';
 import 'package:aegis/src/probe/ios_simulator_build.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 import 'ipa_test.dart' show fixture;
+import 'package:aegis/src/binary/ipa.dart' show IpaContext;
 
 void main() {
   test('real Xcode builds Swift/Objective-C Simulator app without Flutter',

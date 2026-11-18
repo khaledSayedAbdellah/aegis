@@ -6,6 +6,7 @@ import 'package:aegis/src/probe/ios_target.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 import 'ipa_test.dart' show fixture, executable;
+import 'package:aegis/src/binary/ipa.dart' show IpaContext;
 
 void main() {
   late Directory root;

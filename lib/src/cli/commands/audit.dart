@@ -19,6 +19,8 @@ import '../../services/android_probe.dart';
 import '../arguments.dart';
 import '../probe_options.dart';
 import '../terminal.dart';
+import '../../binary/locate.dart' show flutterApkDir, flutterBundleDir;
+import '../../util.dart' show parseMenuChoice;
 
 Future<void> auditCommand(ArgResults root, ArgParser parser) async {
   final run = root.command?.name == 'run';

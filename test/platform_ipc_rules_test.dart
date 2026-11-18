@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:aegis/aegis.dart';
+import 'package:aegis/src/binary/apk.dart' show ApkContext;
 import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';

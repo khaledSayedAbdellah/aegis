@@ -8,6 +8,14 @@ import 'package:archive/archive.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 import 'package:yaml/yaml.dart';
+import 'package:aegis/src/binary/locate.dart'
+    show
+        findBuiltBinary,
+        findNewestBinary,
+        flutterApkDir,
+        flutterBundleDir,
+        projectOf;
+import 'package:aegis/src/util.dart' show parseMenuChoice;
 
 final aegisBin = p.absolute('bin/aegis.dart');
 

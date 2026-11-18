@@ -9,6 +9,8 @@ import '../../services/android_probe.dart';
 import '../arguments.dart';
 import '../probe_options.dart';
 import '../terminal.dart';
+import '../../binary/apk.dart' show ApkContext;
+import '../../binary/locate.dart' show flutterApkDir, projectOf;
 
 Future<int> probeCommand(ArgResults a) async {
   if (a['help'] as bool) {

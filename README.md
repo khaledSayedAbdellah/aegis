@@ -63,6 +63,7 @@ MASVS coverage: 17 of 24 controls checked automatically (71%)
 * [Rules](#rules)
 * [Development: run from source and run the tests](#development-run-from-source-and-run-the-tests)
 * [Use from Dart](#use-from-dart)
+* [Stability](#stability)
 * [Demo](#demo)
 * [What aegis cannot see](#what-aegis-cannot-see)
 * [Roadmap](#roadmap)
@@ -862,6 +863,22 @@ final report = await runAudit('path/to/app', offline: true);
 print(report.score.value);
 File('aegis.html').writeAsStringSync(renderHtml(report, lang: 'ar'));
 ```
+
+## Stability
+
+From 1.0.0 aegis follows [semantic versioning](https://semver.org). These only change in a major release; a minor release can add to them:
+
+* **The CLI:** commands, flags and exit codes (`0` ok, `1` a `--fail-on` or `--min-score` threshold was reached, `2` usage error).
+* **`aegis.yaml`:** its keys and what they mean.
+* **Rule ids:** `AEG-…` ids keep their meaning; a removed rule's id is never reused.
+* **The JSON report:** `formatVersion` is `1`. Fields can be added in a minor release, never removed or renamed. SARIF output follows SARIF 2.1.0.
+* **The Dart API:** the names `package:aegis/aegis.dart` exports. Anything under `package:aegis/src/` is internal and can change in any release.
+
+These can change in any release, and the CHANGELOG says when they do:
+
+* **What is found:** new rules, and existing rules that find more or fewer problems. So a score can go down after an update with no change to the app; a baseline keeps CI from failing on the new findings.
+* **Severities and scores,** when a risk is better understood.
+* **Wording and layout** of messages and of the console, Markdown, HTML and PDF reports, in both languages. A baseline matches findings by rule, file and message, so a reworded message shows as new once; run `--update-baseline` to accept it again.
 
 ## Demo
 

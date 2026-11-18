@@ -9,8 +9,14 @@ import '../model.dart';
 import '../probe/probe_model.dart';
 import 'probe_view.dart';
 
+/// The layout of the JSON report. Fields are only added within one format
+/// version; removing or renaming one needs a new number (and a major
+/// release).
+const jsonFormatVersion = 1;
+
 Map<String, Object?> reportToJson(AuditReport r) => {
       'tool': 'aegis',
+      'formatVersion': jsonFormatVersion,
       'version': r.version,
       'generatedAt': r.generatedAt.toUtc().toIso8601String(),
       'project': r.projectName,

@@ -1,22 +1,17 @@
-/// Security audit for Flutter apps.
+/// Security audit for Flutter, React Native, KMP and native Android/iOS
+/// apps.
 ///
 /// ```dart
 /// final report = await runAudit('path/to/app');
 /// print(ConsoleReporter().render(report));
 /// ```
+///
+/// Everything this library exports follows semantic versioning; code under
+/// `package:aegis/src/` is internal and can change in any release. See
+/// "Stability" in the README.
 library;
 
 export 'src/baseline.dart' show Baseline, BaselineEntry, defaultBaselineFile;
-export 'src/binary/apk.dart' show ApkContext;
-export 'src/binary/ipa.dart' show IpaContext;
-export 'src/binary/locate.dart'
-    show
-        findBuiltBinary,
-        findNewestBinary,
-        flutterApkDir,
-        flutterBundleDir,
-        projectOf;
-export 'src/binary/signing.dart' show SigningCert;
 export 'src/changed_lines.dart' show ChangedLines;
 export 'src/config.dart' show AegisConfig;
 export 'src/rules/custom_rules.dart' show CustomRuleSpec;
@@ -39,11 +34,9 @@ export 'src/reporters/console.dart' show ConsoleReporter;
 export 'src/reporters/html.dart' show renderHtml;
 export 'src/reporters/json.dart' show renderJson, renderSarif, reportToJson;
 export 'src/reporters/markdown.dart' show renderMarkdown;
-export 'src/rules/probe_rules.dart' show ProbeRule, probeRules;
 export 'src/rules/registry.dart' show allRules, apkRules;
 export 'src/rules/rule.dart' show Rule, RuleCheck;
 export 'src/scoring.dart' show Score, Coverage, CategoryScore;
-export 'src/util.dart' show parseMenuChoice;
 export 'src/version.dart' show aegisVersion;
 
 export 'src/security/evidence.dart' show SecurityEvidence;

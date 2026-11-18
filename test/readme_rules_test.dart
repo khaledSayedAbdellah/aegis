@@ -2,7 +2,8 @@ import 'dart:io';
 
 import 'package:aegis/aegis.dart';
 import 'package:aegis/src/rules/ipa_rules.dart';
-import 'package:aegis/src/rules/probe_rules.dart' show iosProbeRules;
+import 'package:aegis/src/rules/probe_rules.dart'
+    show iosProbeRules, probeRules;
 import 'package:aegis/src/rules/registry.dart' show extendedRules;
 import 'package:aegis/src/rules/runtime_security_rules.dart';
 import 'package:test/test.dart';
