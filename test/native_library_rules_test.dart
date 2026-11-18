@@ -10,6 +10,27 @@ import 'package:test/test.dart';
 import 'support/macho_security_fixture.dart';
 
 void main() {
+  test('OpenSSL support ends on the day in the table', () {
+    String? why(String v, DateTime day) =>
+        vulnerability(NativeLibraryVersion('OpenSSL', v, 'x'), today: day)?.$2;
+    expect(why('4.0.3', DateTime.utc(2027, 5, 14)), isNull);
+    expect(why('4.0.3', DateTime.utc(2027, 5, 15)),
+        'support for that branch ended on 2027-05-14, so it gets no security fixes');
+    expect(why('3.5.1', DateTime.utc(2029, 1, 1)), isNull);
+    // Newer than every branch in the table: released after it was read.
+    expect(why('4.2.0', DateTime.utc(2027, 1, 1)), isNull);
+    expect(why('5.0.0', DateTime.utc(2027, 1, 1)), isNull);
+    expect(why('3.4.0', DateTime.utc(2027, 1, 1)), contains('end of life'));
+  });
+
+  test('the OpenSSL support table was read in the last six months', () {
+    final age = DateTime.now().toUtc().difference(openSslTableRead).inDays;
+    expect(age, lessThan(183),
+        reason: 'Re-read https://openssl-library.org/policies/releasestrat/, '
+            'update openSslSupport and openSslTableRead in '
+            'lib/src/rules/native_library_rules.dart');
+  });
+
   test('OpenSSL branches past their end of life', () {
     String? eol(String v) {
       final hit = vulnerability(NativeLibraryVersion('OpenSSL', v, 'x'));

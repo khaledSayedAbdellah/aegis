@@ -345,7 +345,7 @@ The report also prints the **signing certificate SHA-256 in Base64**, the exact 
 | AEG-B11 | Old targetSdk / minSdk in the final manifest | CODE-1 |
 | AEG-B12 | Native libraries in the APK without hardening: executable stack, writable and executable segments, no RELRO or BIND_NOW (when they have relocations), not position independent, debug sections, unsafe search paths | CODE-4 |
 | AEG-B13 | Chucker, Stetho, Flipper or LeakCanary inside the APK (not their no-op versions) | RESILIENCE-4 |
-| AEG-B14 | Outdated C libraries inside the APK: end-of-life OpenSSL (supported: 3.5, 4.0, 4.1), zlib before 1.2.13, libpng before 1.6.37, libcurl before 8.4.0, SQLite before 3.39.2 (dated by its source id); `libflutter.so` is skipped | CODE-3 |
+| AEG-B14 | Outdated C libraries inside the APK: end-of-life OpenSSL (supported: 3.5 until 2030-04-08, 4.0 until 2027-05-14, 4.1 until 2027-11-23, compared with the audit's date), zlib before 1.2.13, libpng before 1.6.37, libcurl before 8.4.0, SQLite before 3.39.2 (dated by its source id); `libflutter.so` is skipped | CODE-3 |
 | AEG-B15 | APK signed with the v1 scheme only while supporting Android before 7.0 (Janus); app bundles are skipped | RESILIENCE-2 |
 | AEG-B16 | FileProvider paths in the APK's merged resources that share the whole storage (also paths added by libraries) | PLATFORM-1 |
 | AEG-B17 | App classes in the APK that create a `DexClassLoader` or `InMemoryDexClassLoader` (Play services, Firebase, AndroidX and Flutter are listed, not reported; classes R8 renamed get their names from `mapping.txt` next to the APK or in Gradle's `outputs/mapping/`, otherwise from the package names they use, and are listed for review when there is no clue) | CODE-4 |
@@ -842,6 +842,8 @@ dart test -N "apk mode"                                 # tests whose name conta
 **Benchmark.** `dart run benchmark/run.dart` audits public, intentionally vulnerable apps (DVMA, InsecureBankv2, AndroGoat, DVIA-v2, DVRN, the OWASP MASTG demos and their released binaries), downloaded on demand at pinned versions, and fails when an expected finding is missed or a rule stops firing; it also runs weekly in CI. See `benchmark/README.md`.
 
 The tests need no network, emulator or Android tools: the CLI tests run `bin/aegis.dart` on temporary projects with `--offline` and `--no-probe`, and the probe tests use a fake host and a fake device (`test/support/fake_host.dart`, `test/probe_runner_test.dart`). To try your change as the real `aegis` command, activate the clone with `--source path` (see Install).
+
+**OpenSSL support table.** `openSslSupport` in `lib/src/rules/native_library_rules.dart` holds the supported OpenSSL branches and their end dates. A test fails six months after `openSslTableRead`: re-read [the release strategy](https://openssl-library.org/policies/releasestrat/) and update both.
 
 **Releasing.** Set the new version in `pubspec.yaml` and `lib/src/version.dart`, and where it is pinned in this README, the issue templates and `ci/azure-pipelines/`; add its section to `CHANGELOG.md`, merge to `main`, then push a tag with the same version:
 

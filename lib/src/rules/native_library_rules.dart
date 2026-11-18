@@ -35,16 +35,7 @@ final _versionPatterns = <String, RegExp>{
 /// advisory, and the versions it applies to).
 final _vulnerable =
     <String, List<(String? fixed, String advisory, bool Function(List<int>))>>{
-  // Supported branches per openssl-library.org (read 2026-11-16): 3.5 (LTS,
-  // until 2030-04-08), 4.0 (until 2027-05-14) and 4.1 (until 2027-11-23).
-  // Every other branch is past its end of life. Update when that changes.
-  'OpenSSL': [
-    (
-      null,
-      'that branch is past its end of life and gets no security fixes',
-      (v) => v[0] < 3 || (v[0] == 3 && v[1] != 5)
-    ),
-  ],
+  // OpenSSL: see [openSslSupport]; it is checked in [vulnerability].
   'zlib': [
     ('1.2.13', 'CVE-2022-37434, CVE-2018-25032', (v) => _less(v, [1, 2, 13])),
   ],
@@ -59,6 +50,35 @@ final _vulnerable =
     ('3.39.2', 'CVE-2022-35737', (v) => _less(v, [2022, 7, 21])),
   ],
 };
+
+/// The OpenSSL release branches still supported, and the day support ends,
+/// from https://openssl-library.org/policies/releasestrat/ as read on
+/// [openSslTableRead]. A test fails when that is more than six months ago:
+/// re-read the page, update both, and the test passes again.
+final openSslSupport = <(int, int), DateTime>{
+  (3, 5): DateTime.utc(2030, 4, 8), // LTS
+  (4, 0): DateTime.utc(2027, 5, 14),
+  (4, 1): DateTime.utc(2027, 11, 23),
+};
+final openSslTableRead = DateTime.utc(2026, 11, 16);
+
+/// Why OpenSSL [v] gets no security fixes on [today], or null when its
+/// branch is supported. A branch newer than every one in the table came out
+/// after it was read, so it counts as supported.
+String? openSslUnsupported(List<int> v, DateTime today) {
+  final end = openSslSupport[(v[0], v[1])];
+  if (end != null) {
+    if (!today.isAfter(end)) return null;
+    final day = end.toIso8601String().substring(0, 10);
+    return 'support for that branch ended on $day, so it gets no security fixes';
+  }
+  final newest = openSslSupport.keys
+      .reduce((a, b) => (a.$1 > b.$1 || (a.$1 == b.$1 && a.$2 > b.$2)) ? a : b);
+  if (v[0] > newest.$1 || (v[0] == newest.$1 && v[1] > newest.$2)) {
+    return null;
+  }
+  return 'that branch is past its end of life and gets no security fixes';
+}
 
 bool _less(List<int> a, List<int> b) {
   for (var i = 0; i < b.length; i++) {
@@ -86,8 +106,15 @@ Iterable<NativeLibraryVersion> findLibraryVersions(
 }
 
 /// The advisory for [v], or null when its version has none in the table.
-(String? fixed, String advisory)? vulnerability(NativeLibraryVersion v) {
+/// [today] is the audit's date (support of an OpenSSL branch ends on a day).
+(String? fixed, String advisory)? vulnerability(NativeLibraryVersion v,
+    {DateTime? today}) {
   final numbers = _numbers(v.version);
+  if (v.library == 'OpenSSL') {
+    if (numbers.length < 3) return null;
+    final why = openSslUnsupported(numbers, today ?? DateTime.now().toUtc());
+    return why == null ? null : (null, why);
+  }
   for (final entry in _vulnerable[v.library] ??
       const <(String?, String, bool Function(List<int>))>[]) {
     if (numbers.length >= 3 && entry.$3(numbers)) return (entry.$1, entry.$2);
