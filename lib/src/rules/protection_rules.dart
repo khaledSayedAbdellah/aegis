@@ -132,6 +132,53 @@ Set<String> iosBundleIds(Project p) {
   return ids;
 }
 
+/// The hashes given to `signingCertHashes`, and whether they are a list
+/// literal: `[...]`, `const [...]`, `<String>[...]`, over any number of
+/// lines, or a variable holding one (`signingCertHashes: kHashes`, declared
+/// in any file of the project). Null values when the list can't be read.
+({List<String> values, bool literal}) signingHashes(
+    Project project, DartFile f, Arg a) {
+  var start = a.start;
+  if (f.tokens[start].isIdent && f.tokens[start].text == 'const') start++;
+  if (f.at(start)?.isPunct('<') ?? false) {
+    while (start <= a.end && !f.tokens[start].isPunct('>')) {
+      start++;
+    }
+    start++;
+  }
+  if (f.at(start)?.isPunct('[') ?? false) {
+    return (values: _stringList(f, a), literal: true);
+  }
+  // A variable: `const kHashes = [...]` here or in another file.
+  final t = f.tokens[a.start];
+  if (a.start == a.end && t.isIdent) {
+    for (final file in [f, ...project.dartFiles.where((d) => d != f)]) {
+      for (var k = 1; k + 1 < file.tokens.length; k++) {
+        final n = file.tokens[k];
+        if (!n.isIdent ||
+            n.text != t.text ||
+            !file.tokens[k + 1].isPunct('=')) {
+          continue;
+        }
+        if (file.tokens[k - 1].isPunct('.')) continue;
+        var open = k + 2;
+        while (open < file.tokens.length &&
+            !file.tokens[open].isPunct('[') &&
+            !file.tokens[open].isPunct(';')) {
+          open++;
+        }
+        final close = file.matchOf(open);
+        if (close == null || !file.tokens[open].isPunct('[')) continue;
+        return (
+          values: _stringList(file, Arg(null, open, close)),
+          literal: true
+        );
+      }
+    }
+  }
+  return (values: _stringList(f, a), literal: false);
+}
+
 List<String> _stringList(DartFile f, Arg a) {
   final out = <String>[];
   for (var k = a.start; k <= a.end; k++) {
@@ -693,8 +740,9 @@ class FreeRaspConfigRule extends Rule {
             En.protectionRulesAndroidconfigHasNoSigningcerthashes,
             messageAr: Ar.protectionRulesAndroidconfigHasNoSigningcerthashes));
       } else {
-        final hs = _stringList(f, hashes);
-        final isLiteralList = f.tokens[hashes.start].isPunct('[');
+        final read = signingHashes(project, f, hashes);
+        final hs = read.values;
+        final isLiteralList = read.literal;
         if (isLiteralList && hs.isEmpty) {
           out.add(at(
               f, hashes.start, En.protectionRulesSigningcerthashesIsEmpty,

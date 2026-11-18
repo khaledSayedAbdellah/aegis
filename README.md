@@ -818,7 +818,7 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-N05 | Backup exclusion and file protection metadata (listed for review) | STORAGE-2 |
 | AEG-N06 | Keychain and Keystore access control and biometric binding | AUTH-2 |
 | AEG-N07 | WebView navigation and native bridges exposed to loaded pages | PLATFORM-2 |
-| AEG-N08 | Hardcoded secrets in native and script code (values redacted) | STORAGE-1 |
+| AEG-N08 | Hardcoded secrets in native and script code, and known key formats in `AndroidManifest.xml`, `Info.plist` and string resources (values redacted; Firebase's own config files are public by design and skipped) | STORAGE-1 |
 | AEG-N09 | Secrets passed to native or script logging | STORAGE-2 |
 | AEG-S01 | Source coverage: which files were read, frameworks found, and inputs aegis can't read (informational) | — |
 | AEG-T01 | Tracker SDKs found in the app (inventory) | PRIVACY-2 |

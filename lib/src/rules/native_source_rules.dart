@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import '../model.dart';
 import '../project.dart';
 import '../l10n/messages.g.dart';
@@ -38,8 +40,11 @@ class NativeSourceRule extends Rule {
   @override
   RuleCheck check(Project project, ProfileSet profile) {
     final files = [...project.nativeSources, ...project.scriptSources];
-    if (files.isEmpty) return RuleCheck.notApplicable();
-    final out = <Finding>[];
+    final config = logging ? const <String>[] : _configFiles(project);
+    if (files.isEmpty && config.isEmpty) return RuleCheck.notApplicable();
+    final out = <Finding>[
+      ...(logging ? const <Finding>[] : _configSecrets(project, config))
+    ];
     var limited = false;
     for (final file in files) {
       final script = scriptExtensions.contains(p.extension(file.path))
@@ -133,6 +138,51 @@ class NativeSourceRule extends Rule {
     }
     return RuleCheck(out);
   }
+}
+
+/// App configuration files that ship inside the app and can hold keys:
+/// Android manifests and string resources, iOS `Info.plist`. Firebase's own
+/// config files (`google-services.json`, `GoogleService-Info.plist`) are
+/// public by design and left out, like `firebase_options.dart` in AEG-D01;
+/// debug and test source sets and build output too.
+List<String> _configFiles(Project project) => project.findFiles(
+    '',
+    (rel) =>
+        RegExp(r'(?:^|/)(?:AndroidManifest\.xml|Info\.plist)$|/res/values[^/]*/[^/]+\.xml$')
+            .hasMatch(rel) &&
+        !RegExp(r'(?:^|/)(?:build|Pods|\.dart_tool|node_modules|\.gradle|DerivedData)/|/src/(?:debug|test|androidTest)/')
+            .hasMatch(rel) &&
+        !project.config.isExcluded(rel));
+
+/// Known key formats in [files] (values redacted).
+List<Finding> _configSecrets(Project project, List<String> files) {
+  final out = <Finding>[];
+  for (final rel in files) {
+    String text;
+    try {
+      text = File(project.abs(rel)).readAsStringSync();
+    } on FileSystemException {
+      continue;
+    } on FormatException {
+      continue; // A binary plist.
+    }
+    // Comments out, line numbers kept.
+    final code = text.replaceAllMapped(RegExp(r'<!--[\s\S]*?-->'),
+        (m) => '\n' * '\n'.allMatches(m[0]!).length);
+    for (final pattern in knownSecretPatterns) {
+      if (pattern.name == 'Private key') continue;
+      for (final m in RegExp(pattern.re).allMatches(code)) {
+        out.add(Finding(
+            ruleId: 'AEG-N08',
+            message: En.nativeSecretFound(kind: pattern.name),
+            messageAr: Ar.nativeSecretFound(kind: pattern.name),
+            file: rel,
+            line: lineAt(code, m.start),
+            snippet: '[redacted]'));
+      }
+    }
+  }
+  return out;
 }
 
 /// Whether [code] uses [name] as a yes/no flag (`pin ? 'pin' : 'save'`,

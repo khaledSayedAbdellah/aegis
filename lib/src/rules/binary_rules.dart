@@ -19,7 +19,7 @@ import '../project.dart';
 import '../util.dart';
 import 'android_rules.dart';
 import 'dart_rules.dart';
-import 'protection_rules.dart' show findCalls;
+import 'protection_rules.dart' show findCalls, signingHashes;
 import 'rule.dart';
 
 const _all = {MasProfile.l1, MasProfile.l2, MasProfile.r};
@@ -537,6 +537,24 @@ class BinarySecretsRule extends Rule {
         }
       }
     }
+    // Google API keys are skipped above: Firebase writes its public one into
+    // resources. A key in a manifest `<meta-data>` (Maps, Places) comes from
+    // the app, as AEG-N08 reports it in the source manifest.
+    final google = knownSecretPatterns
+        .where((pat) => pat.name == 'Google API key')
+        .map((pat) => RegExp(pat.re))
+        .firstOrNull;
+    final manifest = apk.manifest;
+    if (google != null && manifest != null) {
+      final own = project.androidManifest?.text ?? '';
+      for (final meta in manifest.findAllElements('meta-data')) {
+        final value = androidAttr(meta, 'value') ?? '';
+        final m = google.firstMatch(value);
+        if (m == null || own.contains(m[0]!)) continue;
+        _report(project, apk, 'AndroidManifest.xml', 'manifest',
+            'Google API key', m[0]!, sourceText, reported, out);
+      }
+    }
     return RuleCheck(out);
   }
 
@@ -570,6 +588,9 @@ class BinarySecretsRule extends Rule {
       case 'resources':
         where = 'in $entry (string resources or resValue)';
         whereAr = 'في $entry (string resources أو resValue)';
+      case 'manifest':
+        where = 'in a <meta-data> of the final manifest';
+        whereAr = 'في <meta-data> في الـmanifest النهائي';
       default:
         where = 'in the bundled file $entry';
         whereAr = 'في الملف المتضاف $entry';
@@ -812,12 +833,9 @@ class RaspSigningHashRule extends Rule {
       final args = f.args(c.open);
       final hashes = f.namedArg(args, 'signingCertHashes');
       if (hashes != null) {
-        for (var k = hashes.start; k <= hashes.end; k++) {
-          final t = f.tokens[k];
-          if (t.isString && (t.value ?? '').isNotEmpty) {
-            configured.add(t.value!);
-          }
-        }
+        configured.addAll(signingHashes(project, f, hashes)
+            .values
+            .where((v) => v.isNotEmpty));
         loc = f.path;
         line = f.lineOfToken(hashes.start);
       }

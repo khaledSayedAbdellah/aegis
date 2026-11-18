@@ -1,6 +1,8 @@
 ## Unreleased
 
 * Windows: finding paths and `exclude:` patterns use `/` for native files too, so excludes work and baselines match across systems; a Firebase rules file named in `firebase.json` is no longer counted twice; `--changed-since` reads git's output as UTF-8. CI now tests on Windows.
+* `AEG-N08` also reads `AndroidManifest.xml`, `Info.plist` and `res/values*/*.xml` for known key formats, so a Google Maps key in a manifest `<meta-data>` is reported like the same key in Swift code. Firebase's `google-services.json` and `GoogleService-Info.plist` stay out (public by design), as do debug and test source sets. `AEG-B06` reports a Google API key in the APK's manifest `<meta-data>` too.
+* `AEG-P03` and `AEG-B08` read `signingCertHashes` given as `const [...]`, `<String>[...]` or a variable declared in any file, not only as a `[...]` literal.
 * `AEG-D11` knows more numbers: class fields and top-level values that are `const`, `final` with a literal, or declared `int`/`double`/`bool`, and Kotlin, Java and Swift values declared with number types (`id: Int`, `long id`, `id: Int32`) or counts (`.size`, `.length`).
 * `AEG-D12` accepts a value encoded into a variable first (`final json = jsonEncode(data); runJavaScript('set($json)')`).
 * `AEG-D07` no longer takes Flutter widget keys (`super.key`, `ValueKey`) or map keys for crypto keys near `Random()`.

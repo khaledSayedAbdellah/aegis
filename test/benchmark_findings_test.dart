@@ -5,10 +5,13 @@ library;
 import 'dart:io';
 
 import 'package:aegis/aegis.dart';
+import 'package:archive/archive.dart';
+import 'package:aegis/src/binary/axml.dart' show decodeBinaryXml;
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'rules_test.dart' show audit, result;
+import 'support/axml.dart';
 
 Future<List<String>> found(String id, Map<String, String> files) async {
   final r = await audit(files);
@@ -396,6 +399,108 @@ export function update(pin: boolean, token: string) {
 ''',
           }),
           ['src/FeedCard.tsx:4']);
+    });
+  });
+
+  group('reported by the owner', () {
+    // Built at run time: no literal key shape in the repository.
+    final key = ['AI', 'za', 'Sy', 'B' * 33].join();
+
+    test('AEG-N08: Google API keys in the manifest, Info.plist and strings',
+        () async {
+      final r = await audit({
+        'android/app/src/main/AndroidManifest.xml': '''
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <application android:label="app">
+    <!-- <meta-data android:name="old" android:value="$key"/> -->
+    <meta-data android:name="com.google.android.geo.API_KEY" android:value="$key"/>
+  </application>
+</manifest>
+''',
+        'android/app/src/main/res/values/strings.xml':
+            '<resources><string name="maps_key">$key</string></resources>\n',
+        'android/app/src/debug/res/values/strings.xml':
+            '<resources><string name="maps_key">$key</string></resources>\n',
+        'ios/Runner/Info.plist':
+            '<plist><dict>\n<key>GMSApiKey</key>\n<string>$key</string>\n</dict></plist>\n',
+        'ios/Runner/GoogleService-Info.plist':
+            '<plist><dict><key>API_KEY</key><string>$key</string></dict></plist>\n',
+      });
+      expect(
+          result(r, 'AEG-N08').findings.map((f) => '${f.file}:${f.line}'),
+          unorderedEquals([
+            'android/app/src/main/AndroidManifest.xml:4',
+            'android/app/src/main/res/values/strings.xml:1',
+            'ios/Runner/Info.plist:3',
+          ]));
+      expect(result(r, 'AEG-N08').findings.map((f) => f.snippet).toSet(),
+          {'[redacted]'});
+    });
+
+    test('AEG-B06: a Google API key in the APK manifest meta-data', () async {
+      final dir = Directory.systemTemp.createTempSync('aegis_b06_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final manifest = axml(AxmlElement('manifest', [
+        (false, 'package', 'com.acme.bank')
+      ], [
+        AxmlElement('application', [], [
+          AxmlElement('meta-data', [
+            (true, 'name', 'com.google.android.geo.API_KEY'),
+            (true, 'value', key),
+          ]),
+        ]),
+      ]));
+      expect(decodeBinaryXml(manifest),
+          contains('com.google.android.geo.API_KEY'));
+      final source = ZipDecoder()
+          .decodeBytes(File('test/fixtures/apk/secure.apk').readAsBytesSync());
+      final archive = Archive();
+      for (final f in source.files) {
+        if (f.name == 'AndroidManifest.xml') continue;
+        archive.addFile(ArchiveFile.bytes(f.name, f.content as List<int>));
+      }
+      archive.addFile(ArchiveFile.bytes('AndroidManifest.xml', manifest));
+      final apk = p.join(dir.path, 'app.apk');
+      File(apk).writeAsBytesSync(ZipEncoder().encode(archive));
+      final r = await runAudit(dir.path,
+          apkPath: apk,
+          config: AegisConfig(profile: ProfileSet.tryParse('l2')!),
+          offline: true);
+      expect(result(r, 'AEG-B06').findings.map((f) => f.message),
+          ['Google API key found in a <meta-data> of the final manifest.']);
+    });
+
+    test('AEG-P03 reads signingCertHashes in every list form', () async {
+      const hash = 'mVr/qQLO8DKTwqlL+B1qigl9NoBnbiUs8b4c2Ewcz0k=';
+      for (final hashes in [
+        "['$hash']",
+        "[\n        '$hash',\n      ]",
+        "<String>[\n        '$hash',\n      ]",
+        "const [\n        '$hash',\n      ]",
+        'kHashes',
+      ]) {
+        final r = await audit({
+          'pubspec.yaml':
+              'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n'
+                  '  freerasp: ^6.0.0\n',
+          'lib/main.dart': '''
+import 'package:freerasp/freerasp.dart';
+Future<void> main() => Talsec.instance.start(TalsecConfig(
+    androidConfig: AndroidConfig(
+      packageName: 'com.example.app',
+      signingCertHashes: $hashes,
+    ),
+    watcherMail: 'security@example.com'));
+''',
+          'lib/hashes.dart': "const kHashes = [\n  '$hash',\n];\n",
+        });
+        final messages = result(r, 'AEG-P03').findings.map((f) => f.message);
+        expect(messages, isNot(contains(contains('no signingCertHashes'))),
+            reason: hashes);
+        expect(messages, isNot(contains(contains('empty'))), reason: hashes);
+        expect(messages, contains(startsWith('Only one signing hash')),
+            reason: hashes);
+      }
     });
   });
 }
