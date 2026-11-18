@@ -144,31 +144,83 @@ class ValueFlow {
   List<_Region> _regionsAt(int i) =>
       _regionCache[i] ??= List.unmodifiable(_findRegions(i));
 
+  /// For each token, the index of the innermost bracket that contains it
+  /// (`(`, `[`, `{` or `?[`), or -1. Built once per file, so finding the
+  /// functions around a token climbs the nesting instead of walking back
+  /// over every sibling (which made large files quadratic).
+  late final List<int> _parents = () {
+    final out = List<int>.filled(f.tokens.length, -1);
+    final stack = <int>[];
+    for (var i = 0; i < f.tokens.length; i++) {
+      final t = f.tokens[i];
+      final closing = t.kind == TokKind.punct &&
+          (t.text == ')' || t.text == ']' || t.text == '}');
+      if (closing && stack.isNotEmpty && f.matchOf(i) == stack.last) {
+        stack.removeLast();
+      }
+      out[i] = stack.isEmpty ? -1 : stack.last;
+      if (t.kind == TokKind.punct &&
+          (t.text == '(' || t.text == '[' || t.text == '{' || t.text == '?[') &&
+          f.matchOf(i) != null) {
+        stack.add(i);
+      }
+    }
+    return out;
+  }();
+
   List<_Region> _findRegions(int i) {
     final out = <_Region>[];
-    var k = i - 1;
-    // A `;` or `,` at this level ends any arrow body further back.
-    var ended = false;
-    while (k >= 0) {
-      final t = f.tokens[k];
-      if (t.kind == TokKind.punct &&
-          (t.text == ')' || t.text == ']' || t.text == '}')) {
-        final m = f.matchOf(k);
-        k = (m != null && m < k) ? m - 1 : k - 1;
-        continue;
+    if (f.tokens.isEmpty) return out;
+    var pos = i.clamp(0, f.tokens.length);
+    // The innermost bracket open at [i]: the one just before it, if it is
+    // still open there, or the one around the token before it.
+    var b = -1;
+    if (pos > 0) {
+      final prev = f.tokens[pos - 1];
+      final m = f.matchOf(pos - 1);
+      final opens = prev.kind == TokKind.punct &&
+          (prev.text == '(' ||
+              prev.text == '[' ||
+              prev.text == '{' ||
+              prev.text == '?[');
+      b = opens && m != null && m >= pos ? pos - 1 : _parents[pos - 1];
+    }
+    while (true) {
+      // Arrow functions at this level: `(x) => ...` encloses [pos] when no
+      // `;` or `,` of this level comes between.
+      for (var k = pos - 1; k > b; k--) {
+        final t = f.tokens[k];
+        if (t.kind == TokKind.punct &&
+            (t.text == ')' || t.text == ']' || t.text == '}')) {
+          final m = f.matchOf(k);
+          if (m == null || m >= k) continue;
+          // A finished method, class or statement block ends the expression
+          // too; only a map or set literal can sit inside one.
+          if (t.text == '}') {
+            final before = f.at(m - 1);
+            final literal = before != null &&
+                before.kind == TokKind.punct &&
+                !before.isPunct(')') &&
+                !before.isPunct('}') &&
+                !before.isPunct('>');
+            if (!literal) break;
+          }
+          k = m;
+          continue;
+        }
+        if (t.isPunct(';') || t.isPunct(',')) break;
+        if (t.isPunct('=>')) {
+          out.add(_region(k, close: _expressionEnd(k + 1)));
+        }
       }
-      if (t.isPunct(';') || t.isPunct(',')) ended = true;
-      if (t.isPunct('(') || t.isPunct('[') || t.isPunct('?[')) ended = false;
-      if (t.isPunct('=>') && !ended) {
-        out.add(_region(k, close: _expressionEnd(k + 1)));
-      }
-      if (t.isPunct('{')) {
-        ended = false;
-        final kind = _braceKind(k);
+      if (b < 0) break;
+      if (f.tokens[b].isPunct('{')) {
+        final kind = _braceKind(b);
         if (kind == _Brace.type) break;
-        if (kind == _Brace.function) out.add(_region(k));
+        if (kind == _Brace.function) out.add(_region(b));
       }
-      k--;
+      pos = b;
+      b = _parents[b];
     }
     return out;
   }
@@ -544,7 +596,10 @@ class ValueFlow {
   /// carry outside data: `const`, `final` with a literal, or declared with a
   /// number or bool type (`final int pageSize = 20;`, `static const table`).
   /// Every declaration of the name in the file must agree.
-  bool _fileConstant(String name) {
+  final _constants = <String, bool>{};
+  bool _fileConstant(String name) =>
+      _constants[name] ??= _fileConstantUncached(name);
+  bool _fileConstantUncached(String name) {
     var found = false;
     for (var k = 1; k + 1 < f.tokens.length; k++) {
       final t = f.tokens[k];
@@ -702,21 +757,57 @@ FunctionLookup projectFunctions(List<DartFile> files) =>
     _lookups[files] ??= () {
       final elsewhere = <String, (DartFile, int, int)?>{};
       return (String name, DartFile from) {
-        final own = from.functionBody(name);
-        if (own != null) return (from, own.start, own.end);
+        final own = _functionIndex(from)[name];
+        if (own != null) return (from, own.$1, own.$2);
         if (name.startsWith('_')) return null;
         return elsewhere.putIfAbsent(name, () {
           (DartFile, int, int)? found;
           for (final file in files) {
-            if (!file.source.contains(name)) continue;
-            final body = file.functionBody(name);
+            final body = _functionIndex(file)[name];
             if (body == null) continue;
             if (found != null) return null; // Declared twice: ambiguous.
-            found = (file, body.start, body.end);
+            found = (file, body.$1, body.$2);
           }
           return found;
         });
       };
+    }();
+
+final _functionIndexes = Expando<Map<String, (int, int)>>();
+
+/// Every function or method declared in [file], by name, with the token
+/// range of its body (the first declaration of a name, as
+/// [DartFile.functionBody] finds it). Built once per file.
+Map<String, (int, int)> _functionIndex(DartFile file) =>
+    _functionIndexes[file] ??= () {
+      final out = <String, (int, int)>{};
+      final t = file.tokens;
+      for (var i = 0; i + 1 < t.length; i++) {
+        if (!t[i].isIdent || !t[i + 1].isPunct('(')) continue;
+        if (out.containsKey(t[i].text)) continue;
+        final close = file.matchOf(i + 1);
+        if (close == null) continue;
+        var b = close + 1;
+        final n = file.at(b);
+        if (n != null && n.isIdent && (n.text == 'async' || n.text == 'sync')) {
+          b++;
+          if (file.at(b)?.isPunct('*') ?? false) b++;
+        }
+        final body = file.at(b);
+        if (body == null) continue;
+        if (body.isPunct('{')) {
+          final end = file.matchOf(b);
+          if (end != null) out[t[i].text] = (b, end);
+        } else if (body.isPunct('=>')) {
+          var e = b + 1;
+          while (e < t.length && !t[e].isPunct(';')) {
+            final m = file.matchOf(e);
+            e = (m != null && m > e) ? m + 1 : e + 1;
+          }
+          out[t[i].text] = (b, e - 1 < b ? b : e - 1);
+        }
+      }
+      return out;
     }();
 
 /// `x != null`, `null == x`, `x.isEmpty`, `x?.isNotEmpty == true`.

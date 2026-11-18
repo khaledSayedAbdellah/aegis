@@ -103,6 +103,29 @@ void f(Uri uri) {
       expect(flow.definitions('secret', i), isEmpty);
     });
 
+    test('an arrow body that holds a map literal or a switch', () {
+      final (flow, i) = at(r'''
+final a = (int count) => {'k': 1}.length + /*here*/ count;
+''', '/*here*/');
+      expect(flow.origin('count', i).clean, isTrue);
+      final (flow2, j) = at(r'''
+String label(int n) => switch (n) { 1 => /*here*/ 'one', _ => '$n' };
+''', '/*here*/');
+      expect(flow2.origin('n', j).clean, isTrue);
+    });
+
+    test('a method after other methods is still found', () {
+      final (flow, i) = at(r'''
+class Screen {
+  void a() {}
+  void b(String x) => print(x);
+  void c(int id) { /*here*/ }
+}
+''', '/*here*/');
+      expect(flow.origin('id', i).clean, isTrue);
+      expect(flow.origin('x', i).clean, isFalse, reason: 'not in scope');
+    });
+
     test('arrow functions have their own parameters', () {
       final (flow, i) = at(r'''
 final handler = (int count) => /*here*/ count;
@@ -213,5 +236,31 @@ void g(Uri link) { /*here*/ }
       expect(flow.origin('checked(link)', i).kinds,
           isNot(contains(SourceKind.link)));
     });
+  });
+
+  test('large files stay fast (it was quadratic until F1)', () {
+    // 6,000 small methods, 36,000 lines: like a big generated file.
+    final b = StringBuffer('class Dao {\n');
+    for (var i = 0; i < 6000; i++) {
+      b
+        ..writeln('  Future<void> q$i(db, String a$i) async {')
+        ..writeln("    final sql = 'SELECT * FROM t WHERE a = \$a$i';")
+        ..writeln('    await db.rawQuery(sql);')
+        ..writeln("    print('done \$a$i');")
+        ..writeln('    launchUrl(Uri.parse(a$i));')
+        ..writeln('  }');
+    }
+    b.writeln('}');
+    final f = DartFile('lib/dao.dart', b.toString());
+    final flow = ValueFlow(f, functions: projectFunctions([f]));
+    final sw = Stopwatch()..start();
+    for (final c in f.calls({'rawQuery', 'launchUrl'})) {
+      final arg = f.args(c.open).first;
+      flow.rangeOrigin(arg.start, arg.end);
+      flow.namesBehind(f.text(arg.start, arg.end), arg.start);
+      flow.checkedBefore({'a1'}, c.close);
+    }
+    // About 0.1 s now; it took over 15 s before the fix.
+    expect(sw.elapsed, lessThan(const Duration(seconds: 5)));
   });
 }

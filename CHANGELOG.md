@@ -1,5 +1,6 @@
 ## Unreleased
 
+* Faster on large files: the value flow (since 0.17.0) was quadratic on big Dart files: a 36,000-line file took 19 s, now about 1 s. File searches no longer enter `node_modules`, `.git`, `Pods`, `build` and other tool folders, so a React Native project with 100,000 installed files is audited in half a second instead of 1.5 s.
 * Windows: finding paths and `exclude:` patterns use `/` for native files too, so excludes work and baselines match across systems; a Firebase rules file named in `firebase.json` is no longer counted twice; `--changed-since` reads git's output as UTF-8. CI now tests on Windows.
 * `AEG-B14` / `AEG-I13`: OpenSSL support is a table of branches with their end dates, compared with the audit's date, so 4.0 becomes end of life on 2027-05-15 without a new aegis release. A branch newer than the table counts as supported. A test fails when the table hasn't been re-read for six months.
 * `AEG-N08` also reads `AndroidManifest.xml`, `Info.plist` and `res/values*/*.xml` for known key formats, so a Google Maps key in a manifest `<meta-data>` is reported like the same key in Swift code. Firebase's `google-services.json` and `GoogleService-Info.plist` stay out (public by design), as do debug and test source sets. `AEG-B06` reports a Google API key in the APK's manifest `<meta-data>` too.

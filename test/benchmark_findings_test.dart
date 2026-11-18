@@ -402,6 +402,22 @@ export function update(pin: boolean, token: string) {
     });
   });
 
+  test('file searches skip node_modules, Pods, .git and build', () async {
+    final key = ['AI', 'za', 'Sy', 'C' * 33].join();
+    String manifest() =>
+        '<manifest xmlns:android="http://schemas.android.com/apk/res/android">'
+        '<application><meta-data android:name="k" android:value="$key"/></application></manifest>\n';
+    final r = await audit({
+      'android/app/src/main/AndroidManifest.xml': manifest(),
+      'node_modules/some-lib/android/src/main/AndroidManifest.xml': manifest(),
+      'ios/Pods/Lib/Info.plist': '<plist><string>$key</string></plist>',
+      '.git/info/AndroidManifest.xml': manifest(),
+      'android/app/build/intermediates/AndroidManifest.xml': manifest(),
+    });
+    expect(result(r, 'AEG-N08').findings.map((f) => f.file),
+        ['android/app/src/main/AndroidManifest.xml']);
+  });
+
   group('reported by the owner', () {
     // Built at run time: no literal key shape in the repository.
     final key = ['AI', 'za', 'Sy', 'B' * 33].join();

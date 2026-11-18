@@ -608,7 +608,7 @@ custom_rules:
   - id: X-HTTP-URL
     title: Plain HTTP URL
     severity: medium
-    files: ["lib/**", "android/**/*.kt"]   # default: every text file (pattern) or every Dart file (call)
+    files: ["lib/**", "android/**/*.kt"]   # default: every text file (pattern) or every Dart file (call); node_modules, Pods, .git and build are never read
     pattern: "http://(?!localhost)[\\w./-]+"
     message: "Plain HTTP URL: {match}"
     fix: Use https.

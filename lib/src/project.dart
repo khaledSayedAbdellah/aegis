@@ -761,16 +761,35 @@ class Project {
     return false;
   }
 
+  /// Folders never read below the folder a search starts in: build output,
+  /// tool caches and installed dependencies. They can hold hundreds of
+  /// thousands of files (`node_modules`), so they are not even listed.
+  static const skippedFolders = {
+    'build', '.dart_tool', '.git', 'node_modules', 'Pods', '.gradle', //
+    'DerivedData', '.idea', '.symlinks', '.cxx', '.externalNativeBuild',
+  };
+
   /// Files on disk below [dir] (relative) matching [test].
   List<String> findFiles(String dir, bool Function(String rel) test) {
     final d = Directory(p.join(root, dir));
     if (!d.existsSync()) return const [];
     final out = <String>[];
-    for (final e in d.listSync(recursive: true, followLinks: false)) {
-      if (e is! File) continue;
-      final r = rel(e.path);
-      if (r.contains('/build/') || r.contains('/.dart_tool/')) continue;
-      if (test(r)) out.add(r);
+    final pending = [d];
+    while (pending.isNotEmpty) {
+      final List<FileSystemEntity> entries;
+      try {
+        entries = pending.removeLast().listSync(followLinks: false);
+      } on FileSystemException {
+        continue;
+      }
+      for (final e in entries) {
+        if (e is Directory) {
+          if (!skippedFolders.contains(p.basename(e.path))) pending.add(e);
+        } else if (e is File) {
+          final r = rel(e.path);
+          if (test(r)) out.add(r);
+        }
+      }
     }
     return out;
   }
