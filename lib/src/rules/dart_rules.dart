@@ -770,7 +770,7 @@ class InsecureRandomRule extends Rule {
         final window = [
           for (var l = line - 3; l <= line + 3; l++) f.lineText(l)
         ].join(' ');
-        if (_securityContext.hasMatch(window)) {
+        if (_securityContext.hasMatch(_withoutKeys(window))) {
           out.add(at(
               f, c.nameIndex, En.dartRulesRandomUsedNearSecuritySensitiveCode,
               messageAr: Ar.dartRulesRandomUsedNearSecuritySensitiveCode));
@@ -793,7 +793,7 @@ class InsecureRandomRule extends Rule {
             .sublist(i - 3 < 0 ? 0 : i - 3,
                 i + 4 > lines.length ? lines.length : i + 4)
             .join(' ');
-        if (!_securityContext.hasMatch(window)) continue;
+        if (!_securityContext.hasMatch(_withoutKeys(window))) continue;
         final api = m[0]!.replaceAll(RegExp(r'\s*\(.*'), '()');
         out.add(inFile(file.path, i + 1, En.nativeInsecureRandom(api: api),
             messageAr: Ar.nativeInsecureRandom(api: api)));
@@ -802,6 +802,17 @@ class InsecureRandomRule extends Rule {
     return RuleCheck(out);
   }
 }
+
+/// [text] without the `key`s that have nothing to do with crypto: Flutter
+/// widget keys (`super.key`, `Key? key`, `ValueKey(...)`, `key: ...`) and
+/// map keys (`entry.key`, `.keys`, `key -> value`, `forKey:`).
+String _withoutKeys(String text) => text.replaceAll(
+    RegExp(
+        r'\b(?:super|this|widget|entry|e|it)\.key\b|\bKey\??\s+key\b|'
+        r'\b(?:Global|Value|Object|Unique|Local|Page)Key\b|\bKey\s*\(|'
+        r'\bkey\s*:|\.keys\b|\bkey\s*->|\bforKey\b|\bkeyboard\w*|\bkeyPath\b',
+        caseSensitive: false),
+    ' ');
 
 class SensitiveLoggingRule extends Rule {
   const SensitiveLoggingRule();

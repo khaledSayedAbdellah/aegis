@@ -201,6 +201,28 @@ fun safe(): String {
         ['$_kt:2']);
   });
 
+  test('AEG-D07: Flutter widget keys are not crypto', () async {
+    expect(
+        await found('AEG-D07', {
+          'lib/demo.dart': '''
+import 'dart:math' as math;
+class Demo extends StatelessWidget {
+  Demo({super.key, this.seed});
+  final int? seed;
+  Color pick() => colors[math.Random(seed).nextInt(colors.length)];
+}
+
+
+
+String otp() {
+  final digits = math.Random().nextInt(999999);
+  return '\$digits';
+}
+''',
+        }),
+        ['lib/demo.dart:11']);
+  });
+
   test('AEG-N03 short RSA and symmetric keys', () async {
     expect(
         await found('AEG-N03', {
@@ -266,7 +288,42 @@ func find(name: String, id: Int32) {
 }
 ''',
         }),
-        ['ios/Runner/Store.swift:3', 'ios/Runner/Store.swift:4']);
+        // `id: Int32` can only be a number.
+        ['ios/Runner/Store.swift:3']);
+  });
+
+  test('AEG-D11: native numbers pass', () async {
+    expect(
+        await found('AEG-D11', {
+          _kt: r'''
+class Dao {
+    fun byId(id: Int, limit: Long, name: String) {
+        db.rawQuery("SELECT * FROM t WHERE id = $id LIMIT $limit", null)
+        db.rawQuery("SELECT * FROM t WHERE n = '$name'", null)
+        db.rawQuery("SELECT * FROM t LIMIT ${items.size}", null)
+    }
+}
+''',
+          'android/app/src/main/java/com/example/Dao.java': '''
+class Dao {
+    void byId(long id, String tag) {
+        db.rawQuery("SELECT * FROM t WHERE id = " + id, null);
+        db.rawQuery("SELECT * FROM t WHERE tag = '" + tag + "'", null);
+    }
+}
+''',
+          'ios/Runner/Store.swift': r'''
+func find(id: Int32, name: String) {
+    sqlite3_exec(db, "DELETE FROM t WHERE id = \(id)", nil, nil, nil)
+    sqlite3_exec(db, "DELETE FROM t WHERE name = '\(name)'", nil, nil, nil)
+}
+''',
+        }),
+        unorderedEquals([
+          '$_kt:4',
+          'android/app/src/main/java/com/example/Dao.java:4',
+          'ios/Runner/Store.swift:3',
+        ]));
   });
 
   group('false positives found in well-kept apps', () {

@@ -49,6 +49,7 @@ an APK audit on `main`.
 | `failOn` | `high` | `critical`, `high`, `medium`, `low`, or `config` to use `fail_on` from `aegis.yaml`. |
 | `minScore` | | Fail below this score. Known findings count in the score. |
 | `baseline` | `aegis-baseline.json` | Another baseline file. |
+| `changedOnly` | `false` | On pull requests, list and fail on only the findings on changed lines; the score still covers the whole project. Use `fetchDepth: 0` on the checkout step. |
 | `offline` | `false` | Skip the OSV vulnerability lookup. |
 | `aegisSource` | `hosted` | `hosted` (pub.dev), `git` or `path`. |
 | `aegisVersion` | latest | For `hosted`, e.g. `0.17.2`. Pin it so a new release can't change your build. |

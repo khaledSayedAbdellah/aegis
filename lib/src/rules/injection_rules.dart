@@ -7,7 +7,8 @@ import '../dart_scanner.dart';
 import '../l10n/messages.g.dart';
 import '../model.dart';
 import '../project.dart';
-import '../security/native_analysis.dart' show withoutComments;
+import '../security/native_analysis.dart'
+    show maskNativeLiterals, withoutComments;
 import 'rule.dart';
 
 const _all = {MasProfile.l1, MasProfile.l2, MasProfile.r};
@@ -219,7 +220,7 @@ class SqlInjectionRule extends Rule {
             !_sql.hasMatch(parts.map((p) => p.text).join(' '))) {
           continue;
         }
-        final value = _valueInSql(parts, (_) => false);
+        final value = _valueInSql(parts, (e) => _nativeNumber(file.text, e));
         if (value == null) continue;
         out.add(at(f, c.nameIndex,
             En.sqlInjection(value: shorten(value, 40), call: c.name),
@@ -269,7 +270,7 @@ class SqlInjectionRule extends Rule {
         }
         parts.add(TemplatePart.text(arg.substring(last)));
         if (!_sql.hasMatch(parts.map((p) => p.text).join(' '))) continue;
-        final value = _valueInSql(parts, (_) => false);
+        final value = _valueInSql(parts, (e) => _nativeNumber(code, e));
         if (value == null) continue;
         out.add(inFile(
             file.path,
@@ -411,6 +412,7 @@ class WebViewInjectionRule extends Rule {
                   !_constant(e) &&
                   !_encoded.hasMatch(e) &&
                   !_escapedByHelper(f, e) &&
+                  !_encodedVariable(f, flow, e, use) &&
                   !flow.origin(e, use).clean)
               .firstOrNull;
           if (value != null) break;
@@ -424,6 +426,52 @@ class WebViewInjectionRule extends Rule {
     }
     return RuleCheck(out);
   }
+}
+
+/// Whether [e], pasted into SQL in Kotlin, Java or Swift code, can only be a
+/// number or a flag: a variable declared with a number type anywhere in the
+/// file (`id: Int`, `long id`, `id: Int32`), a number literal, or a count
+/// (`.size`, `.length`, `.count`, `toInt()`).
+bool _nativeNumber(String code, String e) {
+  final v = e.trim();
+  if (RegExp(r'^\d+(?:\.\d+)?$').hasMatch(v)) return true;
+  if (RegExp(
+          r'\.(?:size|length|count)(?:\(\))?$|\.(?:toInt|toLong|toDouble|intValue|longValue)\(\)$')
+      .hasMatch(v)) {
+    return true;
+  }
+  if (!RegExp(r'^[A-Za-z_]\w*$').hasMatch(v)) return false;
+  final n = RegExp.escape(v);
+  const kotlinSwift =
+      r'(?:Int|Long|Short|Byte|Double|Float|Boolean|Bool|UInt|ULong|Int8|Int16|Int32|Int64|UInt8|UInt16|UInt32|UInt64|CGFloat)';
+  const java =
+      r'(?:int|long|short|byte|double|float|boolean|Integer|Long|Short|Double|Float|Boolean)';
+  final typed =
+      RegExp('\\b$n\\s*:\\s*$kotlinSwift\\??(?![\\w<\\[])|\\b$java\\s+$n\\b');
+  // Every declaration must be a number: a `String id` elsewhere in the file
+  // means it is not known. Text inside strings (`"WHERE id = ..."`) is not
+  // a declaration.
+  final declared = RegExp(
+          '\\b$n\\s*:\\s*[\\w.<>\\[\\]?]+|\\b[\\w.<>\\[\\]]+\\s+$n\\s*[,)=;]')
+      .allMatches(maskNativeLiterals(code))
+      .map((m) => m[0]!)
+      .where((d) =>
+          !RegExp(r'^(?:val|var|let|return|in|is|as|new|throw)\b').hasMatch(d))
+      .toList();
+  return declared.isNotEmpty && declared.every(typed.hasMatch);
+}
+
+/// Whether [e] is a variable that every definition in the function encodes:
+/// `final json = jsonEncode(data); runJavaScript('set($json)')`.
+bool _encodedVariable(DartFile f, ValueFlow flow, String e, int use) {
+  if (!RegExp(r'^[A-Za-z_]\w*$').hasMatch(e)) return false;
+  final defs = flow.definitions(e, use);
+  if (defs.isEmpty) return false;
+  return defs.every((d) {
+    final value = f.text(d.start, d.end).trim();
+    return WebViewInjectionRule._encoded.hasMatch(value) ||
+        _escapedByHelper(f, value);
+  });
 }
 
 /// Whether [e] calls a function of this file that escapes its input:

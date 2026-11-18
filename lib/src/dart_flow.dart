@@ -505,10 +505,10 @@ class ValueFlow {
       final text = file.text(a, b);
       var o = flow._origin(text.trim(), a, depth + 1, {...seen, key});
       if (o.kinds.contains(SourceKind.link)) {
-        final names = {
-          for (final n in flow.namesBehind(text, a))
-            if (flow.origin(n, a).kinds.contains(SourceKind.link)) n
-        };
+        // The link data may come from the returned expression itself
+        // (`uri.queryParameters[...]` on a parameter), so every variable it
+        // is built from counts.
+        final names = flow.namesBehind(text, a);
         if (flow.checkedBefore(names, a)) {
           o = Origin({...o.kinds}..remove(SourceKind.link), clean: false);
         }
@@ -540,17 +540,50 @@ class ValueFlow {
     return result ?? Origin.unknown;
   }
 
+  /// Whether [name] is a field or top-level value of this file that can't
+  /// carry outside data: `const`, `final` with a literal, or declared with a
+  /// number or bool type (`final int pageSize = 20;`, `static const table`).
+  /// Every declaration of the name in the file must agree.
   bool _fileConstant(String name) {
+    var found = false;
     for (var k = 1; k + 1 < f.tokens.length; k++) {
       final t = f.tokens[k];
-      if (t.isIdent &&
-          t.text == name &&
-          f.tokens[k + 1].isPunct('=') &&
-          (f.tokens[k - 1].text == 'const' || f.at(k - 2)?.text == 'const')) {
-        return true;
+      if (!t.isIdent || t.text != name) continue;
+      final prev = f.tokens[k - 1];
+      if (prev.isPunct('.') || prev.isPunct('?.')) continue;
+      final next = f.tokens[k + 1];
+      if (!(next.isPunct('=') || next.isPunct(';') || next.isPunct(','))) {
+        continue;
       }
+      // A declaration: a keyword or a type before the name.
+      final words = <String>[
+        for (var j = k - 1; j >= 0 && j >= k - 4; j--)
+          if (f.tokens[j].isIdent)
+            f.tokens[j].text
+          else if (!f.tokens[j].isPunct('?'))
+            '|'
+      ].takeWhile((w) => w != '|').toList();
+      if (words.isEmpty) continue;
+      final typed = words.any(_numericTypes.contains);
+      final constant = words.contains('const');
+      final literal =
+          next.isPunct('=') && words.contains('final') && _literalAt(k + 2);
+      if (!(typed || constant || literal)) return false;
+      found = true;
     }
-    return false;
+    return found;
+  }
+
+  /// Whether the value starting at token [i] is a single literal (number,
+  /// bool or a string without interpolation) ending the declaration.
+  bool _literalAt(int i) {
+    final t = f.at(i);
+    final end = f.at(i + 1);
+    if (t == null || end == null) return false;
+    if (!(end.isPunct(';') || end.isPunct(','))) return false;
+    if (t.isString) return !t.interpolated;
+    return t.kind == TokKind.number ||
+        (t.isIdent && const {'true', 'false'}.contains(t.text));
   }
 
   /// The variables [expression] at [at] is built from, and the variables
@@ -689,7 +722,8 @@ FunctionLookup projectFunctions(List<DartFile> files) =>
 /// `x != null`, `null == x`, `x.isEmpty`, `x?.isNotEmpty == true`.
 final _presenceTest = RegExp(
     r'[\w.?!\[\]\x27"]+\s*[!=]=\s*null\b|\bnull\s*[!=]=\s*[\w.?!]+|'
-    r'[\w.?!\[\]\x27"]+\??\.(?:isEmpty|isNotEmpty)\b(?:\s*[!=]=\s*(?:true|false))?');
+    // `uri.toString().isEmpty` too: calls inside the tested value.
+    r'[\w.?!\[\]()\x27"]+\??\.(?:isEmpty|isNotEmpty)\b(?:\s*[!=]=\s*(?:true|false))?');
 
 /// The expressions pasted into a string value (`$name`, `${...}`).
 Iterable<String> interpolatedExpressions(String value) sync* {

@@ -65,6 +65,12 @@ parameters:
 - name: baseline
   type: string
   default: ''
+# On pull requests, list and fail on only the findings on lines the pull
+# request changed; the score still covers the whole project. Use
+# `fetchDepth: 0` on the checkout step.
+- name: changedOnly
+  type: boolean
+  default: false
 # Skip the OSV vulnerability lookup.
 - name: offline
   type: boolean
@@ -167,6 +173,19 @@ steps:
     if [ -n "$AEGIS_MIN_SCORE" ]; then args+=(--min-score "$AEGIS_MIN_SCORE"); fi
     if [ -n "$AEGIS_BASELINE" ]; then args+=(--baseline "$AEGIS_BASELINE"); fi
     case "$AEGIS_OFFLINE" in [Tt]rue) args+=(--offline) ;; esac
+    case "$AEGIS_CHANGED_ONLY" in
+      [Tt]rue)
+        # Set on pull request builds: refs/heads/main, or main for GitHub repos.
+        target="${SYSTEM_PULLREQUEST_TARGETBRANCH#refs/heads/}"
+        if [ -n "$target" ]; then
+          git -C "$AEGIS_PROJECT" fetch --no-tags --quiet origin \
+            "+refs/heads/$target:refs/remotes/origin/$target" || true
+          args+=(--changed-since "origin/$target")
+        else
+          echo "##[warning]changedOnly works on pull request builds; this run lists every finding."
+        fi
+        ;;
+    esac
 
     dart pub global run aegis "${args[@]}"
     code=$?
@@ -198,6 +217,7 @@ steps:
     AEGIS_FAIL_ON: ${{ parameters.failOn }}
     AEGIS_MIN_SCORE: ${{ parameters.minScore }}
     AEGIS_BASELINE: ${{ parameters.baseline }}
+    AEGIS_CHANGED_ONLY: ${{ parameters.changedOnly }}
     AEGIS_OFFLINE: ${{ parameters.offline }}
     AEGIS_OUT: ${{ parameters.outputDir }}
     AEGIS_ARTIFACT: ${{ parameters.artifactName }}

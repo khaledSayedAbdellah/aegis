@@ -1,3 +1,13 @@
+## Unreleased
+
+* Windows: finding paths and `exclude:` patterns use `/` for native files too, so excludes work and baselines match across systems; a Firebase rules file named in `firebase.json` is no longer counted twice; `--changed-since` reads git's output as UTF-8. CI now tests on Windows.
+* `AEG-D11` knows more numbers: class fields and top-level values that are `const`, `final` with a literal, or declared `int`/`double`/`bool`, and Kotlin, Java and Swift values declared with number types (`id: Int`, `long id`, `id: Int32`) or counts (`.size`, `.length`).
+* `AEG-D12` accepts a value encoded into a variable first (`final json = jsonEncode(data); runJavaScript('set($json)')`).
+* `AEG-D07` no longer takes Flutter widget keys (`super.key`, `ValueKey`) or map keys for crypto keys near `Random()`.
+* Value flow: `uri.toString().isEmpty` is a presence test, not a check of the value; a helper that checks a link before returning it no longer passes link data on.
+* Docs: every rule has a row in the README rule tables (a test keeps it so), `aegis init` writes a commented `custom_rules` example, the native and cross-platform guides list the Dart rules that now read native code, and the Azure Pipelines template has a `changedOnly` option for pull requests.
+* Fewer false positives, found by auditing well-kept public apps (Now in Android, LocalSend, Ice Cubes, Bluesky): `AEG-I14` no longer reports a model property named `creationDate`, the macOS target, or an Expo app that declares its manifest in `app.config.js`; `AEG-A02` no longer reports a library module that leaves backup unset; `AEG-N09` no longer reports a yes/no flag named like a secret (`pin`).
+
 ## 0.17.2
 
 * Fixed: the HTML, Markdown and console reports crashed when evidence came from a rule without extra metadata (`AEG-B17` library loaders, `AEG-C04` update tools, `AEG-C05` local unarchiving), since 0.16.0. The benchmark now renders every report format for every app.

@@ -113,6 +113,37 @@ Future<void> g(db) => db.rawQuery("SELECT * FROM t WHERE l = '${label()}'");
         unorderedEquals(['lib/b.dart:4', 'lib/d.dart:1']));
   });
 
+  test('AEG-D11: fields that hold numbers or literals pass', () async {
+    expect(await found('AEG-D11', r'''
+class Dao {
+  static const table = 'users';
+  final int pageSize = 20;
+  final String order = 'name';
+  String filter = 'a';
+  Future<void> f(db) async {
+    await db.rawQuery('SELECT * FROM t LIMIT $pageSize');
+    await db.rawQuery('SELECT * FROM $table WHERE active = 1 ORDER BY $order');
+    await db.rawQuery("SELECT * FROM t WHERE name = '$filter'");
+  }
+}
+'''), [startsWith('9: SQL built with `filter`')]);
+  });
+
+  test('AEG-D12: values encoded into a variable first pass', () async {
+    expect(await found('AEG-D12', r'''
+import 'dart:convert';
+Future<void> f(web, Map data, String name, bool flag) async {
+  final json = jsonEncode(data);
+  await web.runJavaScript('setData($json)');
+  final safe = htmlEscape.convert(name);
+  await web.loadHtmlString('<p>$safe</p>');
+  var mixed = jsonEncode(data);
+  if (flag) mixed = name;
+  await web.runJavaScript('setData($mixed)');
+}
+'''), [startsWith('9: `mixed` is pasted')]);
+  });
+
   group('AEG-D12 WebView', () {
     test('values pasted into JavaScript or HTML are reported', () async {
       expect(await found('AEG-D12', r'''

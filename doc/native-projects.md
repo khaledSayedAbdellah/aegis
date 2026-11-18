@@ -25,10 +25,30 @@ AAB or IPA. Artifact-only folders remain supported.
 - AEG-N08 detects recognizable credentials, JWTs and probable literal secrets;
   values are redacted. AEG-N09 finds sensitive identifiers passed to common logging
   calls, including basic Swift/Kotlin string interpolation.
+- These Dart rules also read Kotlin, Java, Swift and Objective-C, so they run on
+  native projects too:
+  - AEG-D06 keys written as strings that become `SecretKeySpec` bytes, and fixed IVs.
+  - AEG-D07 `java.util.Random`, `kotlin.random.Random` or `Math.random()` near
+    security code.
+  - AEG-D11 SQL built from variables in `rawQuery`, `execSQL`,
+    `compileStatement`, `sqlite3_exec`, `sqlite3_prepare_v2` and FMDB; values
+    declared with number types pass.
+  - AEG-D15 Jetpack Compose text fields and XML `EditText`s for secrets with
+    keyboard suggestions on.
+  - AEG-D16 secrets copied to the clipboard; AEG-D17 notifications that show
+    codes or tokens; AEG-D20 raw key bytes written to plain storage.
+  - AEG-D19 Intent extras and data, `getQueryParameter`, `open url:` handlers and
+    `onOpenURL` that reach `loadUrl`, `startActivity`, files or a WebView without
+    a check.
+  - AEG-C04 code loaded from outside the app (dex loaders, `System.load`,
+    `dlopen`); AEG-C05 unsafe deserialization (`ObjectInputStream`,
+    `XMLDecoder`, `NSKeyedUnarchiver.unarchiveObject`).
 - The six platform-protection families retain their existing scoped evidence and
   runtime behavior. Native source is available to the existing reference scans
   and tracker inventory. Flutter/Dart-only dependency and RASP-setup rules do not
   run against a native-only project.
+- Custom rules in `aegis.yaml` (`custom_rules:`) work on native projects too;
+  `pattern` rules read every text file, `call` rules read Dart only.
 
 Source matching is lexical, not a Kotlin/Java/Swift/Clang compiler or a complete
 interprocedural data-flow analysis. Nested comments, raw Swift strings and

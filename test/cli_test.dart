@@ -403,8 +403,10 @@ void main() {
             'ios_xcode_configuration',
             'tracker_signatures',
             'rasp',
+            'custom_rules',
             'runtime_security',
           ]));
+      expect(config.customRules, isEmpty);
       for (final key in [
         'apk',
         'aab',

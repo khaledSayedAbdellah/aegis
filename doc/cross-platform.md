@@ -40,6 +40,13 @@ manifests participate in Android configuration checks.
 | AEG-N08 | Recognizable literal credentials and probable secrets, with values redacted |
 | AEG-N09 | Sensitive identifiers in `console` logging, Kotlin `println` and existing native logging APIs |
 | AEG-S01 | File counts by extension, detected frameworks, unsupported/unreadable inputs; informational discovery earns no security score |
+| AEG-C05 | `node-serialize`, `funcster` or `cryo` `unserialize()`, which runs functions written inside the data |
+| AEG-I14 | An Expo app's `ios.privacyManifests` in `app.json` / `app.config.js` counts as its privacy manifest |
+
+The Kotlin, Java and Swift parts of a React Native, Expo or KMP project also get
+the native checks listed in [native projects](native-projects.md) (`AEG-D06`,
+`AEG-D07`, `AEG-D11`, `AEG-D15` to `AEG-D17`, `AEG-D19`, `AEG-D20`, `AEG-C04`,
+`AEG-C05`).
 
 JavaScript comments, quoted strings, regex literals, template literals and JSX
 text are distinguished from executable expressions. Template/JSX expressions

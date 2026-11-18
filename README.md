@@ -235,6 +235,12 @@ With an APK, `aegis run` runs the resilience probe and includes its observations
 | AEG-R02 | Frida attached to the app | RESILIENCE-4 · TEST-0341 |
 | AEG-R03 | JDWP debugger attached to a debuggable APK | RESILIENCE-4 · TEST-0353 |
 | AEG-R04 | APK installed with a different signing certificate | RESILIENCE-2 |
+| AEG-R05 | iOS: the app keeps running on a jailbroken device | RESILIENCE-1 |
+| AEG-R06 | iOS: the app keeps running with Frida attached | RESILIENCE-4 |
+| AEG-R07 | iOS: the app keeps running with a debugger attached | RESILIENCE-4 |
+| AEG-R08 | iOS: the app keeps running after being re-signed with another identity | RESILIENCE-2 |
+| AEG-R09 | Runtime scenario: traffic accepted through an interception proxy (TLS and pinning), with `--runtime-scenario` | NETWORK-1, NETWORK-2 |
+| AEG-R10 | Runtime scenario: test secrets found in logs, files or storage after the scenario, with `--runtime-scenario` | STORAGE-2 |
 
 The probe works with the APK as supplied. When the condition is verified and the same app process stays alive, the report records `notBlocked` with process scope. This is a finding under MAS-R and describes continued execution during the probe window. If Android records a fresh self-exit for the tested process after the condition, the probe records `blocked` with process scope. Optional app events extend the evidence to a particular operation. An unexplained process exit, conflicting events or a condition that could not be applied is inconclusive.
 
@@ -337,6 +343,7 @@ The report also prints the **signing certificate SHA-256 in Base64**, the exact 
 | AEG-B09 | Signed with the Android debug certificate | RESILIENCE-2 |
 | AEG-B10 | freeRASP `signingCertHashes` / `packageName` don't match the APK | RESILIENCE-2 |
 | AEG-B11 | Old targetSdk / minSdk in the final manifest | CODE-1 |
+| AEG-B12 | Native libraries in the APK without hardening: executable stack, writable and executable segments, no RELRO or BIND_NOW (when they have relocations), not position independent, debug sections, unsafe search paths | CODE-4 |
 | AEG-B13 | Chucker, Stetho, Flipper or LeakCanary inside the APK (not their no-op versions) | RESILIENCE-4 |
 | AEG-B14 | Outdated C libraries inside the APK: end-of-life OpenSSL (supported: 3.5, 4.0, 4.1), zlib before 1.2.13, libpng before 1.6.37, libcurl before 8.4.0, SQLite before 3.39.2 (dated by its source id); `libflutter.so` is skipped | CODE-3 |
 | AEG-B15 | APK signed with the v1 scheme only while supporting Android before 7.0 (Janus); app bundles are skipped | RESILIENCE-2 |
@@ -743,6 +750,7 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-P08 | Biometrics as a plain boolean *(L2)* | AUTH-2 |
 | AEG-P09 | No screenshot protection *(L2)* | PLATFORM-3 |
 | AEG-P10 | Release build commands without `--obfuscate` *(R)* | RESILIENCE-3 |
+| AEG-P11 | Screens that can be captured: no `FLAG_SECURE` or snapshot protection where secrets are shown, and the app-switcher snapshot on iOS | PLATFORM-3 |
 | AEG-P12 | Firebase security rules open to anyone (Firestore, Storage, Realtime Database), including test-mode rules not yet expired | AUTH-1 |
 | AEG-P13 | Unsafe OAuth: implicit flow (`response_type=token`), a `client_secret` in the app (also `AuthorizationCodeGrant(secret:)`), a hand-built code flow without PKCE (`flutter_appauth` and `oauth2` add PKCE themselves) | AUTH-1 |
 | AEG-P15 | Firebase security rules broader than needed: any signed-in user on all data, or anonymous writes to a path | AUTH-1 |
@@ -757,6 +765,10 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-A08 | Release signed with the debug key | RESILIENCE-2 |
 | AEG-A09 | Signing secrets exposed | STORAGE-1 |
 | AEG-A10 | minSdk below 24 | CODE-1 |
+| AEG-A11 | Android App Links: `http(s)` VIEW filters without `autoVerify`, custom schemes others can claim | PLATFORM-1 |
+| AEG-A12 | Exported components protected only by a normal or dangerous permission, or providers without read/write permissions | PLATFORM-1 |
+| AEG-A13 | App Link hosts without a matching Digital Asset Links association | PLATFORM-1 |
+| AEG-A14 | Sensitive screens without protection against overlays and obscured touches (tapjacking) | PLATFORM-3 |
 | AEG-A15 | `PendingIntent` that is mutable (`FLAG_MUTABLE`, or no flag below targetSdk 31) and wraps an Intent without an explicit target; flags in a variable or returned by a helper in the same file are followed | PLATFORM-1 |
 | AEG-A16 | FileProvider `<root-path>`, or `external-path` / `files-path` with `path="."`, `"/"` or `""` | PLATFORM-1 |
 | AEG-A17 | Exported activity with a custom `taskAffinity` and `singleTask`, or `allowTaskReparenting`, with minSdk below 30 (StrandHogg) | PLATFORM-1 |
@@ -769,6 +781,9 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-I07 | Missing executable PIE flag | CODE-4 |
 | AEG-I08 | Executable stack / initial W+X segments | CODE-4 |
 | AEG-I09 | Retained source debug entries (MAS-R) | RESILIENCE-3 |
+| AEG-I10 | Entitlements wider than needed (keychain groups, app groups, associated domains) | PLATFORM-1 |
+| AEG-I11 | ATS exceptions that turn off forward secrecy | NETWORK-1 |
+| AEG-I12 | Universal Links: associated domains, the AASA file and URL handling | PLATFORM-1 |
 | AEG-I13 | The same outdated C libraries inside an IPA's binaries (not `Flutter.framework`) | CODE-3 |
 | AEG-I14 | The app's own iOS code uses a required-reason API (UserDefaults, file timestamps, disk space, boot time, keyboards) without `PrivacyInfo.xcprivacy`, or without declaring that category in it | PRIVACY-1 |
 | AEG-D01 | Hardcoded secret (known formats, JWT/Supabase service role, high-entropy values) | STORAGE-1 |
@@ -781,21 +796,32 @@ A release build shrunk by R8 only keeps code that is called, so an SDK found in 
 | AEG-D08 | Sensitive data in logs (also a log line built from secrets earlier in the function), unguarded `LogInterceptor` | STORAGE-2 |
 | AEG-D09 | `.env` / keys bundled as assets | STORAGE-1 |
 | AEG-D10 | WebView JS bridge without navigation limits, WebView debugging | PLATFORM-2 |
-| AEG-D11 | SQL built from variables (`rawQuery('... WHERE id = $id')`, `where: 'name = \'$q\''`) instead of `?` arguments, also through a query variable built in the same function, in Kotlin and Java (`rawQuery`, `execSQL`) and in Swift (`sqlite3_exec`, `sqlite3_prepare_v2`, FMDB). Numbers and constants pass | CODE-4 |
+| AEG-D11 | SQL built from variables (`rawQuery('... WHERE id = $id')`, `where: 'name = \'$q\''`) instead of `?` arguments, also through a query variable built in the same function, in Kotlin and Java (`rawQuery`, `execSQL`) and in Swift (`sqlite3_exec`, `sqlite3_prepare_v2`, FMDB). Numbers, constants, number-typed fields and native values declared with number types pass | CODE-4 |
 | AEG-D12 | Values pasted into WebView HTML or JavaScript (`runJavaScript`, `loadHtmlString`, `evaluateJavascript`) without encoding, also through a script variable; the app's own escape helpers count as encoding | PLATFORM-2 |
 | AEG-D13 | Debug tools in release builds: Alice, DevicePreview, Stetho, Flipper used outside `kDebugMode`; Chucker, Stetho, Flipper, LeakCanary added with `implementation` in Gradle | RESILIENCE-4 |
 | AEG-D14 | Permission, session or integrity check made only inside `assert()`, which release builds remove | CODE-4 |
 | AEG-D15 | Password, PIN or card field with keyboard suggestions and autocorrect on (keyboard cache): Flutter, Jetpack Compose and XML `EditText` | STORAGE-2 |
 | AEG-D16 | Token, password or key copied to the clipboard (Dart, Swift/Objective-C, Kotlin/Java) | PLATFORM-3 |
 | AEG-D17 | Notifications that may show codes, balances or tokens, from Flutter, Android and iOS code (listed for review) | PLATFORM-3 |
-| AEG-D19 | Deep-link data (`uni_links`, `app_links`, go_router `state`, Flutter route names) that reaches `launchUrl`, a WebView, a file path or an HTTP request without an `if`/`switch` check, also through helpers that return it; in Kotlin, Java and Swift, Intent extras and incoming URLs that reach `loadUrl`, `startActivity`, files or a WebView; when the Dart code reads links through a link API (`uni_links`, `app_links`, go_router, `onGenerateRoute`) and handles no push payloads, it replaces manual check AEG-M08 and says so in its evidence | PLATFORM-1 |
 | AEG-D18 | `flutter_secure_storage` items that can leave the device (not `_this_device`, or synchronizable) | STORAGE-1 |
+| AEG-D19 | Deep-link data (`uni_links`, `app_links`, go_router `state`, Flutter route names) that reaches `launchUrl`, a WebView, a file path or an HTTP request without an `if`/`switch` check, also through helpers that return it; in Kotlin, Java and Swift, Intent extras and incoming URLs that reach `loadUrl`, `startActivity`, files or a WebView; when the Dart code reads links through a link API (`uni_links`, `app_links`, go_router, `onGenerateRoute`) and handles no push payloads, it replaces manual check AEG-M08 and says so in its evidence | PLATFORM-1 |
 | AEG-D20 | Generated crypto keys or raw key bytes written to SharedPreferences, Hive, `UserDefaults` or files (Dart and native) | STORAGE-1 |
 | AEG-C01 | Dependency with known vulnerabilities (OSV): Dart packages from `pubspec.lock`; Maven from Gradle files, version catalogs, `gradle.lockfile` and the Android code of Flutter plugins; npm from `package-lock.json` / `yarn.lock`; Swift packages from `Package.resolved`. CocoaPods has no OSV data and is listed as not checked. Skipped with `--offline` | CODE-3 |
 | AEG-C02 | Unpinned git dependencies, `dependency_overrides` | CODE-3 |
 | AEG-C03 | Discontinued pub.dev packages (skipped with `--offline`), and Dart or npm names one letter away from popular packages | CODE-3 |
 | AEG-C04 | Code loaded from outside the app: `DexClassLoader`, `System.load` or `PathClassLoader` on external or downloaded paths, `dlopen` outside the bundle, `eval` of non-literal JavaScript; CodePush, Expo Updates and Shorebird are listed for review | CODE-4 |
 | AEG-C05 | Unsafe deserialization: data from another app, the network or shared storage reaching `ObjectInputStream`, `XMLDecoder`, XStream or `NSKeyedUnarchiver.unarchiveObject`; untyped `getSerializableExtra(name)`; Jackson default typing; `node-serialize`. Unsafe calls on the app's own data are listed for review | CODE-4 |
+| AEG-N01 | Kotlin, Java, Swift, Objective-C and JavaScript: TLS validation turned off (trust-all managers, hostname verifiers, `rejectUnauthorized: false`) | NETWORK-1 |
+| AEG-N02 | Unsafe WebView settings in native and React Native code (file access, universal access from file URLs, mixed content) | PLATFORM-2 |
+| AEG-N03 | Weak cryptography in native code: DES, RC4, ECB, MD5/SHA-1, short RSA and symmetric keys | CRYPTO-1 |
+| AEG-N04 | Storage settings: world-readable files, `kSecAttrAccessibleAlways`, no file protection, secrets in `AsyncStorage` / `localStorage` | STORAGE-1 |
+| AEG-N05 | Backup exclusion and file protection metadata (listed for review) | STORAGE-2 |
+| AEG-N06 | Keychain and Keystore access control and biometric binding | AUTH-2 |
+| AEG-N07 | WebView navigation and native bridges exposed to loaded pages | PLATFORM-2 |
+| AEG-N08 | Hardcoded secrets in native and script code (values redacted) | STORAGE-1 |
+| AEG-N09 | Secrets passed to native or script logging | STORAGE-2 |
+| AEG-S01 | Source coverage: which files were read, frameworks found, and inputs aegis can't read (informational) | — |
+| AEG-T01 | Tracker SDKs found in the app (inventory) | PRIVACY-2 |
 
 ## Development: run from source and run the tests
 

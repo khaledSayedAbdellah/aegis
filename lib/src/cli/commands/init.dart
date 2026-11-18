@@ -130,6 +130,18 @@ rasp:
   packages: []         # e.g. [my_guard, com.acme.guard., AcmeShield]
   not_protection: []   # e.g. [onesignal_flutter, com.onesignal., OneSignal]
 
+# Your team's own checks. Ids start with X-; give either a regex (pattern)
+# or a call (call, with optional receiver and args conditions). See the
+# README section "Custom rules".
+custom_rules: []
+#  - id: X-HTTP-URL
+#    title: Plain HTTP URL
+#    severity: medium
+#    files: ["lib/**"]
+#    pattern: "http://(?!localhost)"
+#    message: "Plain HTTP URL: {match}"
+#    fix: Use https.
+
 # Opt-in application-specific network/storage scenario. No host security changes.
 # See doc/runtime-security.md. command is an argument list, never a shell string.
 # It runs only when enabled here AND `aegis run --runtime-scenario` is passed.

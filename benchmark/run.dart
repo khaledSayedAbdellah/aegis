@@ -208,8 +208,11 @@ Future<void> main(List<String> argv) async {
     }
     if (app.clean) {
       for (final id in failed.keys) {
-        if (app.allowed.containsKey(id) || app.expected.containsKey(id)) continue;
-        stdout.writeln('  unexpected  $id  (${failed[id]} findings in a clean app)');
+        if (app.allowed.containsKey(id) || app.expected.containsKey(id)) {
+          continue;
+        }
+        stdout.writeln(
+            '  unexpected  $id  (${failed[id]} findings in a clean app)');
         for (final r in report.failed.where((r) => r.meta.id == id)) {
           for (final f in r.findings.take(3)) {
             stdout.writeln('      ${f.location}  ${f.message}');
