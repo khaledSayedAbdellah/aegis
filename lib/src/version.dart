@@ -1,2 +1,2 @@
 /// Keep in sync with pubspec.yaml.
-const aegisVersion = '0.17.2';
+const aegisVersion = '1.0.0';

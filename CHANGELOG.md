@@ -1,4 +1,6 @@
-## Unreleased
+## 1.0.0
+
+The first stable release. From now on aegis follows semantic versioning: the CLI, `aegis.yaml`, rule ids, the JSON report (`formatVersion: 1`) and the Dart API only change in a major release. The README's "Stability" section has the details.
 
 * Debug-only code is read from the code's structure, not from the text of nearby lines. Code counts as debug-only inside `if (kDebugMode)` / `if (!kReleaseMode)` (or the `else` of `if (kReleaseMode)`), after a braceless or collection `if`, in the true branch of `kDebugMode ? ... : ...` (a nullable type such as `DevConfig?` is not one), inside `assert(...)`, or after `if (!kDebugMode) return;`. Before, `if (!kDebugMode) { ... }`, a line after a debug block, any `assert(` above, a comment saying `kDebugMode` or `isDebuggerAttached()` hid the finding. Used by `AEG-D02`, `D03`, `D08`, `D10` and the debug-tool, UI-leak and protection rules.
 * `AEG-D03` is no longer turned off by words in the callback's strings or comments (`print('cert from provider ignored'); return true;`) or by reading the certificate without deciding on it (`debugPrint(c.subject); return true;`): only a comparison or check in an `if`/`while`/`for`/`switch` condition, or another return value, counts. It also reports a callback kept in a variable or function (`final cb = (c, h, p) => true; client.badCertificateCallback = cb;`), resolved in its own scope like Dart does.
