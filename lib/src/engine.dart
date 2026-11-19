@@ -142,8 +142,13 @@ class AuditReport {
     return w;
   }
 
-  /// Failed rules with at least one finding outside the baseline.
-  Iterable<RuleResult> get newFailed => failed.where((r) => r.hasNew);
+  /// Failed rules with at least one finding outside the baseline, worst new
+  /// finding first (see [RuleResult.newSeverity]), then by rule id.
+  Iterable<RuleResult> get newFailed => failed.where((r) => r.hasNew).toList()
+    ..sort((a, b) {
+      final s = b.newSeverity.index.compareTo(a.newSeverity.index);
+      return s != 0 ? s : a.meta.id.compareTo(b.meta.id);
+    });
 
   int get newFindingCount => failed.fold(0, (s, r) => s + r.newFindings.length);
   int get knownFindingCount =>

@@ -64,6 +64,8 @@ String renderHtml(AuditReport r, {String lang = 'en', bool compact = false}) {
   final failed = StringBuffer();
   for (final res in [...newFailed, ...knownOnly]) {
     final m = res.meta;
+    // Like the console: a rule with new findings is headed by their severity.
+    final sev = res.hasNew ? res.newSeverity : res.severity;
     if (knownOnly.isNotEmpty && identical(res, knownOnly.first)) {
       failed.writeln(
           '<h2>≈ ${_e(t.known)} (${knownOnly.length})</h2><p class="muted">${_e(t.knownHint)}</p>');
@@ -71,7 +73,7 @@ String renderHtml(AuditReport r, {String lang = 'en', bool compact = false}) {
     failed.writeln(
         '<details class="card${res.hasNew ? '' : ' known'}"${res.hasNew ? ' open' : ''}>');
     failed.writeln(
-        '<summary><span class="${sevClass(res.severity)}">${_e(t.severity(res.severity))}</span> '
+        '<summary><span class="${sevClass(sev)}">${_e(t.severity(sev))}</span> '
         '<strong>${_e(m.title.of(lang))}</strong> <code>${m.id}</code></summary>');
     failed.writeln('<p class="muted">${_e([
       ...m.masvs,

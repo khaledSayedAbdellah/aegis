@@ -757,6 +757,41 @@ const ok7 = 'http://[::1]:3000/';
   });
 
   group('second outside review (phase I)', () {
+    test('I6: the HTML report heads and sorts rules by their new findings',
+        () async {
+      final dir = Directory.systemTemp.createTempSync('aegis_htmlsev_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      File(p.join(dir.path, 'pubspec.yaml')).writeAsStringSync('name: app\n');
+      Directory(p.join(dir.path, 'lib')).createSync();
+      final main = File(p.join(dir.path, 'lib', 'main.dart'));
+      final aws = ['AKIA', 'IOSFODNN7', 'EXAMPLE'].join();
+      main.writeAsStringSync("const k = '$aws';\nvoid main() {}\n");
+      final baseline = Baseline.fromResults(
+          (await runAudit(dir.path, offline: true)).results);
+      main.writeAsStringSync("import 'dart:io';\n"
+          "const k = '$aws';\nvoid main() {\n"
+          '  HttpClient().badCertificateCallback = (a, b, c) => true;\n}\n'
+          "const apiSecret = 'q8Zr2LmX9vT4kP1wYb7N';\n");
+      final r = await runAudit(dir.path, offline: true, baseline: baseline);
+      final html = renderHtml(r);
+      final heads = [
+        for (final m in RegExp(
+                r'<summary><span class="sev sev-(\w+)">[^<]*</span> <strong>[^<]*</strong> <code>(AEG-D0[13])</code>')
+            .allMatches(html))
+          '${m[2]} ${m[1]}'
+      ];
+      // D01's new finding is high (its critical key is baselined), so the
+      // critical D03 comes first, as in the console.
+      expect(heads, ['AEG-D03 critical', 'AEG-D01 high']);
+      expect(r.newFailed.map((x) => x.meta.id).take(2), ['AEG-D03', 'AEG-D01']);
+      final console = ConsoleReporter(color: false).render(r);
+      final numbered = console
+          .split('\n')
+          .where((l) => l.startsWith('['))
+          .map((l) => RegExp(r'AEG-\w+').firstMatch(l)?[0])
+          .take(2);
+      expect(numbered, ['AEG-D03', 'AEG-D01']);
+    });
     test('I3: a nullable type is not a debug ternary', () async {
       final r = await audit({
         'lib/main.dart': r'''
