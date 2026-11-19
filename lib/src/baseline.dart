@@ -70,7 +70,12 @@ class Baseline {
     final entries = <String, BaselineEntry>{};
     for (final e in list) {
       if (e is! Map || e['fingerprint'] == null || e['rule'] == null) continue;
-      final fp = e['fingerprint'].toString();
+      // Recomputed from the stored rule, file and message, so baselines
+      // written before a fingerprint change keep matching.
+      final message = (e['message'] ?? '').toString();
+      final fp = message.isEmpty
+          ? e['fingerprint'].toString()
+          : fingerprintOf(e['rule'].toString(), e['file']?.toString(), message);
       final count = e['count'] is int ? e['count'] as int : 1;
       final existing = entries[fp];
       if (existing != null) {
@@ -176,14 +181,29 @@ class Baseline {
 
   /// Rule + file + message, ignoring line numbers, numbers in the message
   /// (counts, versions), whitespace, and whether it says APK or AAB.
-  static String fingerprint(Finding f) {
-    final message = f.message
+  static String fingerprint(Finding f) =>
+      fingerprintOf(f.ruleId, f.file, f.message);
+
+  /// Advisory ids stay in the fingerprint: a new CVE on a package that is
+  /// already in the baseline must show as new. Only other numbers (counts,
+  /// versions, sizes) are normalized.
+  static final _advisory = RegExp(
+      r'\b(?:CVE-\d{4}-\d{4,}|GHSA(?:-[0-9a-z]{4}){3}|GO-\d{4}-\d+|'
+      r'PYSEC-\d{4}-\d+|RUSTSEC-\d{4}-\d+|OSV-\d{4}-\d+|MAL-\d{4}-\d+|'
+      r'DSA-\d+-\d+|USN-\d+-\d+)\b',
+      caseSensitive: false);
+
+  static String fingerprintOf(String ruleId, String? file, String text) {
+    final ids = _advisory.allMatches(text).map((m) => m[0]!.toUpperCase());
+    final message = text
+        .replaceAll(_advisory, '@')
         .toLowerCase()
         .replaceAll(RegExp(r'\baab\b'), 'apk')
         .replaceAll(RegExp(r'\d+'), '#')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
-    final key = '${f.ruleId}|${normalizeFile(f.file) ?? ''}|$message';
+    final key =
+        '$ruleId|${normalizeFile(file) ?? ''}|$message|${ids.join(',')}';
     return sha256.convert(utf8.encode(key)).toString().substring(0, 16);
   }
 }

@@ -142,20 +142,21 @@ void main() {
       ..writeAsStringSync("const awsKey = 'AKIAZ7QW3RT5YU8IO2PL';\n");
     final r = await runAudit(dir.path, config: AegisConfig(), offline: true);
 
+    // An AWS access key is critical (the pattern's own severity).
     expect(r.score.blockingRules, contains('AEG-D01'));
     final console = ConsoleReporter(color: false).render(r);
-    expect(console, contains('40-69 while a HIGH problem is open'));
+    expect(console, contains('0-39 while a CRITICAL problem is open'));
     expect(console, contains('Biggest single gains: AEG-D01'));
     expect(ConsoleReporter(color: false, lang: 'ar').render(r),
-        contains('بين 40-69'));
+        contains('بين 0-39'));
 
     expect(renderMarkdown(r), contains('🔴'));
     expect(renderHtml(r), contains('<small class="muted">AEG-D01'));
 
     final json = jsonDecode(renderJson(r)) as Map<String, dynamic>;
-    expect(json['score']['worstSeverity'], 'high');
-    expect(json['score']['band'], [40, 69]);
+    expect(json['score']['worstSeverity'], 'critical');
+    expect(json['score']['band'], [0, 39]);
     expect(json['score']['blockingRules'], contains('AEG-D01'));
-    expect(json['score']['categories']['STORAGE']['worstSeverity'], 'high');
+    expect(json['score']['categories']['STORAGE']['worstSeverity'], 'critical');
   });
 }

@@ -497,7 +497,8 @@ Future<AuditReport> runAudit(
           file: f.file,
           line: f.line,
           snippet: f.snippet,
-          snippetAr: f.snippetAr);
+          snippetAr: f.snippetAr,
+          severity: f.severity);
 
   for (final rule in ruleSet) {
     final meta = metaOf(rule);
@@ -536,6 +537,16 @@ Future<AuditReport> runAudit(
         kept.add(findingOf(f));
       }
     }
+    // Findings with their own severity (a leaked AWS key, a Google key) set
+    // the result's: the worst one, and never lower than the rule's for
+    // findings without one. A severity set in aegis.yaml always wins.
+    var effective = severity;
+    final explicit = kept.map((f) => f.severity).whereType<Severity>().toList();
+    if (cfg.severityOverrides[meta.id] == null && explicit.isNotEmpty) {
+      final worst = explicit.reduce((a, b) => a > b ? a : b);
+      effective =
+          explicit.length == kept.length || worst > severity ? worst : severity;
+    }
     results.add(RuleResult(
       meta: meta,
       status: kept.isNotEmpty
@@ -546,7 +557,7 @@ Future<AuditReport> runAudit(
       incomplete: check.isIncomplete,
       note: check.note,
       noteAr: check.noteAr,
-      severity: severity,
+      severity: effective,
       findings: kept,
       suppressed: hidden,
     ));

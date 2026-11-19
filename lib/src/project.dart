@@ -97,6 +97,24 @@ class Project {
 
   final List<DartFile> dartFiles = [];
 
+  /// Generated Dart files (`*.g.dart`, `*.freezed.dart`, protobuf...). Code
+  /// rules skip them, but generators such as `envied` write secrets into
+  /// them, so the secret rules read them. Parsed on first use.
+  late final List<DartFile> generatedDartFiles = [
+    for (final r in _generatedPaths..sort())
+      if (_tryDart(r) case final f?) f
+  ];
+  final List<String> _generatedPaths = [];
+
+  DartFile? _tryDart(String relative) {
+    try {
+      return DartFile(
+          relative, File(p.join(root, relative)).readAsStringSync());
+    } catch (_) {
+      return null; // Unreadable (encoding errors etc).
+    }
+  }
+
   /// First-party packages (git and path dependencies) whose Dart code was
   /// scanned together with the app. Their files are named `package:<name>/...`.
   final List<String> scannedPackages = [];
@@ -537,11 +555,14 @@ class Project {
       for (final e in d.listSync(recursive: true, followLinks: false)) {
         if (e is! File || !e.path.endsWith('.dart')) continue;
         final r = rel(e.path);
-        if (_generated.hasMatch(r)) continue;
+        if (config.isExcluded(r)) continue;
+        if (_generated.hasMatch(r)) {
+          _generatedPaths.add(r);
+          continue;
+        }
         if (r.startsWith('lib/generated/') || r.contains('/l10n/generated')) {
           continue;
         }
-        if (config.isExcluded(r)) continue;
         try {
           dartFiles.add(DartFile(r, e.readAsStringSync()));
         } catch (_) {

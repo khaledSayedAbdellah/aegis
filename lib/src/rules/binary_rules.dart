@@ -484,7 +484,7 @@ class BinarySecretsRule extends Rule {
     final apk = project.apk!;
     final patterns = [
       for (final pat in knownSecretPatterns)
-        if (pat.name != 'Google API key') (pat.name, RegExp(pat.re)),
+        if (pat.name != 'Google API key') (pat.name, pat.regExp, pat.severity),
     ];
     final sourceText = project.dartFiles.map((f) => f.source).join('\n');
     final reported = <String>{};
@@ -493,7 +493,7 @@ class BinarySecretsRule extends Rule {
     void scan(String entry, List<String> strings, String kind) {
       for (var i = 0; i < strings.length; i++) {
         final s = strings[i];
-        for (final (name, re) in patterns) {
+        for (final (name, re, severity) in patterns) {
           for (final m in re.allMatches(s)) {
             // In a binary the PEM lines are separate strings: the key data, if
             // any, is in the next one.
@@ -503,7 +503,8 @@ class BinarySecretsRule extends Rule {
               continue;
             }
             _report(project, apk, entry, kind, name, m.group(0)!, sourceText,
-                reported, out);
+                reported, out,
+                severity: severity);
           }
         }
         if (s.contains('eyJ')) {
@@ -512,7 +513,8 @@ class BinarySecretsRule extends Rule {
               .allMatches(s)) {
             if (jwtRole(m.group(0)!) == 'service_role') {
               _report(project, apk, entry, kind, 'Supabase service_role key',
-                  m.group(0)!, sourceText, reported, out);
+                  m.group(0)!, sourceText, reported, out,
+                  severity: Severity.critical);
             }
           }
         }
@@ -552,7 +554,8 @@ class BinarySecretsRule extends Rule {
         final m = google.firstMatch(value);
         if (m == null || own.contains(m[0]!)) continue;
         _report(project, apk, 'AndroidManifest.xml', 'manifest',
-            'Google API key', m[0]!, sourceText, reported, out);
+            'Google API key', m[0]!, sourceText, reported, out,
+            severity: Severity.medium);
       }
     }
     return RuleCheck(out);
@@ -567,7 +570,8 @@ class BinarySecretsRule extends Rule {
       String value,
       String sourceText,
       Set<String> reported,
-      List<Finding> out) {
+      List<Finding> out,
+      {Severity? severity}) {
     if (!reported.add(value)) return;
     if (project.hasSource && sourceText.contains(value)) {
       return; // AEG-D01 reports it
@@ -598,7 +602,8 @@ class BinarySecretsRule extends Rule {
     out.add(inFile(apk.location(entry), null,
         En.binaryRulesFound(name: name, where: where),
         messageAr: Ar.binaryRulesFound(name: name, where: whereAr),
-        snippet: redact(value)));
+        snippet: redact(value),
+        severity: severity));
   }
 }
 

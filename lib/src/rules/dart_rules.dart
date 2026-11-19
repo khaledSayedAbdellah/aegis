@@ -11,6 +11,7 @@ import '../model.dart';
 import '../security/native_analysis.dart' show withoutComments;
 import '../project.dart';
 import '../util.dart';
+import 'debug_guard.dart';
 import 'rule.dart';
 
 const _all = {MasProfile.l1, MasProfile.l2, MasProfile.r};
@@ -140,7 +141,8 @@ class HardcodedSecretRule extends Rule {
   RuleCheck check(Project project, ProfileSet profile) {
     final out = <Finding>[];
     final known = knownSecretPatterns.map((p) => (p, RegExp(p.re))).toList();
-    for (final f in project.dartFiles) {
+    // Generated files too: `envied` and similar write secrets into them.
+    for (final f in [...project.dartFiles, ...project.generatedDartFiles]) {
       final isFirebaseOptions = f.path.endsWith('firebase_options.dart');
       for (final i in f.stringIndexes()) {
         if (f.isDirectiveString(i)) continue;
@@ -162,7 +164,8 @@ class HardcodedSecretRule extends Rule {
           }
           out.add(at(f, i, En.dartRulesFound(value1: pat.name),
               messageAr: Ar.dartRulesFound(value1: pat.name),
-              snippet: redact(m.group(0)!)));
+              snippet: redact(m.group(0)!),
+              severity: pat.severity));
           break;
         }
         if (matchedKnown) continue;
@@ -215,8 +218,15 @@ String? jwtRole(String v) {
   return '';
 }
 
+/// Hosts whose `http://` URLs are local, documentation or XML namespaces.
+/// The host must end there (`:port`, a path, `?`, `#` or the end), so
+/// `http://localhost.acme-prod.com` or `http://10.0.2.25` don't pass.
 final _safeHttpHosts = RegExp(
-    r'^http://(localhost|127\.|0\.0\.0\.0|10\.0\.2\.2|\[::1\]|example\.(com|org|net)|schemas\.|www\.w3\.org|xmlns\.|ns\.adobe\.com|www\.apache\.org|purl\.org|json-schema\.org)');
+    r'^http://(?:localhost|127(?:\.\d{1,3}){3}|0\.0\.0\.0|10\.0\.2\.2|\[::1\]|'
+    r'example\.(?:com|org|net)|'
+    r'schemas\.(?:android\.com|microsoft\.com|xmlsoap\.org|openxmlformats\.org|google\.com)|'
+    r'www\.w3\.org|xmlns\.com|ns\.adobe\.com|www\.apache\.org|purl\.org|json-schema\.org)'
+    r'(?=[:/?#]|$)');
 
 class CleartextUrlRule extends Rule {
   const CleartextUrlRule();
@@ -329,7 +339,15 @@ class TlsBypassRule extends Rule {
         if (!t.isIdent || !_names.contains(t.text)) continue;
         final op = f.tokens[i + 1];
         if (!(op.isPunct('=') || op.isPunct(':'))) continue;
-        if (alwaysReturnsTrue(f, i + 2)) {
+        // A closure, or a variable / function holding one.
+        final value = f.at(i + 2);
+        final end = f.at(i + 3);
+        final named = value != null &&
+            value.isIdent &&
+            end != null &&
+            (end.isPunct(';') || end.isPunct(',') || end.isPunct(')')) &&
+            callbackAlwaysTrue(f, value.text);
+        if (alwaysReturnsTrue(f, i + 2) || named) {
           if (_guardedByDebug(f, i)) continue;
           out.add(at(f, i, En.dartRulesAcceptsEveryCertificate(value1: t.text),
               messageAr: Ar.dartRulesAcceptsEveryCertificate(value1: t.text)));
@@ -371,37 +389,81 @@ bool alwaysReturnsTrue(DartFile f, int start) {
   if (next.isPunct('{')) {
     final end = f.matchOf(close + 1);
     if (end == null) return false;
-    final body = f.text(close + 1, end);
-    final compact = body.replaceAll(RegExp(r'\s+'), ' ');
-    final returnsTrue = RegExp(r'return true\s*;').hasMatch(compact);
-    final returnsOther = RegExp(r'return (?!true\s*;)').hasMatch(compact);
-    final checksSomething = RegExp(
-            r'(sha|fingerprint|pem|der|==|contains|compare|pin|subject|issuer)',
-            caseSensitive: false)
-        .hasMatch(compact);
-    return returnsTrue && !returnsOther && !checksSomething;
+    return _blockAlwaysTrue(f, close + 1, end);
   }
   return false;
 }
 
-/// Conditions that keep debug-only code out of production builds:
-/// `kDebugMode`, or flags such as `config.enableLogging` / `isDebug`.
-final _debugFlag = RegExp(
-    r'(kDebugMode|kProfileMode|[dD]ebugMode|isDebug|enableLog|[lL]ogging[A-Z]?\w*Enabled|[lL]ogEnabled|verbose|isDev\b)');
+/// Words in identifiers that show the callback looks at the certificate or
+/// the host: `cert.sha256`, `pinnedHashes`, `isTrusted(host)`.
+const _checkWords = {
+  'sha', 'sha1', 'sha256', 'fingerprint', 'fingerprints', 'pem', 'der', //
+  'pin', 'pins', 'pinned', 'pinning', 'hash', 'hashes', 'subject', 'issuer',
+  'trusted', 'trust', 'allowed', 'allow', 'expected', 'valid', 'verify',
+  'verified', 'compare', 'equals', 'contains', 'matches',
+};
 
-/// Whether the code at token [index] sits under a debug-only condition in
-/// the 6 lines above it (`if (kDebugMode)`, `if (config.enableLogging)`,
-/// `assert(...)`, `kDebugMode ? ... : ...`).
-bool _guardedByDebug(DartFile f, int index) {
-  final line = f.lineOfToken(index);
-  for (var l = line; l >= 1 && l >= line - 6; l--) {
-    final t = f.lineText(l);
-    if (t.contains('kDebugMode') && !t.contains('!kDebugMode')) return true;
-    if (t.contains('assert(')) return true;
-    if (RegExp(r'\bif\s*\(').hasMatch(t) && _debugFlag.hasMatch(t)) return true;
+/// The words of an identifier: `pinnedCertHashes` -> pinned, cert, hashes.
+Iterable<String> _words(String identifier) => identifier
+    .replaceAllMapped(RegExp(r'([a-z0-9])([A-Z])'), (m) => '${m[1]} ${m[2]}')
+    .split(RegExp(r'[\s_$]+'))
+    .where((w) => w.isNotEmpty)
+    .map((w) => w.toLowerCase());
+
+/// Whether the block `{ ... }` from [open] to [close] returns only `true`
+/// and checks nothing. Read on tokens: words inside strings
+/// (`print('cert from provider')`) and comments don't count as checks.
+bool _blockAlwaysTrue(DartFile f, int open, int close) {
+  var returnsTrue = false;
+  for (var k = open + 1; k < close; k++) {
+    final t = f.tokens[k];
+    if (t.isPunct('==') || t.isPunct('!=')) return false;
+    if (t.isIdent && t.text == 'return') {
+      final v = f.at(k + 1);
+      final after = f.at(k + 2);
+      if (v != null &&
+          v.isIdent &&
+          v.text == 'true' &&
+          after != null &&
+          after.isPunct(';')) {
+        returnsTrue = true;
+      } else {
+        return false; // Returns something else somewhere.
+      }
+    }
+    if (t.isIdent && _words(t.text).any(_checkWords.contains)) return false;
   }
-  return false;
+  return returnsTrue;
 }
+
+/// Whether [name], assigned to a certificate callback, holds a closure or
+/// names a function that always returns `true`:
+/// `final cb = (c, h, p) => true; client.badCertificateCallback = cb;`.
+bool callbackAlwaysTrue(DartFile f, String name) {
+  for (var k = 0; k + 2 < f.tokens.length; k++) {
+    final t = f.tokens[k];
+    if (!t.isIdent || t.text != name) continue;
+    if (k > 0 && (f.tokens[k - 1].isPunct('.'))) continue;
+    if (f.tokens[k + 1].isPunct('=') && alwaysReturnsTrue(f, k + 2)) {
+      return true;
+    }
+  }
+  final body = f.functionBody(name);
+  if (body == null) return false;
+  final start = f.tokens[body.start];
+  if (start.isPunct('=>')) {
+    final v = f.at(body.start + 1);
+    return v != null &&
+        v.isIdent &&
+        v.text == 'true' &&
+        body.end == body.start + 1;
+  }
+  return _blockAlwaysTrue(f, body.start, body.end);
+}
+
+/// Whether the code at token [index] only runs in debug builds (see
+/// [guardedByDebugBuild]).
+bool _guardedByDebug(DartFile f, int index) => guardedByDebugBuild(f, index);
 
 class InsecureStorageRule extends Rule {
   const InsecureStorageRule();

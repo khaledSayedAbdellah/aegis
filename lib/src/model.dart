@@ -200,9 +200,15 @@ class Finding {
     this.snippet,
     this.snippetAr,
     this.messageAr,
+    this.severity,
   });
 
   final String ruleId;
+
+  /// This occurrence's own severity when it differs by case (a leaked AWS
+  /// key is critical, a Google API key medium). The rule's result takes the
+  /// worst one; null means the rule's severity.
+  final Severity? severity;
 
   /// English detail specific to this occurrence.
   final String message;
@@ -243,6 +249,7 @@ class Finding {
         if (line != null) 'line': line,
         if (snippet != null) 'snippet': snippet,
         if (snippetAr != null) 'snippetAr': snippetAr,
+        if (severity != null) 'severity': severity!.name,
         if (baselined) 'baselined': true,
         if (outsideChange) 'outsideChange': true,
       };

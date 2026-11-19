@@ -68,7 +68,10 @@ abstract class Rule {
 
   /// Convenience for creating a finding in a Dart file at token [index].
   Finding at(DartFile f, int index, String message,
-      {String? messageAr, String? snippet, String? snippetAr}) {
+      {String? messageAr,
+      String? snippet,
+      String? snippetAr,
+      Severity? severity}) {
     final line = f.lineOfToken(index);
     return Finding(
       ruleId: meta.id,
@@ -78,11 +81,15 @@ abstract class Rule {
       line: line,
       snippetAr: snippetAr,
       snippet: snippet ?? _short(f.lineText(line)),
+      severity: severity,
     );
   }
 
   Finding inFile(String? file, int? line, String message,
-          {String? messageAr, String? snippet, String? snippetAr}) =>
+          {String? messageAr,
+          String? snippet,
+          String? snippetAr,
+          Severity? severity}) =>
       Finding(
         ruleId: meta.id,
         message: message,
@@ -91,6 +98,7 @@ abstract class Rule {
         line: line,
         snippet: snippet,
         snippetAr: snippetAr,
+        severity: severity,
       );
 
   static String _short(String s) =>

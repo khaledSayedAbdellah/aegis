@@ -63,12 +63,14 @@ class NativeSourceRule extends Rule {
         for (final literal in scan.literals) {
           final value = literal.value;
           String? kind;
+          Severity? severity;
           for (final pattern in knownSecretPatterns) {
             final match = pattern.regExp.firstMatch(value);
             if (match != null &&
                 (pattern.name != 'Private key' ||
                     pemBodyFollows(value, match.end))) {
               kind = pattern.name;
+              severity = pattern.severity;
               break;
             }
           }
@@ -95,7 +97,8 @@ class NativeSourceRule extends Rule {
             out.add(inFile(file.path, lineAt(file.text, literal.start),
                 En.nativeSecretFound(kind: kind),
                 messageAr: Ar.nativeSecretFound(kind: kind),
-                snippet: '[redacted]'));
+                snippet: '[redacted]',
+                severity: severity));
           }
         }
       } else {
@@ -178,7 +181,8 @@ List<Finding> _configSecrets(Project project, List<String> files) {
             messageAr: Ar.nativeSecretFound(kind: pattern.name),
             file: rel,
             line: lineAt(code, m.start),
-            snippet: '[redacted]'));
+            snippet: '[redacted]',
+            severity: pattern.severity));
       }
     }
   }
