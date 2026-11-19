@@ -346,7 +346,7 @@ class TlsBypassRule extends Rule {
             value.isIdent &&
             end != null &&
             (end.isPunct(';') || end.isPunct(',') || end.isPunct(')')) &&
-            callbackAlwaysTrue(f, value.text);
+            callbackAlwaysTrue(f, value.text, i + 2);
         if (alwaysReturnsTrue(f, i + 2) || named) {
           if (_guardedByDebug(f, i)) continue;
           out.add(at(f, i, En.dartRulesAcceptsEveryCertificate(value1: t.text),
@@ -412,12 +412,29 @@ Iterable<String> _words(String identifier) => identifier
 
 /// Whether the block `{ ... }` from [open] to [close] returns only `true`
 /// and checks nothing. Read on tokens: words inside strings
-/// (`print('cert from provider')`) and comments don't count as checks.
+/// (`print('cert from provider')`) and comments don't count as checks, and
+/// neither does reading the certificate without deciding on it
+/// (`debugPrint(c.subject)`): a check is a comparison or a check word inside
+/// an `if` / `while` / `for` / `switch` condition, or a return other than
+/// `return true;`.
 bool _blockAlwaysTrue(DartFile f, int open, int close) {
+  final parents = enclosingBrackets(f);
+  bool inCondition(int k) {
+    for (var b = parents[k]; b > open; b = parents[b]) {
+      if (!f.tokens[b].isPunct('(')) continue;
+      final kw = f.at(b - 1);
+      if (kw != null &&
+          kw.isIdent &&
+          const {'if', 'while', 'for', 'switch'}.contains(kw.text)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   var returnsTrue = false;
   for (var k = open + 1; k < close; k++) {
     final t = f.tokens[k];
-    if (t.isPunct('==') || t.isPunct('!=')) return false;
     if (t.isIdent && t.text == 'return') {
       final v = f.at(k + 1);
       final after = f.at(k + 2);
@@ -430,24 +447,67 @@ bool _blockAlwaysTrue(DartFile f, int open, int close) {
       } else {
         return false; // Returns something else somewhere.
       }
+      continue;
     }
-    if (t.isIdent && _words(t.text).any(_checkWords.contains)) return false;
+    final check = t.isPunct('==') ||
+        t.isPunct('!=') ||
+        (t.isIdent && _words(t.text).any(_checkWords.contains));
+    if (check && inCondition(k)) return false;
   }
   return returnsTrue;
 }
 
-/// Whether [name], assigned to a certificate callback, holds a closure or
-/// names a function that always returns `true`:
+/// Whether [name], assigned to a certificate callback at token [use], holds
+/// a closure or names a function that always returns `true`:
 /// `final cb = (c, h, p) => true; client.badCertificateCallback = cb;`.
-bool callbackAlwaysTrue(DartFile f, String name) {
+///
+/// The name is resolved like Dart does: the nearest assignment before [use]
+/// in a block around it, then class members and top-level variables, then a
+/// function of that name. A parameter of an enclosing function is unknown.
+bool callbackAlwaysTrue(DartFile f, String name, [int? use]) {
+  final parents = enclosingBrackets(f);
+  final at = use ?? f.tokens.length;
+  bool encloses(int brace) {
+    if (brace < 0) return true;
+    final end = f.matchOf(brace);
+    return end != null && brace < at && at < end;
+  }
+
+  // A parameter of a function around the use.
+  for (var b = at < parents.length ? parents[at] : -1; b >= 0; b = parents[b]) {
+    if (!f.tokens[b].isPunct('{')) continue;
+    var p = b - 1;
+    var t = f.at(p);
+    if (t != null && t.isIdent && (t.text == 'async' || t.text == 'sync')) {
+      t = f.at(--p);
+    }
+    if (t == null || !t.isPunct(')')) continue;
+    final paramsOpen = f.matchOf(p);
+    if (paramsOpen == null) continue;
+    for (var k = paramsOpen + 1; k < p; k++) {
+      if (f.tokens[k].isIdent && f.tokens[k].text == name) return false;
+    }
+  }
+
+  int? local;
+  int? member;
   for (var k = 0; k + 2 < f.tokens.length; k++) {
     final t = f.tokens[k];
     if (!t.isIdent || t.text != name) continue;
     if (k > 0 && (f.tokens[k - 1].isPunct('.'))) continue;
-    if (f.tokens[k + 1].isPunct('=') && alwaysReturnsTrue(f, k + 2)) {
-      return true;
+    if (!f.tokens[k + 1].isPunct('=')) continue;
+    final scope = parents[k];
+    if (scope >= 0 && !f.tokens[scope].isPunct('{')) continue;
+    if (!encloses(scope)) continue;
+    if (scope < 0 || _isTypeBody(f, scope)) {
+      member ??= k;
+    } else if (k < at) {
+      local = k; // The last one before the use wins.
     }
   }
+  final decl = local ?? member;
+  if (decl != null) return alwaysReturnsTrue(f, decl + 2);
+
   final body = f.functionBody(name);
   if (body == null) return false;
   final start = f.tokens[body.start];
@@ -459,6 +519,25 @@ bool callbackAlwaysTrue(DartFile f, String name) {
         body.end == body.start + 1;
   }
   return _blockAlwaysTrue(f, body.start, body.end);
+}
+
+/// Whether the `{` at [brace] opens a class, mixin, extension or enum body.
+bool _isTypeBody(DartFile f, int brace) {
+  for (var k = brace - 1; k >= 0 && k > brace - 40; k--) {
+    final t = f.tokens[k];
+    if (t.isIdent &&
+        const {'class', 'mixin', 'extension', 'enum'}.contains(t.text)) {
+      return true;
+    }
+    if (t.isPunct(';') || t.isPunct('}') || t.isPunct('{') || t.isPunct(')')) {
+      return false;
+    }
+    if (t.isPunct('>')) {
+      final m = f.matchOf(k);
+      if (m != null) k = m;
+    }
+  }
+  return false;
 }
 
 /// Whether the code at token [index] only runs in debug builds (see

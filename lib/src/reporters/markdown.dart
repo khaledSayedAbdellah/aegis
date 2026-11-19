@@ -133,7 +133,7 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
   for (final res in failed) {
     final m = res.meta;
     b.writeln(
-        '### `${m.id}` ${_text(m.title.of(lang))} — ${t.severity(res.severity)}');
+        '### `${m.id}` ${_text(m.title.of(lang))} — ${t.severity(res.newSeverity)}');
     b.writeln();
     final refs = [
       if (m.masvs.isNotEmpty) m.masvs.join(', '),

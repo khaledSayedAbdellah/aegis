@@ -171,7 +171,7 @@ String renderSarif(AuditReport r) {
               if (!f.outsideChange)
                 {
                   'ruleId': res.meta.id,
-                  'level': _sarifLevel(f.severity ?? res.severity),
+                  'level': _sarifLevel(res.severityOf(f)),
                   'message': {'text': f.message},
                   'partialFingerprints': {'aegis/v1': Baseline.fingerprint(f)},
                   if (r.usesBaseline)

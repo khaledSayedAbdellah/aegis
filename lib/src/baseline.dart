@@ -202,8 +202,10 @@ class Baseline {
         .replaceAll(RegExp(r'\d+'), '#')
         .replaceAll(RegExp(r'\s+'), ' ')
         .trim();
-    final key =
-        '$ruleId|${normalizeFile(file) ?? ''}|$message|${ids.join(',')}';
+    // Without an advisory id the key is the one used before 1.0.0, so
+    // baselines and code-scanning alerts keep their fingerprints.
+    final base = '$ruleId|${normalizeFile(file) ?? ''}|$message';
+    final key = ids.isEmpty ? base : '$base|${ids.join(',')}';
     return sha256.convert(utf8.encode(key)).toString().substring(0, 16);
   }
 }

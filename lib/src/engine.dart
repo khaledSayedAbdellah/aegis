@@ -150,11 +150,11 @@ class AuditReport {
       failed.fold(0, (s, r) => s + r.knownFindings.length);
   int get resolvedCount => baselineResolved.fold(0, (s, e) => s + e.count);
 
-  /// Failed rules at or above [s] with new findings. Rules whose findings are
-  /// all in the baseline are not counted, so --fail-on only reacts to new
+  /// Failed rules with new findings at or above [s]. Baselined findings are
+  /// not counted, not even for the severity, so --fail-on only reacts to new
   /// problems.
   int countAtLeast(Severity s) =>
-      newFailed.where((r) => r.severity >= s).length;
+      newFailed.where((r) => r.newSeverity >= s).length;
 }
 
 /// Facts read from the APK, shown at the top of reports.
@@ -488,17 +488,21 @@ Future<AuditReport> runAudit(
         : meta;
   }
 
-  Finding findingOf(Finding f) => !bundle || !f.ruleId.startsWith('AEG-B')
-      ? f
-      : Finding(
-          ruleId: f.ruleId,
-          message: bundleText(f.message),
-          messageAr: f.messageAr == null ? null : bundleText(f.messageAr!),
-          file: f.file,
-          line: f.line,
-          snippet: f.snippet,
-          snippetAr: f.snippetAr,
-          severity: f.severity);
+  Finding findingOf(Finding f, {bool keepSeverity = true}) {
+    final rename = bundle && f.ruleId.startsWith('AEG-B');
+    if (!rename && (keepSeverity || f.severity == null)) return f;
+    return Finding(
+        ruleId: f.ruleId,
+        message: rename ? bundleText(f.message) : f.message,
+        messageAr: f.messageAr == null || !rename
+            ? f.messageAr
+            : bundleText(f.messageAr!),
+        file: f.file,
+        line: f.line,
+        snippet: f.snippet,
+        snippetAr: f.snippetAr,
+        severity: keepSeverity ? f.severity : null);
+  }
 
   for (final rule in ruleSet) {
     final meta = metaOf(rule);
@@ -528,13 +532,15 @@ Future<AuditReport> runAudit(
           noteAr: check.noteAr));
       continue;
     }
+    final overridden = cfg.severityOverrides[meta.id] != null;
     final kept = <Finding>[];
     var hidden = 0;
     for (final f in check.findings) {
       if (suppressed(f)) {
         hidden++;
       } else {
-        kept.add(findingOf(f));
+        // A severity set in aegis.yaml is the severity of every finding.
+        kept.add(findingOf(f, keepSeverity: !overridden));
       }
     }
     // Findings with their own severity (a leaked AWS key, a Google key) set
@@ -542,7 +548,7 @@ Future<AuditReport> runAudit(
     // findings without one. A severity set in aegis.yaml always wins.
     var effective = severity;
     final explicit = kept.map((f) => f.severity).whereType<Severity>().toList();
-    if (cfg.severityOverrides[meta.id] == null && explicit.isNotEmpty) {
+    if (!overridden && explicit.isNotEmpty) {
       final worst = explicit.reduce((a, b) => a > b ? a : b);
       effective =
           explicit.length == kept.length || worst > severity ? worst : severity;
@@ -558,6 +564,7 @@ Future<AuditReport> runAudit(
       note: check.note,
       noteAr: check.noteAr,
       severity: effective,
+      baseSeverity: severity,
       findings: kept,
       suppressed: hidden,
     ));

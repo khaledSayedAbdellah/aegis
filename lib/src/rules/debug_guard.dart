@@ -24,6 +24,8 @@ bool _isDebugName(String name) {
 final _parentsOf = Expando<List<int>>();
 
 /// For each token, the innermost open bracket around it, or -1.
+List<int> enclosingBrackets(DartFile f) => _parents(f);
+
 List<int> _parents(DartFile f) => _parentsOf[f] ??= () {
       final out = List<int>.filled(f.tokens.length, -1);
       final stack = <int>[];
@@ -143,6 +145,8 @@ bool _statementGuarded(DartFile f, int b, int pos) {
     }
     if (t.isPunct(':')) return false; // In the false branch.
     if (t.isPunct('?')) {
+      // `DevConfig? load()` or `DebugInfo? info;` is a type, not a ternary.
+      if (!_ternary(f, q)) continue;
       var c = q - 1;
       while (c >= start) {
         final u = f.tokens[c];
@@ -162,6 +166,27 @@ bool _statementGuarded(DartFile f, int b, int pos) {
         c--;
       }
       return _debugOnly(f, c + 1, q - 1);
+    }
+  }
+  return false;
+}
+
+/// Whether the `?` at [q] starts a conditional expression: a `:` follows it
+/// at the same level before the statement ends.
+bool _ternary(DartFile f, int q) {
+  for (var k = q + 1; k < f.tokens.length; k++) {
+    final t = f.tokens[k];
+    if (t.isPunct(':')) return true;
+    if (t.isPunct(';') || t.isPunct(',')) return false;
+    if (t.kind != TokKind.punct) continue;
+    if (t.text == ')' || t.text == ']' || t.text == '}') return false;
+    if (_opens(t)) {
+      final m = f.matchOf(k);
+      if (m == null || m < k) return false;
+      k = m;
+      // A body followed by a name ends a declaration (`T? f() {} class X`).
+      final next = f.at(m + 1);
+      if (t.text == '{' && (next == null || next.isIdent)) return false;
     }
   }
   return false;

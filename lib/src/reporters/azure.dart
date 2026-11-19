@@ -32,8 +32,9 @@ String renderAzure(AuditReport r, {Severity? failOn, bool failing = false}) {
   var count = 0;
   var skipped = 0;
   for (final res in r.newFailed) {
-    final type = res.severity >= threshold ? 'error' : 'warning';
     for (final f in res.newFindings) {
+      final severity = res.severityOf(f);
+      final type = severity >= threshold ? 'error' : 'warning';
       if (count >= azureAnnotationLimit) {
         skipped++;
         continue;
@@ -47,7 +48,7 @@ String renderAzure(AuditReport r, {Severity? failOn, bool failing = false}) {
       final where =
           f.location.isEmpty || _linkable(f.file) ? '' : ' (${f.location})';
       final text =
-          'aegis ${res.meta.id} [${res.severity.name}] ${res.meta.title.en}: ${f.message}$where';
+          'aegis ${res.meta.id} [${severity.name}] ${res.meta.title.en}: ${f.message}$where';
       b.writeln('##vso[task.logissue ${props.join(';')};]${_escapeData(text)}');
     }
   }

@@ -188,7 +188,7 @@ class ConsoleReporter {
       final fresh = res.newFindings;
       final knownCount = res.knownFindings.length;
       b.writeln(
-          '${_bold('[$n]')} ${_sev(res.severity, t.severity(res.severity))} '
+          '${_bold('[$n]')} ${_sev(res.newSeverity, t.severity(res.newSeverity))} '
           '${_bold(m.title.of(lang))} ${_dim(m.masvs.isEmpty ? m.id : '${m.id} · ${m.masvs.join(', ')}')}');
       for (final f in fresh.take(verbose ? 1000 : 5)) {
         final loc = f.location.isEmpty ? '' : _cyan(f.location);

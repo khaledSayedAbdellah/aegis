@@ -286,19 +286,44 @@ class RuleResult {
     required this.meta,
     required this.status,
     required this.severity,
+    Severity? baseSeverity,
     this.findings = const [],
     this.suppressed = 0,
     this.incomplete = false,
     this.note,
     this.noteAr,
-  });
+  }) : baseSeverity = baseSeverity ?? severity;
 
   final RuleMeta meta;
   final RuleStatus status;
   final bool incomplete;
 
-  /// Effective severity for the selected profile.
+  /// Effective severity for the selected profile: the worst of its findings
+  /// (baselined ones included) when they have their own.
   final Severity severity;
+
+  /// The rule's severity before its findings are looked at: the one set in
+  /// `aegis.yaml`, or the rule's for the selected profile. A finding without
+  /// its own severity has this one.
+  final Severity baseSeverity;
+
+  /// The severity of one of this rule's findings.
+  Severity severityOf(Finding f) => f.severity ?? baseSeverity;
+
+  /// The worst severity among the new findings (see [newFindings]), or
+  /// [baseSeverity] when there are none. What `--fail-on` and the new-findings
+  /// sections of the reports use.
+  Severity get newSeverity {
+    var w = baseSeverity;
+    var first = true;
+    for (final f in newFindings) {
+      final s = severityOf(f);
+      if (first || s > w) w = s;
+      first = false;
+    }
+    return w;
+  }
+
   final List<Finding> findings;
 
   /// Findings hidden by inline `aegis:ignore` comments.

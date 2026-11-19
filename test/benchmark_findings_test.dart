@@ -755,4 +755,157 @@ const ok7 = 'http://[::1]:3000/';
       expect(result(r, 'AEG-D02').findings.map((f) => f.line), [1, 2, 3, 4]);
     });
   });
+
+  group('second outside review (phase I)', () {
+    test('I3: a nullable type is not a debug ternary', () async {
+      final r = await audit({
+        'lib/main.dart': r'''
+import 'dart:io';
+DevConfig? loadDevConfig() { HttpClient().badCertificateCallback = (a, b, d) => true; return null; }
+class DevConfig {}
+class Holder {
+  DebugInfo? info = DebugInfo(HttpClient()..badCertificateCallback = (a, b, d) => true);
+  Map<String, DevConfig?> configs() { HttpClient().badCertificateCallback = (a, b, d) => true; return {}; }
+}
+List<DebugInfo?> items() { HttpClient().badCertificateCallback = (a, b, d) => true; return []; }
+void ok(HttpClient h) {
+  h.badCertificateCallback = kDebugMode ? (a, b, d) => true : null;
+}
+''',
+      });
+      expect(result(r, 'AEG-D03').findings.map((f) => f.line), [2, 5, 6, 8]);
+    });
+
+    test('I4: reading the certificate is not checking it', () async {
+      final r = await audit({
+        'lib/main.dart': r'''
+import 'dart:io';
+void f() {
+  HttpClient().badCertificateCallback = (c, h, p) { debugPrint(c.subject); return true; };
+  HttpClient().badCertificateCallback = (c, h, p) { log('sha ${c.sha1}', c.pem); return true; };
+  HttpClient().badCertificateCallback = (c, h, p) { final same = c.issuer; print(same); return true; };
+  HttpClient().badCertificateCallback = (c, h, p) { if (c.subject.contains('acme')) return true; return false; };
+  HttpClient().badCertificateCallback = (c, h, p) { if (h == 'api.acme.io') { return true; } return false; };
+  HttpClient().badCertificateCallback = (c, h, p) { return c.sha1.toString() == pinned; };
+  HttpClient().badCertificateCallback = (c, h, p) { for (final x in allowedHashes) { if (x == c.sha1) return true; } return false; };
+}
+''',
+      });
+      expect(result(r, 'AEG-D03').findings.map((f) => f.line), [3, 4, 5]);
+    });
+
+    test('I5: a callback variable is resolved in its own scope', () async {
+      final r = await audit({
+        'lib/main.dart': r'''
+import 'dart:io';
+final topLevel = (X509Certificate c, String h, int p) => true;
+void a() { final cb = (X509Certificate c, String h, int p) => true; }
+void main() {
+  final cb = (X509Certificate c, String h, int p) => h == 'x';
+  HttpClient().badCertificateCallback = cb;
+}
+void b() {
+  final cb = (X509Certificate c, String h, int p) => true;
+  HttpClient().badCertificateCallback = cb;
+}
+void c() {
+  HttpClient().badCertificateCallback = topLevel;
+}
+void d(bool Function(X509Certificate, String, int) topLevel) {
+  HttpClient().badCertificateCallback = topLevel;
+}
+class Api {
+  final onBad = (X509Certificate c, String h, int p) => true;
+  void e() {
+    var onBad = (X509Certificate c, String h, int p) => h == 'x';
+    HttpClient().badCertificateCallback = onBad;
+  }
+  void g() {
+    HttpClient().badCertificateCallback = onBad;
+  }
+}
+''',
+      });
+      expect(result(r, 'AEG-D03').findings.map((f) => f.line), [10, 13, 25]);
+    });
+    test('I1: --fail-on and Azure read only the new findings\' severity',
+        () async {
+      final dir = Directory.systemTemp.createTempSync('aegis_newsev_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      File(p.join(dir.path, 'pubspec.yaml')).writeAsStringSync('name: app\n');
+      Directory(p.join(dir.path, 'lib')).createSync();
+      final main = File(p.join(dir.path, 'lib', 'main.dart'));
+      final aws = ['AKIA', 'IOSFODNN7', 'EXAMPLE'].join();
+      main.writeAsStringSync("const k = '$aws';\nvoid main() {}\n");
+      final first = await runAudit(dir.path, offline: true);
+      final baseline = Baseline.fromResults(first.results);
+      // A new high finding next to the baselined critical one.
+      main.writeAsStringSync("const k = '$aws';\nvoid main() {}\n"
+          "const apiSecret = 'q8Zr2LmX9vT4kP1wYb7N';\n");
+      final r = await runAudit(dir.path, offline: true, baseline: baseline);
+      final d01 = result(r, 'AEG-D01');
+      expect(d01.severity, Severity.critical, reason: 'worst of all findings');
+      expect(d01.newSeverity, Severity.high);
+      expect(r.countAtLeast(Severity.critical), 0);
+      expect(r.countAtLeast(Severity.high), 1);
+      final azure = renderAzure(r, failOn: Severity.critical);
+      expect(azure, contains('type=warning;code=AEG-D01'));
+      expect(azure, contains('[high]'));
+      expect(azure, isNot(contains('[critical]')));
+      // The new-findings sections show the new finding's severity.
+      final console = ConsoleReporter(color: false).render(r);
+      expect(console, contains('[1] HIGH'));
+      expect(console, isNot(contains('CRITICAL Hardcoded')));
+      expect(renderMarkdown(r), contains('— HIGH'));
+      expect(renderMarkdown(r), isNot(contains('— CRITICAL')));
+    });
+
+    test('I1: a severity set in aegis.yaml is every finding\'s', () async {
+      final dir = Directory.systemTemp.createTempSync('aegis_oversev_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      File(p.join(dir.path, 'pubspec.yaml')).writeAsStringSync('name: app\n');
+      Directory(p.join(dir.path, 'lib')).createSync();
+      final aws = ['AKIA', 'IOSFODNN7', 'EXAMPLE'].join();
+      File(p.join(dir.path, 'lib', 'a.dart'))
+          .writeAsStringSync("const k = '$aws';\n");
+      final r = await runAudit(dir.path,
+          config: AegisConfig.parse('rules:\n  AEG-D01: low\n'), offline: true);
+      final d01 = result(r, 'AEG-D01');
+      expect(d01.findings.map(d01.severityOf), [Severity.low]);
+      expect(r.countAtLeast(Severity.medium), 0);
+      expect(renderAzure(r), contains('[low]'));
+    });
+
+    test('I2: a finding without an advisory id keeps its old fingerprint', () {
+      // Pinned: changing it closes and reopens every code-scanning alert
+      // and breaks existing baselines.
+      expect(
+          Baseline.fingerprint(Finding(
+              ruleId: 'AEG-D01',
+              message: 'AWS access key found.',
+              file: 'lib/main.dart')),
+          '9867b981083b1c05');
+      expect(Baseline.fingerprintOf('AEG-D01', 'lib/main.dart', ''),
+          Baseline.fingerprintOf('AEG-D01', 'lib/main.dart', ' '));
+    });
+
+    test('I2: a baseline entry without a message still matches', () async {
+      final dir = Directory.systemTemp.createTempSync('aegis_nomsg_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final f = Finding(ruleId: 'AEG-X01', message: '', file: 'lib/a.dart');
+      final file = p.join(dir.path, 'aegis-baseline.json');
+      File(file).writeAsStringSync(jsonEncode({
+        'findings': [
+          {
+            // As 0.17 wrote it.
+            'fingerprint': 'b405112eccf35ddb',
+            'rule': 'AEG-X01',
+            'file': 'lib/a.dart',
+            'message': '',
+          }
+        ]
+      }));
+      expect(Baseline.load(file).entries.keys, [Baseline.fingerprint(f)]);
+    });
+  });
 }
