@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 /// Lexes comments and strings without changing source offsets. Supports Kotlin/
 /// Java text blocks, Swift raw/multiline strings and nested Swift/Kotlin comments.
 class NativeLiteral {
@@ -6,8 +8,31 @@ class NativeLiteral {
   final String value;
 }
 
-({String comments, String code, List<NativeLiteral> literals}) scanNative(
-    String source) {
+typedef NativeScan = ({
+  String comments,
+  String code,
+  List<NativeLiteral> literals
+});
+
+/// Recent scans, by the source text object: every rule reads the same file
+/// text, and scanning it once per rule made large projects slow.
+final _nativeScans = LinkedHashMap<String, NativeScan>.identity();
+
+NativeScan scanNative(String source) {
+  final cached = _nativeScans.remove(source);
+  if (cached != null) return _nativeScans[source] = cached;
+  final scan = _scanNative(source);
+  _nativeScans[source] = scan;
+  if (_nativeScans.length > scanCacheSize) {
+    _nativeScans.remove(_nativeScans.keys.first);
+  }
+  return scan;
+}
+
+/// How many scanned files the native and script scanners keep.
+const scanCacheSize = 20000;
+
+NativeScan _scanNative(String source) {
   final comments = source.split(''), code = source.split('');
   final literals = <NativeLiteral>[];
   void blank(List<String> chars, int start, int end) {

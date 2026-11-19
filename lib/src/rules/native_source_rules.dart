@@ -64,7 +64,7 @@ class NativeSourceRule extends Rule {
           final value = literal.value;
           String? kind;
           for (final pattern in knownSecretPatterns) {
-            final match = RegExp(pattern.re).firstMatch(value);
+            final match = pattern.regExp.firstMatch(value);
             if (match != null &&
                 (pattern.name != 'Private key' ||
                     pemBodyFollows(value, match.end))) {
@@ -171,7 +171,7 @@ List<Finding> _configSecrets(Project project, List<String> files) {
         (m) => '\n' * '\n'.allMatches(m[0]!).length);
     for (final pattern in knownSecretPatterns) {
       if (pattern.name == 'Private key') continue;
-      for (final m in RegExp(pattern.re).allMatches(code)) {
+      for (final m in pattern.regExp.allMatches(code)) {
         out.add(Finding(
             ruleId: 'AEG-N08',
             message: En.nativeSecretFound(kind: pattern.name),

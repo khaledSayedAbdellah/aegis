@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'native_analysis.dart';
 
 /// A bounded lexical view, not a JavaScript/TypeScript type checker. Offsets and
@@ -10,7 +12,21 @@ class ScriptScan {
   final bool limited;
 }
 
+/// Recent scans, by the source text object (see [scanNative]).
+final _scriptScans = LinkedHashMap<String, ScriptScan>.identity();
+
 ScriptScan scanScript(String source) {
+  final cached = _scriptScans.remove(source);
+  if (cached != null) return _scriptScans[source] = cached;
+  final scan = _scanScript(source);
+  _scriptScans[source] = scan;
+  if (_scriptScans.length > scanCacheSize) {
+    _scriptScans.remove(_scriptScans.keys.first);
+  }
+  return scan;
+}
+
+ScriptScan _scanScript(String source) {
   final comments = source.split(''), code = source.split('');
   final literals = <NativeLiteral>[];
   var i = 0, depth = 0;

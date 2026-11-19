@@ -32,4 +32,21 @@ void main() {
     expect(rows.difference(ids), isEmpty,
         reason: 'README rows for rules that no longer exist');
   });
+
+  test('--list-rules lists every rule once', () async {
+    final r = await Process.run(
+        Platform.resolvedExecutable, ['run', 'bin/aegis.dart', '--list-rules']);
+    expect(r.exitCode, 0, reason: '${r.stderr}');
+    final listed = RegExp(r'^(AEG-[A-Z]\d+) ', multiLine: true)
+        .allMatches(r.stdout as String)
+        .map((m) => m[1]!)
+        .toList();
+    final readme = File('README.md').readAsStringSync();
+    final rows = RegExp(r'^\| (AEG-[A-Z]\d+) \|', multiLine: true)
+        .allMatches(readme)
+        .map((m) => m[1]!)
+        .toSet();
+    expect(listed.toSet(), rows);
+    expect(listed, hasLength(listed.toSet().length), reason: 'listed twice');
+  });
 }

@@ -19,7 +19,7 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
   b.writeln();
   b.writeln('| | |');
   b.writeln('|---|---|');
-  b.writeln('| ${t.project} | `${r.projectName}` |');
+  b.writeln('| ${t.project} | ${_code(r.projectName)} |');
   b.writeln('| ${t.profile} | **${r.profile}** |');
   if (r.scannedPackages.isNotEmpty) {
     b.writeln(
@@ -58,7 +58,7 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
     b.writeln();
     for (final res in r.incomplete) {
       b.writeln(
-          '- ${res.meta.id} · ${res.noteOf(lang) ?? res.meta.title.of(lang)}');
+          '- ${res.meta.id} · ${_text(res.noteOf(lang) ?? res.meta.title.of(lang))}');
     }
     b.writeln();
   }
@@ -93,12 +93,14 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
     b.writeln('## 🧪 ${probe.heading}');
     b.writeln();
     if (probe.message != null) {
-      b.writeln('⏸️ ${probe.message}');
+      b.writeln('⏸️ ${_text(probe.message!)}');
       b.writeln();
     }
     if (probe.details.isNotEmpty) {
       b.writeln('```');
-      probe.details.forEach(b.writeln);
+      for (final d in probe.details) {
+        b.writeln(d.replaceAll('```', "'''"));
+      }
       b.writeln('```');
       b.writeln();
     }
@@ -131,7 +133,7 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
   for (final res in failed) {
     final m = res.meta;
     b.writeln(
-        '### `${m.id}` ${m.title.of(lang)} — ${t.severity(res.severity)}');
+        '### `${m.id}` ${_text(m.title.of(lang))} — ${t.severity(res.severity)}');
     b.writeln();
     final refs = [
       if (m.masvs.isNotEmpty) m.masvs.join(', '),
@@ -143,15 +145,15 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
       b.writeln();
     }
     for (final f in res.newFindings) {
-      final loc = f.location.isEmpty ? '' : '`${f.location}` — ';
-      b.writeln('- $loc${f.messageOf(lang)}');
+      final loc = f.location.isEmpty ? '' : '${_code(f.location)} — ';
+      b.writeln('- $loc${_text(f.messageOf(lang))}');
     }
     final knownCount = res.knownFindings.length;
     if (knownCount > 0) b.writeln('- _+ ${t.knownCount(knownCount)}_');
     b.writeln();
-    b.writeln('**${t.why}:** ${m.description.of(lang)}');
+    b.writeln('**${t.why}:** ${_text(m.description.of(lang))}');
     b.writeln();
-    b.writeln('**${t.fix}:** ${m.fix.of(lang)}');
+    b.writeln('**${t.fix}:** ${_text(m.fix.of(lang))}');
     b.writeln();
   }
 
@@ -161,7 +163,7 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
     b.writeln();
     for (final res in known) {
       b.writeln(
-          '- `${res.meta.id}` ${res.meta.title.of(lang)} — ${t.severity(res.severity)} · ${t.knownCount(res.knownFindings.length)}');
+          '- `${res.meta.id}` ${_text(res.meta.title.of(lang))} — ${t.severity(res.severity)} · ${t.knownCount(res.knownFindings.length)}');
     }
     b.writeln();
     b.writeln('_${t.knownHint}_');
@@ -174,7 +176,7 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
     b.writeln();
     for (final e in r.baselineResolved) {
       b.writeln(
-          '- `${e.ruleId}` ${e.file == null ? '' : '`${e.file}` — '}${e.message}');
+          '- ${_code(e.ruleId)} ${e.file == null ? '' : '${_code(e.file!)} — '}${_text(e.message)}');
     }
     b.writeln();
     b.writeln('_${t.updateHint}_');
@@ -185,7 +187,7 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
   b.writeln('## ✅ ${t.passed} (${passed.length})');
   b.writeln();
   for (final res in passed) {
-    b.writeln('- `${res.meta.id}` ${res.meta.passTitle.of(lang)}');
+    b.writeln('- `${res.meta.id}` ${_text(res.meta.passTitle.of(lang))}');
   }
   b.writeln();
 
@@ -221,4 +223,20 @@ String renderMarkdown(AuditReport r, {String lang = 'en'}) {
   b.writeln('> ${t.disclaimer}');
   if (t.ar) b.writeln('\n</div>');
   return b.toString();
+}
+
+/// Text from the audited project (file names, matched values, custom rule
+/// text) can't add HTML to the report: GitHub job summaries and Azure build
+/// summaries render it. Markdown formatting such as `code` stays.
+String _text(String s) =>
+    s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+
+/// [s] as a code span that a backtick in [s] can't end.
+String _code(String s) {
+  final one = s.replaceAll(RegExp(r'[\r\n]+'), ' ');
+  var fence = '`';
+  while (one.contains(fence)) {
+    fence += '`';
+  }
+  return fence.length == 1 ? '`$one`' : '$fence $one $fence';
 }

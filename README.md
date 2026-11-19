@@ -279,7 +279,7 @@ aegis --profile banking --lang ar      # banking app, Arabic report
 aegis -f console,html,sarif -o build/aegis
 ```
 
-`-f/--format` picks the outputs: `console` (the terminal), `html` (a page to open in a browser), `pdf`, `md`, `json`, `sarif` (code-scanning dashboards) and `azure` (Azure Pipelines annotations). `-o` is the file name without extension.
+`-f/--format` picks the outputs: `console` (the terminal), `html` (a page to open in a browser), `pdf`, `md`, `json`, `sarif` (code-scanning dashboards) and `azure` (Azure Pipelines annotations). `-o/--output` is the file name without extension (default `aegis-report`). `-v/--verbose` lists every finding in the console instead of the first five per rule, and the rules that did not apply, and `--no-color` turns off colors (they are also off when the output isn't a terminal).
 
 **PDF report.** `pdf` (on by default for `aegis run`) writes a short version of the report to `<mode>-<profile>-<date>.pdf` in the same folder, for example `code-L1-2026-11-12.pdf`. It has the score with its category scores and the open findings only: the new ones and, with a baseline, the ones already known, each with its locations, why it matters and how to fix it. Coverage, probe results, passed checks and manual checks are in the HTML report. A second audit on the same day with the same mode and profile replaces it. aegis prints it with Chrome, Edge, Chromium or Brave in headless mode; set `AEGIS_BROWSER` (or `CHROME_PATH`) to use another Chromium-based browser. Without one, the other reports are still written and aegis says why the PDF was skipped.
 

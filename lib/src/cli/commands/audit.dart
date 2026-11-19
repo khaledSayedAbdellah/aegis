@@ -14,7 +14,7 @@ import '../../rules/ipa_rules.dart';
 import '../../rules/registry.dart' show extendedRules;
 import '../../rules/runtime_security_rules.dart';
 import '../../security/runtime_security.dart';
-import '../../rules/probe_rules.dart' show iosProbeRules;
+import '../../rules/probe_rules.dart' show iosProbeRules, probeRules;
 import '../../services/android_probe.dart';
 import '../arguments.dart';
 import '../probe_options.dart';
@@ -483,15 +483,18 @@ Future<void> auditCommand(ArgResults root, ArgParser parser) async {
 }
 
 void _listRules() {
+  final seen = <String>{};
   for (final r in [
     ...allRules,
     ...apkRules,
     ...ipaRules,
+    ...probeRules,
     ...iosProbeRules,
     ...extendedRules,
     ...runtimeSecurityRules
   ]) {
     final m = r.meta;
+    if (!seen.add(m.id)) continue;
     final profiles = m.profiles.map((x) => x.name.toUpperCase()).join('/');
     stdout.writeln(
         '${m.id.padRight(8)} ${m.severity.name.padRight(8)} ${profiles.padRight(9)} '

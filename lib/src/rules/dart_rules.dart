@@ -71,6 +71,10 @@ class SecretPattern {
   const SecretPattern(this.name, this.re, this.severity);
   final String name;
   final String re;
+
+  /// [re], compiled once.
+  RegExp get regExp => _compiled[re] ??= RegExp(re);
+  static final _compiled = <String, RegExp>{};
   final Severity severity;
 }
 
