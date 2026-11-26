@@ -1,3 +1,7 @@
+## 1.0.1
+
+* Fixed: `AEG-P03` reported `signingCertHashes` as empty when its elements were not string literals, such as `[hashConverter.fromSha256toBase64(kSha256)]` or a function of the app's. It now counts the list's elements, and reads freeRASP's `hashConverter.fromSha256toBase64(...)` of a literal or a constant (adjacent literals joined) the way the package encodes it, so a hex fingerprint passed through it is not reported as hex either. `AEG-B10` compares that value with the APK's certificate, and gives no verdict when an element can't be read, instead of reporting the certificate as missing.
+
 ## 1.0.0
 
 The first stable release. From now on aegis follows semantic versioning: the CLI, `aegis.yaml`, rule ids, the JSON report (`formatVersion: 1`) and the Dart API only change in a major release. The README's "Stability" section has the details.

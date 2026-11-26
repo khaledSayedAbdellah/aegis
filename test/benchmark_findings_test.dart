@@ -521,6 +521,51 @@ Future<void> main() => Talsec.instance.start(TalsecConfig(
             reason: hashes);
       }
     });
+
+    test('AEG-P03 counts signingCertHashes elements that are not literals',
+        () async {
+      Future<List<String>> p03(String hashes) async {
+        final r = await audit({
+          'pubspec.yaml':
+              'name: app\ndependencies:\n  flutter:\n    sdk: flutter\n'
+                  '  freerasp: ^6.0.0\n',
+          'lib/main.dart': '''
+import 'package:freerasp/freerasp.dart';
+class Rasp {
+  static const _sha =
+      'AB:CD:EF:01:23:45:67:89:AB:CD:EF:01:23:45:67:89'
+      ':AB:CD:EF:01:23:45:67:89:AB:CD:EF:01:23:45:67:89';
+  Future<void> init() => Talsec.instance.start(TalsecConfig(
+      androidConfig: AndroidConfig(
+        packageName: 'com.example.app',
+        signingCertHashes: $hashes,
+      ),
+      watcherMail: 'security@example.com'));
+}
+''',
+        });
+        return result(r, 'AEG-P03').findings.map((f) => f.message).toList();
+      }
+
+      // The freeRASP converter of a hex fingerprint is a real hash: not
+      // empty, and not "in hex" either, since the package encodes it.
+      final converted =
+          await p03('[\n  hashConverter.fromSha256toBase64(_sha),\n]');
+      expect(converted, isNot(contains(contains('empty'))));
+      expect(converted, isNot(contains(contains('hex'))));
+      expect(converted, contains(startsWith('Only one signing hash')));
+
+      // A call of the app's own still counts as an element.
+      final call = await p03('[loadHash(), loadOther()]');
+      expect(call, isNot(contains(contains('empty'))));
+      expect(call, isNot(contains(startsWith('Only one signing hash'))));
+
+      // A constant holding the raw hex is still reported as hex.
+      expect(await p03('[_sha]'), contains(contains('hex')));
+
+      expect(await p03('[]'), contains(contains('empty')));
+      expect(await p03('const <String>[]'), contains(contains('empty')));
+    });
   });
 
   group('outside review (phase H)', () {

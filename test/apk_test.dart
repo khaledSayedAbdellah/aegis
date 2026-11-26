@@ -209,6 +209,24 @@ final config = TalsecConfig(
       final right = await withHashes(
           "'mVr/qQLO8DKTwqlL+B1qigl9NoBnbiUs8b4c2Ewcz0k=', '$hash'");
       expect(result(right, 'AEG-B10').status, RuleStatus.passed);
+
+      // The printed fingerprint through freeRASP's own converter, split over
+      // adjacent literals in a constant, as keytool / Play Console show it.
+      final hex = base64Decode(hash)
+          .map((b) => b.toRadixString(16).padLeft(2, '0').toUpperCase())
+          .join(':');
+      final half = hex.length ~/ 2;
+      final converted = await withHashes(
+          "'mVr/qQLO8DKTwqlL+B1qigl9NoBnbiUs8b4c2Ewcz0k=', "
+          'hashConverter.fromSha256toBase64(_sha)],\n  ),\n);\n'
+          "const _sha = '${hex.substring(0, half)}' '${hex.substring(half)}';"
+          '\nfinal _unused = [');
+      expect(result(converted, 'AEG-B10').status, RuleStatus.passed);
+
+      // A value aegis can't evaluate might be the right one: no verdict.
+      final unknown = await withHashes(
+          "'mVr/qQLO8DKTwqlL+B1qigl9NoBnbiUs8b4c2Ewcz0k=', loadHash()");
+      expect(result(unknown, 'AEG-B10').status, RuleStatus.notApplicable);
     });
   });
 

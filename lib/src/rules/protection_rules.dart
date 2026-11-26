@@ -7,6 +7,7 @@ library;
 
 import '../l10n/messages.g.dart';
 
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:xml/xml.dart';
@@ -135,8 +136,17 @@ Set<String> iosBundleIds(Project p) {
 /// The hashes given to `signingCertHashes`, and whether they are a list
 /// literal: `[...]`, `const [...]`, `<String>[...]`, over any number of
 /// lines, or a variable holding one (`signingCertHashes: kHashes`, declared
-/// in any file of the project). Null values when the list can't be read.
-({List<String> values, bool literal}) signingHashes(
+/// in any file of the project).
+///
+/// [count] is the number of elements in the list, [values] the ones whose
+/// value could be read: a string literal (adjacent literals joined), a
+/// constant holding one, or freeRASP's
+/// `hashConverter.fromSha256toBase64(...)` of either, converted here the way
+/// the package does. An element built any other way (a function of the
+/// app's, a getter) still counts but has no value, so [count] can be larger
+/// than `values.length`. When the argument is not a list, [literal] is false
+/// and [values] holds whatever strings it mentions.
+({List<String> values, int count, bool literal}) signingHashes(
     Project project, DartFile f, Arg a) {
   var start = a.start;
   if (f.tokens[start].isIdent && f.tokens[start].text == 'const') start++;
@@ -147,36 +157,118 @@ Set<String> iosBundleIds(Project p) {
     start++;
   }
   if (f.at(start)?.isPunct('[') ?? false) {
-    return (values: _stringList(f, a), literal: true);
+    return _hashList(project, f, start);
   }
   // A variable: `const kHashes = [...]` here or in another file.
   final t = f.tokens[a.start];
   if (a.start == a.end && t.isIdent) {
-    for (final file in [f, ...project.dartFiles.where((d) => d != f)]) {
-      for (var k = 1; k + 1 < file.tokens.length; k++) {
-        final n = file.tokens[k];
-        if (!n.isIdent ||
-            n.text != t.text ||
-            !file.tokens[k + 1].isPunct('=')) {
-          continue;
-        }
-        if (file.tokens[k - 1].isPunct('.')) continue;
-        var open = k + 2;
-        while (open < file.tokens.length &&
-            !file.tokens[open].isPunct('[') &&
-            !file.tokens[open].isPunct(';')) {
-          open++;
-        }
-        final close = file.matchOf(open);
-        if (close == null || !file.tokens[open].isPunct('[')) continue;
-        return (
-          values: _stringList(file, Arg(null, open, close)),
-          literal: true
-        );
+    final decl = _declaration(project, f, t.text, accept: (file, s, e) {
+      for (var k = s; k <= e; k++) {
+        if (file.tokens[k].isPunct('[')) return true;
+      }
+      return false;
+    });
+    if (decl != null) {
+      var open = decl.start;
+      while (!decl.file.tokens[open].isPunct('[')) {
+        open++;
+      }
+      return _hashList(project, decl.file, open);
+    }
+  }
+  final values = _stringList(f, a);
+  return (values: values, count: values.length, literal: false);
+}
+
+({List<String> values, int count, bool literal}) _hashList(
+    Project project, DartFile f, int open) {
+  if (f.matchOf(open) == null) {
+    return (values: const <String>[], count: 0, literal: true);
+  }
+  final elements = f.args(open);
+  final values = <String>[];
+  for (final e in elements) {
+    final v = _hashValue(project, f, e.start, e.end);
+    if (v != null) values.add(v);
+  }
+  return (values: values, count: elements.length, literal: true);
+}
+
+/// The value of one `signingCertHashes` element, or null when it can't be
+/// read.
+String? _hashValue(Project project, DartFile f, int start, int end,
+    {int depth = 0}) {
+  if (depth > 4) return null;
+  final s = _stringValue(f, start, end);
+  if (s != null) return s;
+  if (start == end && f.tokens[start].isIdent) {
+    final decl = _declaration(project, f, f.tokens[start].text,
+        accept: (file, s, e) => _stringValue(file, s, e) != null);
+    return decl == null ? null : _stringValue(decl.file, decl.start, decl.end);
+  }
+  // `hashConverter.fromSha256toBase64(x)` or `HashConverter()...(x)`.
+  if (f.tokens[end].isPunct(')')) {
+    final open = f.matchOf(end);
+    if (open != null &&
+        open > start &&
+        f.tokens[open - 1].isIdent &&
+        f.tokens[open - 1].text == 'fromSha256toBase64' &&
+        open + 1 < end) {
+      final hex = _hashValue(project, f, open + 1, end - 1, depth: depth + 1);
+      if (hex == null) return null;
+      final clean = hex.replaceAll(RegExp(r'[\s:]'), '');
+      if (RegExp(r'^[0-9A-Fa-f]{64}$').hasMatch(clean)) {
+        return base64.encode([
+          for (var i = 0; i < 64; i += 2)
+            int.parse(clean.substring(i, i + 2), radix: 16)
+        ]);
+      }
+      // Wrong length: not a SHA-256, and not worth a "hex" finding either.
+      // A placeholder is kept so it is still reported as one.
+      return RegExp(r'^[0-9A-Fa-f]+$').hasMatch(clean) ? null : hex;
+    }
+  }
+  return null;
+}
+
+/// The text of tokens [start]..[end] when they are only plain string
+/// literals (adjacent ones joined, as Dart does), otherwise null.
+String? _stringValue(DartFile f, int start, int end) {
+  final b = StringBuffer();
+  for (var k = start; k <= end; k++) {
+    final t = f.tokens[k];
+    if (!t.isString || t.interpolated) return null;
+    b.write(t.value ?? '');
+  }
+  return b.toString();
+}
+
+/// The initializer of `name = ...;` in [f] or any other Dart file of the
+/// project, as a token range, for the first declaration [accept] agrees
+/// with.
+({DartFile file, int start, int end})? _declaration(
+    Project project, DartFile f, String name,
+    {required bool Function(DartFile file, int start, int end) accept}) {
+  for (final file in [f, ...project.dartFiles.where((d) => d != f)]) {
+    final tokens = file.tokens;
+    for (var k = 1; k + 1 < tokens.length; k++) {
+      final n = tokens[k];
+      if (!n.isIdent || n.text != name || !tokens[k + 1].isPunct('=')) {
+        continue;
+      }
+      if (tokens[k - 1].isPunct('.')) continue;
+      var e = k + 2;
+      while (e < tokens.length && !tokens[e].isPunct(';')) {
+        final m = tokens[e].kind == TokKind.punct ? file.matchOf(e) : null;
+        e = (m != null && m > e) ? m + 1 : e + 1;
+      }
+      if (e >= tokens.length || e == k + 2) continue;
+      if (accept(file, k + 2, e - 1)) {
+        return (file: file, start: k + 2, end: e - 1);
       }
     }
   }
-  return (values: _stringList(f, a), literal: false);
+  return null;
 }
 
 List<String> _stringList(DartFile f, Arg a) {
@@ -743,7 +835,7 @@ class FreeRaspConfigRule extends Rule {
         final read = signingHashes(project, f, hashes);
         final hs = read.values;
         final isLiteralList = read.literal;
-        if (isLiteralList && hs.isEmpty) {
+        if (isLiteralList && read.count == 0) {
           out.add(at(
               f, hashes.start, En.protectionRulesSigningcerthashesIsEmpty,
               messageAr: Ar.protectionRulesSigningcerthashesIsEmpty));
@@ -764,7 +856,7 @@ class FreeRaspConfigRule extends Rule {
             break;
           }
         }
-        if (isLiteralList && hs.length == 1 && profile.resilience) {
+        if (isLiteralList && read.count == 1 && profile.resilience) {
           out.add(at(f, hashes.start,
               En.protectionRulesOnlyOneSigningHashIsConfiguredAppsOn,
               messageAr:

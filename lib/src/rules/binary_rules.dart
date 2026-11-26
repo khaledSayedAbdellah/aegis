@@ -828,6 +828,9 @@ class RaspSigningHashRule extends Rule {
       return RuleCheck.notApplicable('The APK is not signed');
     }
     final configured = <String>{};
+    // An element aegis can't evaluate may be the very certificate that is
+    // "missing", so hashes are only compared when every one was read.
+    var unread = false;
     String? packageName;
     var loc = '';
     int? line;
@@ -838,9 +841,9 @@ class RaspSigningHashRule extends Rule {
       final args = f.args(c.open);
       final hashes = f.namedArg(args, 'signingCertHashes');
       if (hashes != null) {
-        configured.addAll(signingHashes(project, f, hashes)
-            .values
-            .where((v) => v.isNotEmpty));
+        final read = signingHashes(project, f, hashes);
+        configured.addAll(read.values.where((v) => v.isNotEmpty));
+        if (!read.literal || read.count > read.values.length) unread = true;
         loc = f.path;
         line = f.lineOfToken(hashes.start);
       }
@@ -852,6 +855,10 @@ class RaspSigningHashRule extends Rule {
     if (configured.isEmpty) {
       return RuleCheck.notApplicable(
           'No literal signingCertHashes (see AEG-P03)');
+    }
+    if (unread) {
+      return RuleCheck.notApplicable(
+          'signingCertHashes has values aegis cannot evaluate');
     }
     final out = <Finding>[];
     final apkHashes = apk.certificates.map((c) => c.sha256Base64).toList();
